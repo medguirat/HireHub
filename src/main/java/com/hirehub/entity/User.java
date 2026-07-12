@@ -1,5 +1,6 @@
 package com.hirehub.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,8 +26,10 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(nullable = false)
     private String password;
+
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
