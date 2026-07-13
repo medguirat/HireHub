@@ -1,5 +1,6 @@
 package com.hirehub.controller;
 
+import com.hirehub.dto.UserRequestDto;
 import com.hirehub.dto.UserResponseDto;
 import com.hirehub.entity.User;
 import com.hirehub.service.UserService;
@@ -33,7 +34,7 @@ public class UserController {
 
 
     @PostMapping
-    public UserResponseDto createUser(@RequestBody User user) {
+    public UserResponseDto createUser(@RequestBody UserRequestDto user) {
         return userService.createUser(user);
     }
 

@@ -1,5 +1,6 @@
 package com.hirehub.service;
 
+import com.hirehub.dto.UserRequestDto;
 import com.hirehub.dto.UserResponseDto;
 import com.hirehub.entity.User;
 import com.hirehub.repository.UserRepository;
@@ -48,10 +49,18 @@ public class UserService {
     }
 
 
-    public UserResponseDto createUser(User user) {
+    public UserResponseDto createUser(UserRequestDto userRequestDto) {
+        User user = User.builder()
+                .firstName(userRequestDto.getFirstName())
+                .lastName(userRequestDto.getLastName())
+                .email(userRequestDto.getEmail())
+                .password(userRequestDto.getPassword())
+                .role(userRequestDto.getRole())
+                .build();
+
+
         User savedUser = userRepository.save(user);
         return UserResponseDto.builder()
-                .id (savedUser.getId())
                 .firstName(savedUser.getFirstName())
                 .lastName(savedUser.getLastName())
                 .email(savedUser.getEmail())
