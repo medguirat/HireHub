@@ -1,5 +1,6 @@
 package com.hirehub.controller;
 
+import com.hirehub.dto.JobOfferResponseDto;
 import com.hirehub.entity.JobOffer;
 import com.hirehub.service.JobOfferService;
 import org.springframework.web.bind.annotation.*;
@@ -17,17 +18,17 @@ public class JobOfferController {
     }
 
     @GetMapping
-    public List<JobOffer> getAllJobOffers() {
+    public List<JobOfferResponseDto> getAllJobOffers() {
         return jobOfferService.getAllJobOffers();
     }
 
     @GetMapping("/{id}")
-    public JobOffer getJobOfferById(@PathVariable Long id) {
+    public JobOfferResponseDto getJobOfferById(@PathVariable Long id) {
         return jobOfferService.getJobOfferById(id);
     }
 
     @PostMapping
-    public JobOffer createJobOffer (@RequestBody JobOffer jobOffer){
+    public JobOfferResponseDto createJobOffer (@RequestBody JobOffer jobOffer){
         return jobOfferService.createJobOffer(jobOffer);
     }
 
@@ -37,7 +38,7 @@ public class JobOfferController {
     }
 
     @PutMapping("/{id}")
-    public JobOffer updateJobOffer (@PathVariable Long id , @RequestBody JobOffer jobOffer ){
+    public JobOfferResponseDto updateJobOffer (@PathVariable Long id , @RequestBody JobOffer jobOffer ){
         return jobOfferService.updateJobOffer(id , jobOffer);
     }
 

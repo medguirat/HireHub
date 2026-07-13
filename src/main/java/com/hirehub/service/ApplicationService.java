@@ -1,5 +1,6 @@
 package com.hirehub.service;
 
+import com.hirehub.dto.ApplicationResponseDto;
 import com.hirehub.entity.*;
 import com.hirehub.exception.ResourceNotFoundException;
 import com.hirehub.repository.ApplicationRepository;
@@ -27,16 +28,39 @@ public class ApplicationService {
 
     }
 
-    public List<Application> getAllApplications (){
-        return applicationRepository.findAll();
+    public List<ApplicationResponseDto> getAllApplications (){
+        List <Application> applications = applicationRepository.findAll();
+        return applications.stream().map(application -> ApplicationResponseDto.builder()
+                .id(application.getId())
+                .status(application.getStatus())
+                .cv(application.getCv())
+                .coverLetter(application.getCoverLetter())
+                .candidateName(application.getCandidate().getFirstName())
+                .candidateLastName(application.getCandidate().getLastName())
+                .jobOfferTitle(application.getJobOffer().getTitle())
+                .build()
+        ).toList();
     }
 
-    public Application getApplicationById (Long id){
-        return applicationRepository.findById(id)
+
+
+    public ApplicationResponseDto getApplicationById (Long id){
+        Application application = applicationRepository.findById(id)
                 .orElseThrow(()-> new ResourceNotFoundException("Application not found "));
+
+        return ApplicationResponseDto.builder()
+                .id(application.getId())
+                .status(application.getStatus())
+                .cv(application.getCv())
+                .coverLetter(application.getCoverLetter())
+                .candidateName(application.getCandidate().getFirstName())
+                .candidateLastName(application.getCandidate().getLastName())
+                .jobOfferTitle(application.getJobOffer().getTitle())
+                .build();
+
     }
 
-    public Application createApplication (Application app) {
+    public ApplicationResponseDto createApplication (Application app) {
 
         User candidate = userRepository.findById(app.getCandidate().getId())
                 .orElseThrow(() ->
@@ -73,11 +97,19 @@ public class ApplicationService {
         app.setJobOffer(jobOffer);
 
 
-
-        return applicationRepository.save(app);
+        Application application  = applicationRepository.save(app);
+        return ApplicationResponseDto.builder()
+                .id(application.getId())
+                .status(application.getStatus())
+                .cv(application.getCv())
+                .coverLetter(application.getCoverLetter())
+                .candidateName(application.getCandidate().getFirstName())
+                .candidateLastName(application.getCandidate().getLastName())
+                .jobOfferTitle(application.getJobOffer().getTitle())
+                .build();
     }
 
-    public Application updateApplicationStatus (Long id , Application app ){
+    public ApplicationResponseDto updateApplicationStatus (Long id , Application app ){
         Application existingApp = applicationRepository.findById(id)
                 .orElseThrow(()-> new ResourceNotFoundException("Application not found"));
 
@@ -99,7 +131,19 @@ public class ApplicationService {
 
         existingApp.setStatus(app.getStatus());
 
-        return applicationRepository.save(existingApp);
+        Application application = applicationRepository.save(existingApp);
+        return ApplicationResponseDto.builder()
+                .id(application.getId())
+                .status(application.getStatus())
+                .cv(application.getCv())
+                .coverLetter(application.getCoverLetter())
+                .candidateName(application.getCandidate().getFirstName())
+                .candidateLastName(application.getCandidate().getLastName())
+                .jobOfferTitle(application.getJobOffer().getTitle())
+                .build();
+
+
+
     }
 
 

@@ -1,5 +1,6 @@
 package com.hirehub.service;
 
+import com.hirehub.dto.JobOfferResponseDto;
 import com.hirehub.exception.BadRequestException;
 import com.hirehub.exception.ResourceNotFoundException;
 import com.hirehub.repository.JobOfferRepository;
@@ -18,20 +19,43 @@ public class JobOfferService {
         this.jobOfferRepository = jobOfferRepository;
     }
 
-    public List<JobOffer> getAllJobOffers() {
+    public List<JobOfferResponseDto> getAllJobOffers() {
 
-        return jobOfferRepository.findAll();
+        List <JobOffer> jobOffers = jobOfferRepository.findAll();
+        return jobOffers.stream().map(jobOffer -> JobOfferResponseDto.builder()
+                .id(jobOffer.getId())
+                .title(jobOffer.getTitle())
+                .description(jobOffer.getDescription())
+                .location(jobOffer.getLocation())
+                .contractType(jobOffer.getContractType())
+                .publicationDate(jobOffer.getPublicationDate())
+                .deadline(jobOffer.getDeadline())
+                .recruiterName(jobOffer.getRecruiter().getFirstName())
+                .recruiterLastName(jobOffer.getRecruiter().getLastName())
+                .build()
+        ).toList();
     }
 
-    public JobOffer getJobOfferById(Long id) {
-
-        return jobOfferRepository.findById(id)
+    public JobOfferResponseDto getJobOfferById(Long id) {
+        JobOffer jobOffer = jobOfferRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Job offer not found"));
 
+        return JobOfferResponseDto.builder()
+                .id(jobOffer.getId())
+                .title(jobOffer.getTitle())
+                .description(jobOffer.getDescription())
+                .location(jobOffer.getLocation())
+                .contractType(jobOffer.getContractType())
+                .publicationDate(jobOffer.getPublicationDate())
+                .deadline(jobOffer.getDeadline())
+                .recruiterName(jobOffer.getRecruiter().getFirstName())
+                .recruiterLastName(jobOffer.getRecruiter().getLastName())
+                .build();
+
     }
 
-    public JobOffer createJobOffer(JobOffer jobOffer) {
+    public JobOfferResponseDto createJobOffer(JobOffer jobOffer) {
 
         if (jobOffer.getDeadline() == null) {
                 throw new BadRequestException("Application deadline is required ");
@@ -43,7 +67,21 @@ public class JobOfferService {
 
         jobOffer.setPublicationDate(LocalDate.now());
 
-        return jobOfferRepository.save(jobOffer);
+        JobOffer savedJobOffer = jobOfferRepository.save(jobOffer);
+
+        return JobOfferResponseDto.builder()
+                .id(savedJobOffer.getId())
+                .title(savedJobOffer.getTitle())
+                .description(savedJobOffer.getDescription())
+                .location(savedJobOffer.getLocation())
+                .contractType(savedJobOffer.getContractType())
+                .publicationDate(savedJobOffer.getPublicationDate())
+                .deadline(savedJobOffer.getDeadline())
+                .recruiterName(savedJobOffer.getRecruiter().getFirstName())
+                .recruiterLastName(savedJobOffer.getRecruiter().getLastName())
+                .build();
+
+
     }
 
     public void deleteJobOffer(Long id) {
@@ -52,7 +90,7 @@ public class JobOfferService {
 
     }
 
-    public JobOffer updateJobOffer (Long id, JobOffer updateJobOffer) {
+    public JobOfferResponseDto updateJobOffer (Long id, JobOffer updateJobOffer) {
         JobOffer existingJobOffer = jobOfferRepository.findById(id)
                 .orElseThrow(()-> new ResourceNotFoundException("Job offer not found"));
 
@@ -62,7 +100,20 @@ public class JobOfferService {
         existingJobOffer.setContractType(updateJobOffer.getContractType());
         existingJobOffer.setDeadline(updateJobOffer.getDeadline());
 
-        return jobOfferRepository.save(existingJobOffer);
+        JobOffer jobOffer = jobOfferRepository.save(existingJobOffer);
+
+        return JobOfferResponseDto.builder()
+                .id(jobOffer.getId())
+                .title(jobOffer.getTitle())
+                .description(jobOffer.getDescription())
+                .location(jobOffer.getLocation())
+                .contractType(jobOffer.getContractType())
+                .publicationDate(jobOffer.getPublicationDate())
+                .deadline(jobOffer.getDeadline())
+                .recruiterName(jobOffer.getRecruiter().getFirstName())
+                .recruiterLastName(jobOffer.getRecruiter().getLastName())
+                .build();
+
     }
 
 }

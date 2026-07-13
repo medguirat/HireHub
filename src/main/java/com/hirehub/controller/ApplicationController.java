@@ -1,5 +1,6 @@
 package com.hirehub.controller;
 
+import com.hirehub.dto.ApplicationResponseDto;
 import com.hirehub.entity.Application;
 import com.hirehub.service.ApplicationService;
 import org.springframework.web.bind.annotation.*;
@@ -17,17 +18,17 @@ public class ApplicationController {
     }
 
     @GetMapping
-    public List<Application> getAllApplications (){
+    public List<ApplicationResponseDto> getAllApplications (){
         return applicationService.getAllApplications();
     }
 
     @GetMapping("/{id}")
-    public Application getApplicationById (@PathVariable Long id){
+    public ApplicationResponseDto getApplicationById (@PathVariable Long id){
         return applicationService.getApplicationById(id);
     }
 
     @PostMapping
-    public Application createApplication (@RequestBody Application app){
+    public ApplicationResponseDto createApplication (@RequestBody Application app){
         return applicationService.createApplication(app);
     }
 
@@ -37,7 +38,7 @@ public class ApplicationController {
     }
 
     @PatchMapping("/{id}/status")
-    public Application updateStatus (@PathVariable Long id , @RequestBody Application app ){
+    public ApplicationResponseDto updateStatus (@PathVariable Long id , @RequestBody Application app ){
         return applicationService.updateApplicationStatus(id, app);
     }
 }

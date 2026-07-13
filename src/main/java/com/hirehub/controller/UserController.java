@@ -1,5 +1,6 @@
 package com.hirehub.controller;
 
+import com.hirehub.dto.UserResponseDto;
 import com.hirehub.entity.User;
 import com.hirehub.service.UserService;
 import org.springframework.web.bind.annotation.*;
@@ -20,19 +21,19 @@ public class UserController {
 
 
     @GetMapping
-    public List<User> getAllUsers() {
+    public List<UserResponseDto> getAllUsers() {
         return userService.getAllUsers();
     }
 
 
     @GetMapping("/{id}")
-    public User getUserById(@PathVariable Long id) {
+    public UserResponseDto getUserById(@PathVariable Long id) {
         return userService.getUserById(id);
     }
 
 
     @PostMapping
-    public User createUser(@RequestBody User user) {
+    public UserResponseDto createUser(@RequestBody User user) {
         return userService.createUser(user);
     }
 
