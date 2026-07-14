@@ -4,6 +4,7 @@ import com.hirehub.dto.UserRequestDto;
 import com.hirehub.dto.UserResponseDto;
 import com.hirehub.entity.User;
 import com.hirehub.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -12,10 +13,13 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
 
@@ -54,13 +58,14 @@ public class UserService {
                 .firstName(userRequestDto.getFirstName())
                 .lastName(userRequestDto.getLastName())
                 .email(userRequestDto.getEmail())
-                .password(userRequestDto.getPassword())
+                .password(passwordEncoder.encode(userRequestDto.getPassword()))
                 .role(userRequestDto.getRole())
                 .build();
 
 
         User savedUser = userRepository.save(user);
         return UserResponseDto.builder()
+                .id(savedUser.getId())
                 .firstName(savedUser.getFirstName())
                 .lastName(savedUser.getLastName())
                 .email(savedUser.getEmail())

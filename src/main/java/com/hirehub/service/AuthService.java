@@ -2,6 +2,7 @@ package com.hirehub.service;
 
 import com.hirehub.dto.LoginRequestDto;
 import com.hirehub.dto.LoginResponseDto;
+import com.hirehub.security.JwtService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -10,12 +11,14 @@ import org.springframework.stereotype.Service;
 public class AuthService {
 
     private final AuthenticationManager authenticationManager;
+    private final JwtService jwtService;
 
-    public AuthService(AuthenticationManager authenticationManager){
+    public AuthService(AuthenticationManager authenticationManager, JwtService jwtService){
         this.authenticationManager=authenticationManager;
+        this.jwtService = jwtService;
     }
 
-    private LoginResponseDto login (LoginRequestDto request ){
+    public LoginResponseDto login (LoginRequestDto request ){
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
@@ -23,7 +26,7 @@ public class AuthService {
                 )
         );
         return LoginResponseDto.builder()
-                .token("TEMP_TOKEN")
+                .token(jwtService.generateToken(request.getEmail()))
                 .build();
     }
 }
