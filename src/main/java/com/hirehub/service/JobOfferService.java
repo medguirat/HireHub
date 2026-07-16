@@ -5,6 +5,8 @@ import com.hirehub.exception.BadRequestException;
 import com.hirehub.exception.ResourceNotFoundException;
 import com.hirehub.repository.JobOfferRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -19,10 +21,10 @@ public class JobOfferService {
         this.jobOfferRepository = jobOfferRepository;
     }
 
-    public List<JobOfferResponseDto> getAllJobOffers() {
+    public Page<JobOfferResponseDto> getAllJobOffers(Pageable pageable) {
 
-        List <JobOffer> jobOffers = jobOfferRepository.findAll();
-        return jobOffers.stream().map(jobOffer -> JobOfferResponseDto.builder()
+        Page<JobOffer> jobOffers = jobOfferRepository.findAll(pageable);
+        return jobOffers.map(jobOffer -> JobOfferResponseDto.builder()
                 .id(jobOffer.getId())
                 .title(jobOffer.getTitle())
                 .description(jobOffer.getDescription())
@@ -33,9 +35,8 @@ public class JobOfferService {
                 .recruiterName(jobOffer.getRecruiter().getFirstName())
                 .recruiterLastName(jobOffer.getRecruiter().getLastName())
                 .build()
-        ).toList();
+        );
     }
-
     public JobOfferResponseDto getJobOfferById(Long id) {
         JobOffer jobOffer = jobOfferRepository.findById(id)
                 .orElseThrow(() ->
