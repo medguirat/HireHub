@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 import com.hirehub.entity.JobOffer;
+import com.hirehub.entity.ContractType;
 
 @Service
 public class JobOfferService {
@@ -53,6 +54,24 @@ public class JobOfferService {
                 .recruiterLastName(jobOffer.getRecruiter().getLastName())
                 .build();
 
+    }
+
+    public List<JobOfferResponseDto> searchJobOffers(String title, String location, ContractType contractType) {
+
+        List<JobOffer> jobOffers = jobOfferRepository.searchJobOffers(title, location, contractType);
+
+        return jobOffers.stream().map(jobOffer -> JobOfferResponseDto.builder()
+                .id(jobOffer.getId())
+                .title(jobOffer.getTitle())
+                .description(jobOffer.getDescription())
+                .location(jobOffer.getLocation())
+                .contractType(jobOffer.getContractType())
+                .publicationDate(jobOffer.getPublicationDate())
+                .deadline(jobOffer.getDeadline())
+                .recruiterName(jobOffer.getRecruiter().getFirstName())
+                .recruiterLastName(jobOffer.getRecruiter().getLastName())
+                .build()
+        ).toList();
     }
 
     public JobOfferResponseDto createJobOffer(JobOffer jobOffer) {
