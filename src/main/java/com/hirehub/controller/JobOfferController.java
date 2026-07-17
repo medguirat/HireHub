@@ -4,8 +4,8 @@ import com.hirehub.dto.JobOfferResponseDto;
 import com.hirehub.entity.JobOffer;
 import com.hirehub.service.JobOfferService;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @RestController
 @RequestMapping("/api/joboffers")
@@ -18,8 +18,8 @@ public class JobOfferController {
     }
 
     @GetMapping
-    public List<JobOfferResponseDto> getAllJobOffers() {
-        return jobOfferService.getAllJobOffers();
+    public Page<JobOfferResponseDto> getAllJobOffers(Pageable pageable) {
+        return jobOfferService.getAllJobOffers(pageable);
     }
 
     @GetMapping("/{id}")
