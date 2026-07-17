@@ -2,28 +2,53 @@ package com.hirehub.security;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
+
 import org.springframework.stereotype.Service;
 
+import java.security.Key;
 import java.util.Date;
 
 @Service
 public class JwtService {
 
-    private final String SECRET_KEY =
-            "bXlfc3VwZXJfc2VjcmV0X2tleV9mb3JfaGl" ;
+    private static final String SECRET_KEY =
+            "VGhpc0lzQVN1cGVyU2VjcmV0S2V5Rm9ySldUSFMjNTZBbmRJdE11c3RCZUF0TGVhc3QyNTZCaXRz";
 
-    public String generateToken (String email){
+
+    private Key getSigningKey(){
+
+        byte[] keyBytes =
+                Decoders.BASE64.decode(SECRET_KEY);
+
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+
+    public String generateToken(String email){
 
         return Jwts.builder()
                 .setSubject(email)
                 .setIssuedAt(new Date())
                 .setExpiration(
-                        new Date(System.currentTimeMillis() + 1000 *60*60)
+                        new Date(System.currentTimeMillis() + 1000 * 60 * 60)
                 )
                 .signWith(
-                        SignatureAlgorithm.HS256,
-                        SECRET_KEY
+                        getSigningKey(),
+                        SignatureAlgorithm.HS256
                 )
                 .compact();
+    }
+
+
+    public String extractUsername(String token){
+
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
     }
 }
