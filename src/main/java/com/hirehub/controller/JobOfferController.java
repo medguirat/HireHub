@@ -2,6 +2,7 @@ package com.hirehub.controller;
 
 import com.hirehub.dto.JobOfferResponseDto;
 import com.hirehub.entity.JobOffer;
+import com.hirehub.entity.ContractType;
 import com.hirehub.service.JobOfferService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
@@ -30,6 +31,15 @@ public class JobOfferController {
     @PostMapping
     public JobOfferResponseDto createJobOffer (@RequestBody JobOffer jobOffer){
         return jobOfferService.createJobOffer(jobOffer);
+    }
+
+    @GetMapping("/search")
+    public List<JobOfferResponseDto> searchJobOffers(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) ContractType contractType
+    ) {
+        return jobOfferService.searchJobOffers(title, location, contractType);
     }
 
     @DeleteMapping("/{id}")
