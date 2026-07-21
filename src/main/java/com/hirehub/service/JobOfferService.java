@@ -3,6 +3,7 @@ package com.hirehub.service;
 import com.hirehub.dto.JobOfferResponseDto;
 import com.hirehub.exception.BadRequestException;
 import com.hirehub.exception.ResourceNotFoundException;
+import com.hirehub.mapper.JobOfferMapper;
 import com.hirehub.repository.JobOfferRepository;
 import org.springframework.stereotype.Service;
 
@@ -14,26 +15,21 @@ import com.hirehub.entity.JobOffer;
 public class JobOfferService {
 
     private final JobOfferRepository jobOfferRepository;
+    private final JobOfferMapper jobOfferMapper;
 
-    public JobOfferService(JobOfferRepository jobOfferRepository) {
+    public JobOfferService(JobOfferRepository jobOfferRepository,
+                           JobOfferMapper jobOfferMapper) {
+
         this.jobOfferRepository = jobOfferRepository;
+        this.jobOfferMapper= jobOfferMapper;
     }
 
     public List<JobOfferResponseDto> getAllJobOffers() {
 
-        List <JobOffer> jobOffers = jobOfferRepository.findAll();
-        return jobOffers.stream().map(jobOffer -> JobOfferResponseDto.builder()
-                .id(jobOffer.getId())
-                .title(jobOffer.getTitle())
-                .description(jobOffer.getDescription())
-                .location(jobOffer.getLocation())
-                .contractType(jobOffer.getContractType())
-                .publicationDate(jobOffer.getPublicationDate())
-                .deadline(jobOffer.getDeadline())
-                .recruiterName(jobOffer.getRecruiter().getFirstName())
-                .recruiterLastName(jobOffer.getRecruiter().getLastName())
-                .build()
-        ).toList();
+        return jobOfferRepository.findAll()
+                .stream()
+                .map(jobOfferMapper :: toResponseDto)
+                .toList();
     }
 
     public JobOfferResponseDto getJobOfferById(Long id) {
@@ -41,17 +37,7 @@ public class JobOfferService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Job offer not found"));
 
-        return JobOfferResponseDto.builder()
-                .id(jobOffer.getId())
-                .title(jobOffer.getTitle())
-                .description(jobOffer.getDescription())
-                .location(jobOffer.getLocation())
-                .contractType(jobOffer.getContractType())
-                .publicationDate(jobOffer.getPublicationDate())
-                .deadline(jobOffer.getDeadline())
-                .recruiterName(jobOffer.getRecruiter().getFirstName())
-                .recruiterLastName(jobOffer.getRecruiter().getLastName())
-                .build();
+        return jobOfferMapper.toResponseDto(jobOffer);
 
     }
 

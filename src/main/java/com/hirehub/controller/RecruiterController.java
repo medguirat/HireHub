@@ -1,8 +1,12 @@
 package com.hirehub.controller;
 
+import com.hirehub.dto.JobOfferRequestDto;
+import com.hirehub.dto.JobOfferResponseDto;
 import com.hirehub.entity.JobOffer;
 import com.hirehub.entity.Role;
 import com.hirehub.entity.User;
+import com.hirehub.exception.BadRequestException;
+import com.hirehub.exception.ResourceNotFoundException;
 import com.hirehub.repository.UserRepository;
 import com.hirehub.service.RecruiterService;
 import org.springframework.http.ResponseEntity;
@@ -25,39 +29,33 @@ public class RecruiterController {
         this.userRepository= userRepository;
     }
 
+    private User getAuthenticatedRecruiter(UserDetails userDetails){
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(()-> new ResourceNotFoundException("Recruiter not found"));
+
+        if (user.getRole() != Role.RECRUITER){
+            throw new BadRequestException("Only recruiters can perform this action");
+        }
+
+        return user;
+    }
+
     @PostMapping("/offers")
-    public JobOffer createOffer(
+    public JobOfferResponseDto createOffer(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody JobOffer jobOffer
+            @RequestBody JobOfferRequestDto dto
     ){
 
-        if (userDetails == null){
-            throw new RuntimeException("User not authenticated");
-        }
-
-        User recruiter = userRepository.findByEmail(
-                userDetails.getUsername()
-                )
-                .orElseThrow(()-> new RuntimeException(" Recruiter not found"));
-
-
-        if(recruiter.getRole() != Role.RECRUITER){
-            throw new RuntimeException("Only recruiters can create offers");
-        }
-
-        jobOffer.setRecruiter(recruiter);
-
-        return recruiterService.createOffer(jobOffer);
+        User recruiter = getAuthenticatedRecruiter(userDetails);
+        return recruiterService.createOffer(dto,recruiter);
     }
 
     @GetMapping("/offers")
-    public List<JobOffer> getMyOffers(
+    public List<JobOfferResponseDto> getMyOffers(
                 @AuthenticationPrincipal UserDetails userDetails
         ){
 
-        User recruiter = userRepository.findByEmail(
-                userDetails.getUsername()
-        ).orElseThrow(() -> new RuntimeException("Recruiter not found "));
+        User recruiter = getAuthenticatedRecruiter(userDetails);
 
         if(recruiter.getRole() != Role.RECRUITER){
             throw new RuntimeException(
@@ -69,25 +67,14 @@ public class RecruiterController {
     }
 
     @PutMapping("/offers/{offerId}")
-    public JobOffer updateOffer (
+    public JobOfferResponseDto updateOffer (
             @PathVariable Long offerId,
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody JobOffer jobOffer
+            @RequestBody JobOfferRequestDto dto
     ){
-        if (userDetails == null ){
-            throw new RuntimeException(("User not authenticated"));
-        }
-        User recruiter = userRepository.findByEmail(
-                userDetails.getUsername()
-        ).orElseThrow(()->new RuntimeException("Recruiter not found"));
 
-        if(recruiter.getRole() != Role.RECRUITER){
-            throw new RuntimeException(
-                    "Only recruiters can update offers"
-            );
-        }
-
-        return recruiterService.updateOffer(offerId,jobOffer, recruiter.getId());
+        User recruiter = getAuthenticatedRecruiter((userDetails));
+        return recruiterService.updateOffer(offerId,dto, recruiter.getId());
     }
 
     @DeleteMapping("/offers/{offerId}")
