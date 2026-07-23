@@ -9,12 +9,14 @@ import com.hirehub.exception.BadRequestException;
 import com.hirehub.exception.ResourceNotFoundException;
 import com.hirehub.repository.UserRepository;
 import com.hirehub.service.RecruiterService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/api/recruiters")
@@ -28,6 +30,7 @@ public class RecruiterController {
         this.recruiterService = recruiterService;
         this.userRepository= userRepository;
     }
+
 
     private User getAuthenticatedRecruiter(UserDetails userDetails){
         User user = userRepository.findByEmail(userDetails.getUsername())
@@ -43,7 +46,7 @@ public class RecruiterController {
     @PostMapping("/offers")
     public JobOfferResponseDto createOffer(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody JobOfferRequestDto dto
+            @Valid @RequestBody JobOfferRequestDto dto
     ){
 
         User recruiter = getAuthenticatedRecruiter(userDetails);
@@ -57,20 +60,23 @@ public class RecruiterController {
 
         User recruiter = getAuthenticatedRecruiter(userDetails);
 
-        if(recruiter.getRole() != Role.RECRUITER){
-            throw new RuntimeException(
-                    "Only recruiters can see offers"
-            );
-        }
-
         return recruiterService.getRecruiterOffers(recruiter.getId());
     }
+
+
+    @GetMapping("/offers/{id}")
+    public JobOfferResponseDto getMyOfferById (@PathVariable Long id,
+                                               @AuthenticationPrincipal UserDetails userDetails){
+        User recruiter = getAuthenticatedRecruiter(userDetails);
+        return recruiterService.getRecruiterOfferById(id, recruiter.getId());
+    }
+
 
     @PutMapping("/offers/{offerId}")
     public JobOfferResponseDto updateOffer (
             @PathVariable Long offerId,
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody JobOfferRequestDto dto
+            @Valid @RequestBody JobOfferRequestDto dto
     ){
 
         User recruiter = getAuthenticatedRecruiter((userDetails));
@@ -89,14 +95,15 @@ public class RecruiterController {
         User recruiter = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow();
 
-        if(recruiter.getRole() != Role.RECRUITER){
-            throw new RuntimeException(
-                    "Only recruiters can modify offers"
-            );
-        }
 
         recruiterService.deleteOffer(offerId, recruiter.getId());
 
         return ResponseEntity.ok("Offer deleted successfully");
+    }
+
+
+    @GetMapping("/api/test")
+    public String test(Authentication authentication) {
+        return "Connecté : " + authentication.getName();
     }
 }

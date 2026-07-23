@@ -1,31 +1,30 @@
 package com.hirehub.dto;
 
 import com.hirehub.entity.ContractType;
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDate;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+
+@Data
 public class JobOfferRequestDto {
 
-    @NotBlank
+    @NotBlank (message = "Title is required ")
     private String title;
 
-    @NotBlank
+    @NotBlank (message = "Description is required")
     private String description;
 
-    @NotBlank
+    @NotBlank (message = "Location is required")
     private String location;
 
-    @NotNull
+    @NotNull (message = "Contract type is required ")
     private ContractType contractType;
 
-    @NotNull
+    @NotNull (message="Deadline is required")
+    @Future (message = "Deadline must be in the future ")
     private LocalDate deadline;
 }

@@ -35,15 +35,32 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf.disable())
+
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
                 .authorizeHttpRequests(auth -> auth
+
+                        // Login / register
                         .requestMatchers("/api/auth/**").permitAll()
+
+                        // Création initiale des utilisateurs
+                        .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
+
+                        // Lecture publique des offres
                         .requestMatchers(HttpMethod.GET, "/api/joboffers/**").permitAll()
+
+                        // Routes protégées
                         .requestMatchers("/api/recruiters/**").authenticated()
                         .requestMatchers("/api/applications/**").authenticated()
+
+                        // Tout le reste protégé
                         .anyRequest().authenticated()
                 )
+
+                .authenticationProvider(authenticationProvider())
+
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class

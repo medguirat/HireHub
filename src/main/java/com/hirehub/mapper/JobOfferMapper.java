@@ -18,4 +18,5 @@ public interface JobOfferMapper {
     @Mapping(target ="publicationDate", ignore = true)
     @Mapping(target="recruiter", ignore = true)
     JobOffer toEntity(JobOfferRequestDto dto);
+
 }

@@ -33,6 +33,17 @@ public class RecruiterService {
                 .toList();
     }
 
+    public JobOfferResponseDto getRecruiterOfferById (Long offerId, Long recruiterId){
+        JobOffer offer = jobOfferRepository.findById(offerId)
+                .orElseThrow(()->new ResourceNotFoundException("Job offer not found"));
+
+        if (!offer.getRecruiter().getId().equals(recruiterId)){
+            throw new BadRequestException("You are not allowed to access this offer");
+        }
+
+        return jobOfferMapper.toResponseDto(offer);
+    }
+
     public JobOfferResponseDto createOffer(JobOfferRequestDto dto,
                                            User recruiter){
 
@@ -77,10 +88,10 @@ public class RecruiterService {
 
     public void deleteOffer (Long offerId , Long recruiterId){
         JobOffer offer = jobOfferRepository.findById(offerId)
-                .orElseThrow(()-> new RuntimeException("Offer not found"));
+                .orElseThrow(()-> new ResourceNotFoundException("Offer not found"));
 
         if (!offer.getRecruiter().getId().equals(recruiterId)){
-            throw new RuntimeException("You cannot delete this offer");
+            throw new BadRequestException("You cannot delete this offer");
         }
 
         jobOfferRepository.delete(offer);

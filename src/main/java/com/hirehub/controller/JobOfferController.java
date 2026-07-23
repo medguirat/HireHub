@@ -17,11 +17,13 @@ public class JobOfferController {
     private final JobOfferService jobOfferService;
 
     public JobOfferController(JobOfferService jobOfferService) {
+
         this.jobOfferService = jobOfferService;
     }
 
     @GetMapping
     public List<JobOfferResponseDto> getAllJobOffers() {
+
         return jobOfferService.getAllJobOffers();
     }
 
