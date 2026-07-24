@@ -1,5 +1,6 @@
 package com.hirehub.service;
 
+import com.hirehub.dto.UserResponseDto;
 import com.hirehub.entity.User;
 import com.hirehub.exception.ResourceNotFoundException;
 import com.hirehub.repository.UserRepository;
@@ -14,18 +15,34 @@ public class CandidateService {
         this.userRepository = userRepository;
     }
 
-    public User getProfile(Long candidateId) {
-        return userRepository.findById(candidateId)
+    public UserResponseDto getProfile(Long candidateId) {
+        User candidate = userRepository.findById(candidateId)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate not found"));
+
+        return UserResponseDto.builder()
+                .id(candidate.getId())
+                .firstName(candidate.getFirstName())
+                .lastName(candidate.getLastName())
+                .email(candidate.getEmail())
+                .role(candidate.getRole())
+                .build();
     }
 
-    public User updateProfile(Long candidateId, User updatedData) {
+    public UserResponseDto updateProfile(Long candidateId, User updatedData) {
         User existingCandidate = userRepository.findById(candidateId)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate not found"));
 
         existingCandidate.setFirstName(updatedData.getFirstName());
         existingCandidate.setLastName(updatedData.getLastName());
 
-        return userRepository.save(existingCandidate);
+        User savedCandidate = userRepository.save(existingCandidate);
+
+        return UserResponseDto.builder()
+                .id(savedCandidate.getId())
+                .firstName(savedCandidate.getFirstName())
+                .lastName(savedCandidate.getLastName())
+                .email(savedCandidate.getEmail())
+                .role(savedCandidate.getRole())
+                .build();
     }
 }

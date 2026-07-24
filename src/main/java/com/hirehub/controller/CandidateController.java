@@ -1,9 +1,11 @@
 package com.hirehub.controller;
 
 import com.hirehub.dto.ApplicationResponseDto;
+import com.hirehub.dto.UserResponseDto;
 import com.hirehub.entity.Application;
 import com.hirehub.entity.Role;
 import com.hirehub.entity.User;
+import com.hirehub.exception.BadRequestException;
 import com.hirehub.repository.UserRepository;
 import com.hirehub.service.ApplicationService;
 import com.hirehub.service.CandidateService;
@@ -31,28 +33,28 @@ public class CandidateController {
 
     private User getAuthenticatedCandidate(UserDetails userDetails) {
         if (userDetails == null) {
-            throw new RuntimeException("User not authenticated");
+            throw new BadRequestException("User not authenticated");
         }
 
         User candidate = userRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("Candidate not found"));
+                .orElseThrow(() -> new BadRequestException("Candidate not found"));
 
         if (candidate.getRole() != Role.CANDIDATE) {
-            throw new RuntimeException("Only candidates can access this");
+            throw new BadRequestException("Only candidates can access this");
         }
 
         return candidate;
     }
 
     @GetMapping("/me")
-    public User getMyProfile(@AuthenticationPrincipal UserDetails userDetails) {
+    public UserResponseDto getMyProfile(@AuthenticationPrincipal UserDetails userDetails) {
         User candidate = getAuthenticatedCandidate(userDetails);
         return candidateService.getProfile(candidate.getId());
     }
 
     @PutMapping("/me")
-    public User updateMyProfile(@AuthenticationPrincipal UserDetails userDetails,
-                                @RequestBody User updatedData) {
+    public UserResponseDto updateMyProfile(@AuthenticationPrincipal UserDetails userDetails,
+                                           @RequestBody User updatedData) {
         User candidate = getAuthenticatedCandidate(userDetails);
         return candidateService.updateProfile(candidate.getId(), updatedData);
     }
