@@ -1,6 +1,7 @@
 package com.hirehub.service;
 
 import com.hirehub.entity.User;
+import com.hirehub.exception.ResourceNotFoundException;
 import com.hirehub.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
@@ -13,8 +14,18 @@ public class CandidateService {
         this.userRepository = userRepository;
     }
 
-    public User getCandidateProfile(Long candidateId) {
+    public User getProfile(Long candidateId) {
         return userRepository.findById(candidateId)
-                .orElseThrow(() -> new RuntimeException("Candidate not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Candidate not found"));
+    }
+
+    public User updateProfile(Long candidateId, User updatedData) {
+        User existingCandidate = userRepository.findById(candidateId)
+                .orElseThrow(() -> new ResourceNotFoundException("Candidate not found"));
+
+        existingCandidate.setFirstName(updatedData.getFirstName());
+        existingCandidate.setLastName(updatedData.getLastName());
+
+        return userRepository.save(existingCandidate);
     }
 }

@@ -3,6 +3,7 @@ package com.hirehub.service;
 import com.hirehub.dto.ApplicationResponseDto;
 import com.hirehub.entity.*;
 import com.hirehub.exception.ResourceNotFoundException;
+import com.hirehub.mapper.ApplicationMapper;
 import com.hirehub.repository.ApplicationRepository;
 import com.hirehub.repository.JobOfferRepository;
 import com.hirehub.repository.UserRepository;
@@ -17,47 +18,32 @@ public class ApplicationService {
     private final ApplicationRepository applicationRepository;
     private final UserRepository userRepository;
     private final JobOfferRepository jobOfferRepository;
+    private final ApplicationMapper applicationMapper;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               UserRepository userRepository,
-                              JobOfferRepository jobOfferRepository) {
+                              JobOfferRepository jobOfferRepository,
+                              ApplicationMapper applicationMapper) {
 
         this.applicationRepository = applicationRepository;
         this.userRepository = userRepository;
         this.jobOfferRepository = jobOfferRepository;
+        this.applicationMapper = applicationMapper;
 
     }
 
     public List<ApplicationResponseDto> getAllApplications (){
-        List <Application> applications = applicationRepository.findAll();
-        return applications.stream().map(application -> ApplicationResponseDto.builder()
-                .id(application.getId())
-                .status(application.getStatus())
-                .cv(application.getCv())
-                .coverLetter(application.getCoverLetter())
-                .candidateName(application.getCandidate().getFirstName())
-                .candidateLastName(application.getCandidate().getLastName())
-                .jobOfferTitle(application.getJobOffer().getTitle())
-                .build()
-        ).toList();
+        List<Application> applications = applicationRepository.findAll();
+        return applications.stream()
+                .map(applicationMapper::toDto)
+                .toList();
     }
-
-
 
     public ApplicationResponseDto getApplicationById (Long id){
         Application application = applicationRepository.findById(id)
                 .orElseThrow(()-> new ResourceNotFoundException("Application not found "));
 
-        return ApplicationResponseDto.builder()
-                .id(application.getId())
-                .status(application.getStatus())
-                .cv(application.getCv())
-                .coverLetter(application.getCoverLetter())
-                .candidateName(application.getCandidate().getFirstName())
-                .candidateLastName(application.getCandidate().getLastName())
-                .jobOfferTitle(application.getJobOffer().getTitle())
-                .build();
-
+        return applicationMapper.toDto(application);
     }
 
     public ApplicationResponseDto createApplication (Application app) {
@@ -89,24 +75,14 @@ public class ApplicationService {
             );
         }
 
-
-
         app.setStatus(ApplicationStatus.PENDING);
         app.setApplicationDate(LocalDate.now());
         app.setCandidate(candidate);
         app.setJobOffer(jobOffer);
 
+        Application application = applicationRepository.save(app);
 
-        Application application  = applicationRepository.save(app);
-        return ApplicationResponseDto.builder()
-                .id(application.getId())
-                .status(application.getStatus())
-                .cv(application.getCv())
-                .coverLetter(application.getCoverLetter())
-                .candidateName(application.getCandidate().getFirstName())
-                .candidateLastName(application.getCandidate().getLastName())
-                .jobOfferTitle(application.getJobOffer().getTitle())
-                .build();
+        return applicationMapper.toDto(application);
     }
 
     public ApplicationResponseDto updateApplicationStatus (Long id , Application app ){
@@ -132,25 +108,22 @@ public class ApplicationService {
         existingApp.setStatus(app.getStatus());
 
         Application application = applicationRepository.save(existingApp);
-        return ApplicationResponseDto.builder()
-                .id(application.getId())
-                .status(application.getStatus())
-                .cv(application.getCv())
-                .coverLetter(application.getCoverLetter())
-                .candidateName(application.getCandidate().getFirstName())
-                .candidateLastName(application.getCandidate().getLastName())
-                .jobOfferTitle(application.getJobOffer().getTitle())
-                .build();
 
-
-
+        return applicationMapper.toDto(application);
     }
-
 
     public void deleteApplication (Long id){
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Application not found."));
         applicationRepository.delete(application);
+    }
+
+    public List<ApplicationResponseDto> getApplicationsByCandidateId(Long candidateId) {
+        List<Application> applications = applicationRepository.findByCandidateId(candidateId);
+
+        return applications.stream()
+                .map(applicationMapper::toDto)
+                .toList();
     }
 }
