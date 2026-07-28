@@ -18,5 +18,11 @@ public class UserResponseDto {
 
     private String email;
 
-    private Role role ;
+    private Role role;
+
+    // Rempli uniquement si role == CANDIDATE, sinon null
+    private CandidateProfileEmbeddedDto candidateProfile;
+
+    // Rempli uniquement si role == RECRUITER, sinon null
+    private RecruiterProfileEmbeddedDto recruiterProfile;
 }
