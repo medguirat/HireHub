@@ -46,22 +46,16 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                        // Login / register
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // Création initiale des utilisateurs
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
 
-                        // Lecture publique des offres
                         .requestMatchers(HttpMethod.GET, "/api/joboffers/**").permitAll()
 
-                        // Routes protégées
                         .requestMatchers("/api/recruiters/**").authenticated()
                         .requestMatchers("/api/candidates/**").authenticated()
                         .requestMatchers("/api/applications/**").authenticated()
 
-                        // Tout le reste protégé
                         .anyRequest().authenticated()
                 )
 

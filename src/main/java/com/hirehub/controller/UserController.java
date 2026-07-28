@@ -38,10 +38,7 @@ public class UserController {
         return userService.getUserById(id);
     }
 
-    /**
-     * Profil de base de l'utilisateur authentifié (tous rôles confondus).
-     * Pour le détail métier : /api/candidates/me ou /api/recruiters/profile.
-     */
+
     @GetMapping("/me")
     public UserResponseDto getMyProfile(@AuthenticationPrincipal UserDetails userDetails) {
         User user = currentUserProvider.getAuthenticatedUser(userDetails);
@@ -63,7 +60,9 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    public void deleteUser(@PathVariable Long id) {
-        userService.deleteUser(id);
+    public void deleteUser(@PathVariable Long id,
+                           @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = currentUserProvider.getAuthenticatedUser(userDetails);
+        userService.deleteUser(id, currentUser);
     }
 }

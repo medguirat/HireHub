@@ -28,7 +28,6 @@ public class Experience {
     @Column(nullable = false)
     private LocalDate startDate;
 
-    // null = poste actuel (toujours en cours)
     private LocalDate endDate;
 
     @ManyToOne

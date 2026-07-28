@@ -8,6 +8,7 @@ import com.hirehub.entity.CandidateProfile;
 import com.hirehub.entity.RecruiterProfile;
 import com.hirehub.entity.Role;
 import com.hirehub.entity.User;
+import com.hirehub.exception.BadRequestException;
 import com.hirehub.repository.CandidateProfileRepository;
 import com.hirehub.repository.RecruiterProfileRepository;
 import com.hirehub.repository.UserRepository;
@@ -27,17 +28,20 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final CandidateProfileRepository candidateProfileRepository;
     private final RecruiterProfileRepository recruiterProfileRepository;
+    private final EmailService emailService;
 
     public AuthService(AuthenticationManager authenticationManager, JwtService jwtService,
                        UserRepository userRepository, PasswordEncoder passwordEncoder,
                        CandidateProfileRepository candidateProfileRepository,
-                       RecruiterProfileRepository recruiterProfileRepository) {
+                       RecruiterProfileRepository recruiterProfileRepository,
+                       EmailService emailService) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.candidateProfileRepository = candidateProfileRepository;
         this.recruiterProfileRepository = recruiterProfileRepository;
+        this.emailService = emailService;
     }
 
     public LoginResponseDto login(LoginRequestDto request) {
@@ -55,6 +59,10 @@ public class AuthService {
     @Transactional
     public UserResponseDto register(UserRequestDto request) {
 
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new BadRequestException("An account with this email already exists.");
+        }
+
         User user = User.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
@@ -65,8 +73,7 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
 
-        // Le profil est créé vide automatiquement : le GET /me renvoie toujours
-        // quelque chose, et l'utilisateur le complète ensuite via PUT /me.
+
         if (savedUser.getRole() == Role.CANDIDATE) {
             CandidateProfile profile = CandidateProfile.builder()
                     .user(savedUser)
@@ -78,6 +85,8 @@ public class AuthService {
                     .build();
             recruiterProfileRepository.save(profile);
         }
+
+        emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getFirstName(), savedUser.getRole().name());
 
         return UserResponseDto.builder()
                 .id(savedUser.getId())

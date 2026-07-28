@@ -1,11 +1,14 @@
 package com.hirehub.controller;
 
+import com.hirehub.dto.ApplicationRequestDto;
 import com.hirehub.dto.ApplicationResponseDto;
+import com.hirehub.dto.ApplicationStatusUpdateDto;
 import com.hirehub.dto.PageResponseDto;
-import com.hirehub.entity.Application;
+import com.hirehub.entity.Role;
 import com.hirehub.entity.User;
 import com.hirehub.security.CurrentUserProvider;
 import com.hirehub.service.ApplicationService;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -42,10 +45,10 @@ public class ApplicationController {
     }
 
     @PostMapping
-    public ApplicationResponseDto createApplication(@RequestBody Application app,
+    public ApplicationResponseDto createApplication(@Valid @RequestBody ApplicationRequestDto dto,
                                                     @AuthenticationPrincipal UserDetails userDetails) {
-        User user = currentUserProvider.getAuthenticatedUser(userDetails);
-        return applicationService.createApplication(app, user);
+        User candidate = currentUserProvider.requireRole(userDetails, Role.CANDIDATE);
+        return applicationService.createApplication(dto, candidate);
     }
 
     @DeleteMapping("/{id}")
@@ -57,9 +60,9 @@ public class ApplicationController {
 
     @PatchMapping("/{id}/status")
     public ApplicationResponseDto updateStatus(@PathVariable Long id,
-                                               @RequestBody Application app,
+                                               @Valid @RequestBody ApplicationStatusUpdateDto dto,
                                                @AuthenticationPrincipal UserDetails userDetails) {
-        User user = currentUserProvider.getAuthenticatedUser(userDetails);
-        return applicationService.updateApplicationStatus(id, app, user);
+        User recruiter = currentUserProvider.requireRole(userDetails, Role.RECRUITER);
+        return applicationService.updateApplicationStatus(id, dto, recruiter);
     }
 }

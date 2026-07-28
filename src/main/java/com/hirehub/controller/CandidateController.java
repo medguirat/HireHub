@@ -27,7 +27,6 @@ public class CandidateController {
         this.currentUserProvider = currentUserProvider;
     }
 
-    // Offres visibles par un candidat connecté, avec statut "déjà postulé"
     @GetMapping("/offers")
     public PageResponseDto<JobOfferWithStatusDto> browseOffers(
             @AuthenticationPrincipal UserDetails userDetails,

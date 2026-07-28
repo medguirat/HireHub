@@ -22,9 +22,7 @@ public class CurrentUserProvider {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
-    /**
-     * Récupère l'utilisateur authentifié et vérifie qu'il possède bien le rôle attendu.
-     */
+
     public User requireRole(UserDetails userDetails, Role expectedRole) {
         User user = getAuthenticatedUser(userDetails);
 

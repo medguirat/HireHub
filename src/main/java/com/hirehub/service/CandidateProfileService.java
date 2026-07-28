@@ -55,11 +55,7 @@ public class CandidateProfileService {
         return toDto(profile);
     }
 
-    /**
-     * PUT en remplacement complet : skills et experiences sont recréées à chaque appel.
-     * Simple et prévisible pour un v1 ; on pourra ajouter des endpoints granulaires
-     * (POST/DELETE par expérience) plus tard si besoin.
-     */
+
     @Transactional
     public CandidateProfileResponseDto updateMyProfile(User currentUser, CandidateProfileRequestDto dto) {
         CandidateProfile profile = candidateProfileRepository.findById(currentUser.getId())

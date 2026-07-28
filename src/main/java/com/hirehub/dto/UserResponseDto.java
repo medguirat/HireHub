@@ -20,9 +20,7 @@ public class UserResponseDto {
 
     private Role role;
 
-    // Rempli uniquement si role == CANDIDATE, sinon null
     private CandidateProfileEmbeddedDto candidateProfile;
 
-    // Rempli uniquement si role == RECRUITER, sinon null
     private RecruiterProfileEmbeddedDto recruiterProfile;
 }

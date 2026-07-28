@@ -1,6 +1,8 @@
 package com.hirehub.service;
 
+import com.hirehub.dto.ApplicationRequestDto;
 import com.hirehub.dto.ApplicationResponseDto;
+import com.hirehub.dto.ApplicationStatusUpdateDto;
 import com.hirehub.entity.*;
 import com.hirehub.exception.BadRequestException;
 import com.hirehub.exception.ResourceNotFoundException;
@@ -28,7 +30,6 @@ public class ApplicationService {
         this.jobOfferRepository = jobOfferRepository;
     }
 
-    // ---------- mapping ----------
 
     private ApplicationResponseDto toDto(Application application) {
         return ApplicationResponseDto.builder()
@@ -42,7 +43,6 @@ public class ApplicationService {
                 .build();
     }
 
-    // ---------- authorization helpers ----------
 
     private boolean isOwnerCandidate(Application app, User user) {
         return app.getCandidate().getId().equals(user.getId());
@@ -52,12 +52,8 @@ public class ApplicationService {
         return app.getJobOffer().getRecruiter().getId().equals(user.getId());
     }
 
-    // ---------- use cases ----------
 
-    /**
-     * Un candidat ne voit que ses propres candidatures.
-     * Un recruteur ne voit que les candidatures reçues sur ses offres.
-     */
+
     public Page<ApplicationResponseDto> getAllApplications(User currentUser, Pageable pageable) {
         Page<Application> applications;
 
@@ -83,20 +79,12 @@ public class ApplicationService {
         return toDto(application);
     }
 
-    public ApplicationResponseDto createApplication(Application app, User currentUser) {
-
-        if (currentUser.getRole() != Role.CANDIDATE) {
-            throw new BadRequestException("Only candidates can apply for job offers.");
-        }
+    public ApplicationResponseDto createApplication(ApplicationRequestDto dto, User currentUser) {
 
         User candidate = userRepository.findById(currentUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate not found."));
 
-        if (app.getJobOffer() == null || app.getJobOffer().getId() == null) {
-            throw new BadRequestException("Job offer id is required.");
-        }
-
-        JobOffer jobOffer = jobOfferRepository.findById(app.getJobOffer().getId())
+        JobOffer jobOffer = jobOfferRepository.findById(dto.getJobOfferId())
                 .orElseThrow(() -> new ResourceNotFoundException("Job offer not found."));
 
         if (jobOffer.getDeadline().isBefore(LocalDate.now())) {
@@ -107,13 +95,38 @@ public class ApplicationService {
             throw new BadRequestException("You have already applied for this job offer.");
         }
 
-        app.setId(null);
-        app.setStatus(ApplicationStatus.PENDING);
-        app.setApplicationDate(LocalDate.now());
-        app.setCandidate(candidate);
-        app.setJobOffer(jobOffer);
+        Application app = Application.builder()
+                .cv(dto.getCv())
+                .coverLetter(dto.getCoverLetter())
+                .status(ApplicationStatus.PENDING)
+                .applicationDate(LocalDate.now())
+                .candidate(candidate)
+                .jobOffer(jobOffer)
+                .build();
 
         Application saved = applicationRepository.save(app);
+        return toDto(saved);
+    }
+
+    public ApplicationResponseDto updateApplicationStatus(Long id, ApplicationStatusUpdateDto dto, User currentUser) {
+        Application existingApp = applicationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+
+        if (currentUser.getRole() != Role.RECRUITER || !isOwnerRecruiter(existingApp, currentUser)) {
+            throw new BadRequestException("You are not allowed to update this application.");
+        }
+
+        if (dto.getStatus() == ApplicationStatus.PENDING) {
+            throw new BadRequestException("Application cannot be set back to PENDING.");
+        }
+
+        if (existingApp.getStatus() != ApplicationStatus.PENDING) {
+            throw new BadRequestException("Application has already been processed.");
+        }
+
+        existingApp.setStatus(dto.getStatus());
+
+        Application saved = applicationRepository.save(existingApp);
         return toDto(saved);
     }
 

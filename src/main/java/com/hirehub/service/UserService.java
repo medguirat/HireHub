@@ -5,6 +5,7 @@ import com.hirehub.entity.CandidateProfile;
 import com.hirehub.entity.RecruiterProfile;
 import com.hirehub.entity.Role;
 import com.hirehub.entity.User;
+import com.hirehub.exception.BadRequestException;
 import com.hirehub.exception.ResourceNotFoundException;
 import com.hirehub.repository.CandidateProfileRepository;
 import com.hirehub.repository.RecruiterProfileRepository;
@@ -114,6 +115,11 @@ public class UserService {
 
     @Transactional
     public UserResponseDto createUser(UserRequestDto userRequestDto) {
+
+        if (userRepository.existsByEmail(userRequestDto.getEmail())) {
+            throw new BadRequestException("An account with this email already exists.");
+        }
+
         User user = User.builder()
                 .firstName(userRequestDto.getFirstName())
                 .lastName(userRequestDto.getLastName())
@@ -137,7 +143,15 @@ public class UserService {
         return toDto(savedUser);
     }
 
-    public void deleteUser(Long id) {
+    public void deleteUser(Long id, User currentUser) {
+        if (!currentUser.getId().equals(id)) {
+            throw new BadRequestException("You can only delete your own account.");
+        }
+
+        if (!userRepository.existsById(id)) {
+            throw new ResourceNotFoundException("User not found");
+        }
+
         userRepository.deleteById(id);
     }
 }

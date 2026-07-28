@@ -24,6 +24,5 @@ public class ExperienceDto {
     @NotNull(message = "Start date is required")
     private LocalDate startDate;
 
-    // null = poste actuel
     private LocalDate endDate;
 }

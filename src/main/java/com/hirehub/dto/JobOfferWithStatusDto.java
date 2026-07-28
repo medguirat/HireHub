@@ -22,7 +22,6 @@ public class JobOfferWithStatusDto {
     private String recruiterName;
     private String recruiterLastName;
 
-    // Contexte propre au candidat connecté
     private boolean alreadyApplied;
     private boolean expired;
 }
