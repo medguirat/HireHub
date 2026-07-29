@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+
 @Configuration
 public class SecurityConfig {
 
@@ -34,6 +35,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
+                .cors(cors -> {})
+
                 .csrf(csrf -> csrf.disable())
 
                 .sessionManagement(session ->
@@ -42,20 +45,17 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Login / register
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // Création initiale des utilisateurs
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
 
-                        // Lecture publique des offres
                         .requestMatchers(HttpMethod.GET, "/api/joboffers/**").permitAll()
 
-                        // Routes protégées
                         .requestMatchers("/api/recruiters/**").authenticated()
+                        .requestMatchers("/api/candidates/**").authenticated()
                         .requestMatchers("/api/applications/**").authenticated()
 
-                        // Tout le reste protégé
                         .anyRequest().authenticated()
                 )
 

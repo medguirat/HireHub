@@ -18,5 +18,9 @@ public class UserResponseDto {
 
     private String email;
 
-    private Role role ;
+    private Role role;
+
+    private CandidateProfileEmbeddedDto candidateProfile;
+
+    private RecruiterProfileEmbeddedDto recruiterProfile;
 }

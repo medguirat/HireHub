@@ -8,10 +8,11 @@ import com.hirehub.exception.BadRequestException;
 import com.hirehub.exception.ResourceNotFoundException;
 import com.hirehub.mapper.JobOfferMapper;
 import com.hirehub.repository.JobOfferRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Service
 public class RecruiterService {
@@ -19,35 +20,31 @@ public class RecruiterService {
     private final JobOfferRepository jobOfferRepository;
     private final JobOfferMapper jobOfferMapper;
 
-    public RecruiterService (JobOfferRepository jobOfferRepository,
-                             JobOfferMapper jobOfferMapper){
-
-        this.jobOfferRepository=jobOfferRepository;
-        this.jobOfferMapper=jobOfferMapper;
+    public RecruiterService(JobOfferRepository jobOfferRepository,
+                            JobOfferMapper jobOfferMapper) {
+        this.jobOfferRepository = jobOfferRepository;
+        this.jobOfferMapper = jobOfferMapper;
     }
 
-    public List<JobOfferResponseDto> getRecruiterOffers (Long recruiterId){
-        return jobOfferRepository.findByRecruiterId(recruiterId)
-                .stream().
-                map(jobOfferMapper::toResponseDto)
-                .toList();
+    public Page<JobOfferResponseDto> getRecruiterOffers(Long recruiterId, Pageable pageable) {
+        return jobOfferRepository.findByRecruiterId(recruiterId, pageable)
+                .map(jobOfferMapper::toResponseDto);
     }
 
-    public JobOfferResponseDto getRecruiterOfferById (Long offerId, Long recruiterId){
+    public JobOfferResponseDto getRecruiterOfferById(Long offerId, Long recruiterId) {
         JobOffer offer = jobOfferRepository.findById(offerId)
-                .orElseThrow(()->new ResourceNotFoundException("Job offer not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Job offer not found"));
 
-        if (!offer.getRecruiter().getId().equals(recruiterId)){
+        if (!offer.getRecruiter().getId().equals(recruiterId)) {
             throw new BadRequestException("You are not allowed to access this offer");
         }
 
         return jobOfferMapper.toResponseDto(offer);
     }
 
-    public JobOfferResponseDto createOffer(JobOfferRequestDto dto,
-                                           User recruiter){
+    public JobOfferResponseDto createOffer(JobOfferRequestDto dto, User recruiter) {
 
-        if (dto.getDeadline().isBefore(LocalDate.now())){
+        if (dto.getDeadline().isBefore(LocalDate.now())) {
             throw new BadRequestException("Application deadline must be in the future");
         }
 
@@ -59,19 +56,16 @@ public class RecruiterService {
         return jobOfferMapper.toResponseDto(savedJobOffer);
     }
 
-    public JobOfferResponseDto updateOffer ( Long offerId,
-                                             JobOfferRequestDto dto,
-                                             Long recruiterId){
+    public JobOfferResponseDto updateOffer(Long offerId, JobOfferRequestDto dto, Long recruiterId) {
         JobOffer existingOffer = jobOfferRepository.findById(offerId)
-                .orElseThrow(()-> new ResourceNotFoundException("Offer not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Offer not found"));
 
-        if (!existingOffer.getRecruiter().getId().equals(recruiterId)){
-            throw new BadRequestException("You cannot modifiy this offer ");
-
+        if (!existingOffer.getRecruiter().getId().equals(recruiterId)) {
+            throw new BadRequestException("You cannot modify this offer");
         }
 
-        if (dto.getDeadline().isBefore(LocalDate.now())){
-            throw new BadRequestException("Application deadline must be in the future ");
+        if (dto.getDeadline().isBefore(LocalDate.now())) {
+            throw new BadRequestException("Application deadline must be in the future");
         }
 
         existingOffer.setTitle(dto.getTitle());
@@ -82,19 +76,16 @@ public class RecruiterService {
 
         JobOffer updated = jobOfferRepository.save(existingOffer);
         return jobOfferMapper.toResponseDto(updated);
-
-
     }
 
-    public void deleteOffer (Long offerId , Long recruiterId){
+    public void deleteOffer(Long offerId, Long recruiterId) {
         JobOffer offer = jobOfferRepository.findById(offerId)
-                .orElseThrow(()-> new ResourceNotFoundException("Offer not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Offer not found"));
 
-        if (!offer.getRecruiter().getId().equals(recruiterId)){
+        if (!offer.getRecruiter().getId().equals(recruiterId)) {
             throw new BadRequestException("You cannot delete this offer");
         }
 
         jobOfferRepository.delete(offer);
     }
 }
-
