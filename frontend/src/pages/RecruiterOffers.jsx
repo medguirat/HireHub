@@ -50,7 +50,8 @@ export default function RecruiterOffers() {
     });
   };
 
-  // Sort offers by closest deadline
+
+//A9rab deadline
   const sortedOffers = [...offers].sort((a, b) => {
     if (!a.deadline) return 1;
     if (!b.deadline) return -1;
@@ -95,10 +96,10 @@ export default function RecruiterOffers() {
               <p className="offer-desc">{offer.description}</p>
               <div className="offer-meta-info">
                 <div className="meta-item">
-                  <span>📍</span> {offer.location}
+                  Location: {offer.location}
                 </div>
                 <div className="meta-item">
-                  <span>⏰</span> Deadline: {formatDate(offer.deadline)}
+                  Deadline: {formatDate(offer.deadline)}
                 </div>
               </div>
               <div className="offer-actions" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>

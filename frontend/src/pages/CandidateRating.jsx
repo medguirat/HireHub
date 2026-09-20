@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useOutletContext } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import AlertModal from "../components/AlertModal";
 
@@ -11,8 +11,13 @@ export default function CandidateRating() {
   const [errorMsg, setErrorMsg] = useState("");
   const [showAlert, setShowAlert] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const { user } = useOutletContext();
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [interviewDate, setInterviewDate] = useState("");
+  const [invitationLetter, setInvitationLetter] = useState("");
+  const [scheduling, setScheduling] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
   
-  // Rating states (1-5 stars)
   const [ratings, setRatings] = useState({
     techSkills: 3,
     experience: 3,
@@ -20,7 +25,6 @@ export default function CandidateRating() {
     culturalFit: 3
   });
 
-  // Checkboxes
   const [checks, setChecks] = useState({
     hasDegree: false,
     passedTest: false,
@@ -32,7 +36,6 @@ export default function CandidateRating() {
   const [interviewType, setInterviewType] = useState("REMOTE");
   const [isAccepted, setIsAccepted] = useState(false);
 
-  // Load candidate evaluation details
   useEffect(() => {
     loadCandidateDetails();
   }, [id]);
@@ -44,7 +47,6 @@ export default function CandidateRating() {
       setApp(data);
       setIsAccepted(data.status === "ACCEPTED");
 
-      // Load saved evaluation from localStorage if it exists
       const savedEval = localStorage.getItem(`evaluation_app_${id}`);
       if (savedEval) {
         const parsed = JSON.parse(savedEval);
@@ -62,14 +64,10 @@ export default function CandidateRating() {
     }
   };
 
-  // Calculate score whenever inputs change
   useEffect(() => {
-    // Stars average out of 5
     const avgStars = (ratings.techSkills + ratings.experience + ratings.communication + ratings.culturalFit) / 4;
-    // Checkbox bonus: +1 point each
     const bonus = (checks.hasDegree ? 1 : 0) + (checks.passedTest ? 1 : 0) + (checks.availableNow ? 1 : 0);
     
-    // Scale stars to 17 and add 3 bonus points to make 20 max
     const calculated = (avgStars / 5) * 17 + bonus;
     setFinalScore(parseFloat(calculated.toFixed(1)));
   }, [ratings, checks]);
@@ -98,14 +96,115 @@ export default function CandidateRating() {
   };
 
   const handleStatusChange = async (status) => {
+    if (status === "ACCEPTED") {
+      handleAcceptClick();
+      return;
+    }
+
+    if (!window.confirm("Are you sure you want to reject this candidate?")) {
+      return;
+    }
+
     try {
       await recruiterService.updateApplicationStatus(id, status);
-      setIsAccepted(status === "ACCEPTED");
+      setIsAccepted(false);
       loadCandidateDetails();
+      setSuccessMsg("Candidate has been rejected.");
+      setShowSuccess(true);
     } catch (err) {
       console.error(err);
       setErrorMsg(err.response?.data?.message || err.response?.data || "Failed to update candidate status.");
       setShowAlert(true);
+    }
+  };
+
+  const handleAcceptClick = () => {
+    const candidateName = `${app.candidateName} ${app.candidateLastName}`;
+    const jobTitle = app.jobOfferTitle;
+    const companyName = user?.recruiterProfile?.companyName || "our company";
+    const recruiterName = `${user?.firstName} ${user?.lastName}`;
+    
+    const defaultDate = new Date();
+    defaultDate.setDate(defaultDate.getDate() + 3);
+    defaultDate.setHours(10, 0, 0, 0);
+    const dateString = defaultDate.getFullYear() + "-" + 
+      String(defaultDate.getMonth()+1).padStart(2, '0') + "-" + 
+      String(defaultDate.getDate()).padStart(2, '0') + "T" + 
+      String(defaultDate.getHours()).padStart(2, '0') + ":" + 
+      String(defaultDate.getMinutes()).padStart(2, '0');
+    
+    setInterviewDate(dateString);
+
+    const formattedDate = defaultDate.toLocaleString();
+    const initialText = 
+      `Dear ${candidateName},\n\n` +
+      `We are pleased to invite you for an interview regarding the ${jobTitle} position.\n\n` +
+      `Details of the interview:\n` +
+      `Date & Time: ${formattedDate}\n` +
+      `Company: ${companyName}\n` +
+      `Contact: ${recruiterName}\n\n` +
+      `Best regards,\n` +
+      `The Recruitment Team\n` +
+      `${companyName}`;
+
+    setInvitationLetter(initialText);
+    setShowScheduleModal(true);
+  };
+
+  const handleDateChange = (newDateVal) => {
+    setInterviewDate(newDateVal);
+    if (!newDateVal) return;
+
+    try {
+      const parsedDate = new Date(newDateVal);
+      const formattedDate = parsedDate.toLocaleString();
+      const candidateName = `${app.candidateName} ${app.candidateLastName}`;
+      const jobTitle = app.jobOfferTitle;
+      const companyName = user?.recruiterProfile?.companyName || "our company";
+      const recruiterName = `${user?.firstName} ${user?.lastName}`;
+
+      const updatedText = 
+        `Dear ${candidateName},\n\n` +
+        `We are pleased to invite you for an interview regarding the ${jobTitle} position.\n\n` +
+        `Details of the interview:\n` +
+        `Date & Time: ${formattedDate}\n` +
+        `Company: ${companyName}\n` +
+        `Contact: ${recruiterName}\n\n` +
+        `Best regards,\n` +
+        `The Recruitment Team\n` +
+        `${companyName}`;
+      
+      setInvitationLetter(updatedText);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleConfirmSchedule = async () => {
+    if (!interviewDate) {
+      setErrorMsg("Interview date and time are required.");
+      setShowAlert(true);
+      return;
+    }
+
+    setScheduling(true);
+    try {
+      await recruiterService.updateApplicationStatus(id, {
+        status: "ACCEPTED",
+        interviewDate: interviewDate,
+        interviewLetter: invitationLetter
+      });
+      setIsAccepted(true);
+      setShowScheduleModal(false);
+      loadCandidateDetails();
+      setSuccessMsg("Candidate accepted and interview invitation sent successfully.");
+      setShowSuccess(true);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(err.response?.data?.message || err.response?.data || "Failed to update status and schedule interview.");
+      setShowAlert(true);
+    } finally {
+      setScheduling(false);
     }
   };
 
@@ -395,9 +494,61 @@ export default function CandidateRating() {
         isOpen={showSuccess}
         type="success"
         title="Success"
-        message="Evaluation scores and notes saved successfully!"
+        message={successMsg || "Evaluation scores and notes saved successfully!"}
         onClose={() => setShowSuccess(false)}
       />
+
+      {/* Schedule Interview Modal */}
+      {showScheduleModal && app && (
+        <div className="modal-overlay" style={{ zIndex: 110 }}>
+          <div className="modal-content" style={{ color: "var(--text-primary)", maxWidth: "600px" }}>
+            <div className="modal-header">
+              <h2>Schedule Interview & Send Invite</h2>
+              <button className="close-btn" onClick={() => setShowScheduleModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Interview Date & Time *</label>
+                <input 
+                  type="datetime-local" 
+                  value={interviewDate}
+                  onChange={(e) => handleDateChange(e.target.value)}
+                  required
+                  style={{ color: "#fff" }}
+                />
+              </div>
+
+              <div className="form-group" style={{ marginTop: "16px" }}>
+                <label>Invitation Letter Preview (Editable)</label>
+                <textarea 
+                  rows="10" 
+                  value={invitationLetter}
+                  onChange={(e) => setInvitationLetter(e.target.value)}
+                  style={{ 
+                    fontFamily: "inherit", 
+                    fontSize: "0.85rem", 
+                    lineHeight: "1.5", 
+                    backgroundColor: "rgba(0,0,0,0.2)", 
+                    color: "#fff",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "8px",
+                    padding: "12px",
+                    resize: "vertical"
+                  }}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="secondary-btn" onClick={() => setShowScheduleModal(false)} disabled={scheduling}>
+                Cancel
+              </button>
+              <button className="primary-btn" onClick={handleConfirmSchedule} disabled={scheduling}>
+                {scheduling ? "Sending Invite..." : "Confirm & Send Invitation"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

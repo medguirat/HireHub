@@ -5,9 +5,14 @@ import Logo from "./Logo";
 export default function Sidebar() {
   const navigate = useNavigate();
 
+  const storedUser = localStorage.getItem("user");
+  const user = storedUser ? JSON.parse(storedUser) : null;
+  const isRecruiter = user?.role === "RECRUITER";
+
   const handleLogout = () => {
     authService.logout();
-    navigate("/login");
+    window.history.pushState(null, "", "/login");
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -17,41 +22,76 @@ export default function Sidebar() {
       </div>
 
       <div className="sidebar-menu">
-        <NavLink 
-          to="/recruiter-dashboard" 
-          end
-          className={({ isActive }) => `sidebar-item ${isActive ? "active" : ""}`}
-        >
-          Overview
-        </NavLink>
+        {isRecruiter ? (
+          <>
+            <NavLink 
+              to="/recruiter-dashboard" 
+              end
+              className={({ isActive }) => `sidebar-item ${isActive ? "active" : ""}`}
+            >
+              Overview
+            </NavLink>
 
-        <NavLink 
-          to="/recruiter-dashboard/offers" 
-          className={({ isActive }) => `sidebar-item ${isActive ? "active" : ""}`}
-        >
-          My Job Offers
-        </NavLink>
+            <NavLink 
+              to="/recruiter-dashboard/offers" 
+              className={({ isActive }) => `sidebar-item ${isActive ? "active" : ""}`}
+            >
+              My Job Offers
+            </NavLink>
 
-        <NavLink 
-          to="/recruiter-dashboard/applications" 
-          className={({ isActive }) => `sidebar-item ${isActive ? "active" : ""}`}
-        >
-          Applications
-        </NavLink>
+            <NavLink 
+              to="/recruiter-dashboard/applications" 
+              className={({ isActive }) => `sidebar-item ${isActive ? "active" : ""}`}
+            >
+              Applications
+            </NavLink>
 
-        <NavLink 
-          to="/recruiter-dashboard/stats" 
-          className={({ isActive }) => `sidebar-item ${isActive ? "active" : ""}`}
-        >
-          Statistics
-        </NavLink>
+            <NavLink 
+              to="/recruiter-dashboard/stats" 
+              className={({ isActive }) => `sidebar-item ${isActive ? "active" : ""}`}
+            >
+              Statistics
+            </NavLink>
 
-        <NavLink 
-          to="/recruiter-dashboard/profile" 
-          className={({ isActive }) => `sidebar-item ${isActive ? "active" : ""}`}
-        >
-          Profile
-        </NavLink>
+            <NavLink 
+              to="/recruiter-dashboard/profile" 
+              className={({ isActive }) => `sidebar-item ${isActive ? "active" : ""}`}
+            >
+              Profile
+            </NavLink>
+          </>
+        ) : (
+          <>
+            <NavLink 
+              to="/candidate-dashboard" 
+              end
+              className={({ isActive }) => `sidebar-item ${isActive ? "active" : ""}`}
+            >
+              Overview
+            </NavLink>
+
+            <NavLink 
+              to="/candidate-dashboard/offers" 
+              className={({ isActive }) => `sidebar-item ${isActive ? "active" : ""}`}
+            >
+              Browse Offers
+            </NavLink>
+
+            <NavLink 
+              to="/candidate-dashboard/applications" 
+              className={({ isActive }) => `sidebar-item ${isActive ? "active" : ""}`}
+            >
+              My Applications
+            </NavLink>
+
+            <NavLink 
+              to="/candidate-dashboard/profile" 
+              className={({ isActive }) => `sidebar-item ${isActive ? "active" : ""}`}
+            >
+              Profile
+            </NavLink>
+          </>
+        )}
       </div>
 
       <div className="sidebar-footer">

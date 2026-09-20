@@ -1,22 +1,27 @@
 :root {
   --sidebar-width: 260px;
-  --bg-primary: #0a1324;
-  --bg-secondary: #0f1c36;
-  --bg-card: rgba(255, 255, 255, 0.04);
+  --bg-primary: #070b14;
+  --bg-secondary: #0a1020;
+  --bg-card: rgba(19, 43, 100, 0.22);
   --border-color: rgba(255, 255, 255, 0.08);
   --text-primary: #ffffff;
-  --text-secondary: #94a3b8;
-  --color-primary: #3b82f6; /* Blue */
-  --color-success: #10b981; /* Green */
-  --color-danger: #ef4444;  /* Red */
-  --color-warning: #f59e0b; /* Orange/Yellow */
-  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --text-secondary: #8C8E90;
+  --color-primary: #55BDE8;     /* Bleu cyan */
+  --color-success: #69C85B;     /* Vert clair */
+  --color-danger: #E83A30;      /* Rouge */
+  --color-warning: #FBC02D;     /* Jaune / Orange */
+  --color-magenta: #E81B6B;     /* Rose / Magenta */
+  --color-navy: #132B64;        /* Bleu marine */
+  --color-violet: #804B9E;      /* Violet */
+  --font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .recruiter-layout {
   display: flex;
   min-height: 100vh;
-  background-color: var(--bg-primary);
+  background: radial-gradient(circle at 15% 20%, rgba(19, 43, 100, 0.55) 0%, transparent 50%),
+              radial-gradient(circle at 85% 80%, rgba(30, 136, 229, 0.2) 0%, transparent 50%),
+              var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-family);
   overflow-x: hidden;
@@ -25,7 +30,8 @@
 /* Sidebar Styling */
 .recruiter-sidebar {
   width: var(--sidebar-width);
-  background-color: var(--bg-secondary);
+  background: rgba(13, 19, 34, 0.85);
+  backdrop-filter: blur(20px);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
@@ -46,8 +52,8 @@
 }
 
 .sidebar-brand img {
-  transform: scale(1.15); /* Agrandir le logo */
-  filter: brightness(1.1) drop-shadow(0 0 8px rgba(59, 130, 246, 0.2));
+  transform: scale(1.15);
+  filter: brightness(1.1) drop-shadow(0 0 12px rgba(99, 102, 241, 0.3));
   transition: transform 0.3s ease;
 }
 
@@ -67,29 +73,30 @@
   align-items: center;
   gap: 16px;
   padding: 14px 20px;
-  border-radius: 12px;
+  border-radius: 14px;
   color: var(--text-secondary);
   font-weight: 500;
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   background: transparent;
   border: none;
   text-align: left;
   font-size: 0.95rem;
 }
 
-.sidebar-item:hover, .sidebar-item.active {
+.sidebar-item:hover {
   color: var(--text-primary);
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
+  transform: translateX(3px);
 }
 
 .sidebar-item.active {
-  color: #60a5fa;
+  color: #ffffff;
   font-weight: 600;
-  border-left: 3px solid var(--color-primary);
-  border-radius: 0 12px 12px 0;
-  padding-left: 17px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(168, 85, 247, 0.15));
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.15);
 }
 
 .sidebar-footer {
@@ -103,7 +110,8 @@
 }
 
 .logout-btn:hover {
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
 }
 
 /* Main Content Area */
@@ -158,36 +166,29 @@
 }
 
 .stat-card {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 24px;
+  background: rgba(19, 43, 100, 0.22);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  border-color: rgba(59, 130, 246, 0.2);
+  transform: translateY(-4px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
+  border-color: rgba(85, 189, 232, 0.35);
 }
 
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-}
-
-.stat-card.blue::before { background-color: var(--color-primary); }
-.stat-card.green::before { background-color: var(--color-success); }
-.stat-card.orange::before { background-color: var(--color-warning); }
-.stat-card.red::before { background-color: var(--color-danger); }
+.stat-card.blue { border-color: rgba(85, 189, 232, 0.35); }
+.stat-card.green { border-color: rgba(105, 200, 91, 0.35); }
+.stat-card.orange { border-color: rgba(251, 192, 45, 0.35); }
+.stat-card.red { border-color: rgba(232, 58, 48, 0.35); }
+.stat-card.violet { border-color: rgba(128, 75, 158, 0.35); }
 
 .stat-title {
   font-size: 0.88rem;
@@ -206,11 +207,13 @@
 
 /* Tables and Panels */
 .dashboard-panel {
-  background-color: var(--bg-secondary);
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 28px;
   margin-bottom: 32px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 }
 
 .panel-header {
@@ -223,24 +226,27 @@
 .panel-header h2 {
   font-size: 1.25rem;
   margin: 0;
-  font-weight: 600;
+  font-weight: 700;
+  color: #ffffff;
 }
 
 .primary-btn {
-  background-color: var(--color-primary);
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
   color: white;
   border: none;
-  padding: 10px 20px;
-  border-radius: 10px;
+  padding: 10px 22px;
+  border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 0.9rem;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35);
 }
 
 .primary-btn:hover {
-  background-color: #2563eb;
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
 }
 
 .primary-btn:active {
@@ -248,11 +254,11 @@
 }
 
 .secondary-btn {
-  background-color: transparent;
-  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-sub);
   border: 1px solid var(--border-color);
   padding: 10px 20px;
-  border-radius: 10px;
+  border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -260,7 +266,9 @@
 
 .secondary-btn:hover {
   color: var(--text-primary);
-  background-color: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
 }
 
 /* Job Offers Table & Grid */

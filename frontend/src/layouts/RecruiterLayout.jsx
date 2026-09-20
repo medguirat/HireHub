@@ -10,17 +10,21 @@ export default function RecruiterLayout() {
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (!storedUser) {
-      navigate("/login");
+      navigate("/login", { replace: true });
       return;
     }
 
-    const parsedUser = JSON.parse(storedUser);
-    if (parsedUser.role !== "RECRUITER") {
-      navigate("/login"); // Only recruiters allowed
-      return;
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      if (parsedUser.role !== "RECRUITER") {
+        navigate("/login", { replace: true }); 
+        return;
+      }
+      setUser(parsedUser);
+    } catch (e) {
+      localStorage.clear();
+      navigate("/login", { replace: true });
     }
-    
-    setUser(parsedUser);
   }, [navigate]);
 
   if (!user) {
@@ -31,7 +35,6 @@ export default function RecruiterLayout() {
     );
   }
 
-  // Get dynamic company name to replace Corporate Account label
   const companyName = user.recruiterProfile?.companyName || `${user.firstName} ${user.lastName}`;
 
   return (
@@ -41,7 +44,7 @@ export default function RecruiterLayout() {
       <div className="recruiter-content">
         <div className="content-header">
           <div>
-            <h1>Dashboard</h1>
+            <h1>Welcome ! </h1>
             <p>Recruit faster, build stronger teams with HireHub</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
@@ -50,7 +53,7 @@ export default function RecruiterLayout() {
               onClick={() => navigate("/recruiter-dashboard/create-offer")}
               style={{ padding: "8px 16px", fontSize: "0.85rem" }}
             >
-              + Publier une offre
+              + Create a New Job Offer
             </button>
             <div className="user-badge">
               {companyName}
@@ -58,7 +61,7 @@ export default function RecruiterLayout() {
           </div>
         </div>
         
-        {/* Render child route elements */}
+        
         <Outlet context={{ user, setUser }} />
       </div>
     </div>

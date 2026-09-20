@@ -31,3 +31,19 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Node / Frontend ###
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+
+### Environment ###
+.env
+.env.*
+!.env.example
+
+### Python ###
+__pycache__/
+**/__pycache__/
+*.pyc

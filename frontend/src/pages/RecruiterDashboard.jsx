@@ -9,13 +9,11 @@ export default function RecruiterDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [user, setUser] = useState(null);
   
-  // Data State
   const [offers, setOffers] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Offer Forms State
   const [newOffer, setNewOffer] = useState({
     title: "",
     description: "",
@@ -26,7 +24,6 @@ export default function RecruiterDashboard() {
   
   const [editingOffer, setEditingOffer] = useState(null);
 
-  // Load User and Data
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (!storedUser) {
@@ -36,7 +33,7 @@ export default function RecruiterDashboard() {
 
     const parsedUser = JSON.parse(storedUser);
     if (parsedUser.role !== "RECRUITER") {
-      navigate("/login"); // Only recruiters allowed
+      navigate("/login"); 
       return;
     }
     
@@ -61,13 +58,12 @@ export default function RecruiterDashboard() {
     }
   };
 
-  // Create Job Offer Handler
+  
   const handleCreateOffer = async (e) => {
     e.preventDefault();
     setError("");
     try {
       await recruiterService.createOffer(newOffer);
-      // Reset form
       setNewOffer({
         title: "",
         description: "",
@@ -83,7 +79,6 @@ export default function RecruiterDashboard() {
     }
   };
 
-  // Edit Job Offer Handler
   const handleEditClick = (offer) => {
     setEditingOffer({
       id: offer.id,
@@ -116,7 +111,7 @@ export default function RecruiterDashboard() {
     }
   };
 
-  // Delete Job Offer Handler
+ 
   const handleDeleteOffer = async (id) => {
     if (!window.confirm("Are you sure you want to delete this job offer?")) return;
     setError("");

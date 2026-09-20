@@ -69,7 +69,7 @@ export default function OfferApplications() {
               {offer?.contractType || "CDI"}
             </span>
             <span style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-              📍 {offer?.location} | ⏰ Deadline: {new Date(offer?.deadline).toLocaleDateString("fr-FR")}
+              Location: {offer?.location} | Deadline: {new Date(offer?.deadline).toLocaleDateString("fr-FR")}
             </span>
           </div>
 

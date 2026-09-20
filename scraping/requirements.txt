@@ -1,0 +1,5 @@
+requests #yeb3ath les requetes l site web 
+beautifulsoup4 #ya3mal extraction des infos hhtml
+lxml #yanalisi HTML fisa3
+pandas #ya3mal traitement des données
+python-dotenv #ya3mal gestion des variables d'environnement

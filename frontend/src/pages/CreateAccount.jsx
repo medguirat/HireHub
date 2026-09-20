@@ -18,27 +18,21 @@ export default function CreateAccount() {
   });
 
 
+
+
   const handleRegister = async () => {
-
     try {
-
       const response = await api.post(
         "/auth/register",
         form
       );
-
       console.log(response.data);
-
-      navigate("/login");
-
+      navigate("/login", { replace: true });
     } catch(error){
-
- setError(
-   error.response?.data || "Registration failed"
- );
-
-}
-
+      setError(
+        error.response?.data || "Registration failed"
+      );
+    }
   };
 
   return (

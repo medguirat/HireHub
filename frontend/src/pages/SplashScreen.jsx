@@ -9,10 +9,14 @@ export default function SplashScreen() {
   useEffect(() => {
     const timer = setTimeout(() => {
       navigate("/login");
-    }, 5000);
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, [navigate]);
+
+  const handleStart = () => {
+    navigate("/login");
+  };
 
   return (
     <div className="splash-screen">
@@ -26,7 +30,7 @@ export default function SplashScreen() {
           <Logo width={450} />
         </div>
 
-        <button className="story-button" onClick={() => navigate("/login")}>
+        <button className="story-button" onClick={handleStart}>
           Start your own story
         </button>
       </div>

@@ -36,8 +36,14 @@ const recruiterService = {
     return response.data;
   },
 
-  updateApplicationStatus: async (id, status) => {
-    const response = await api.patch(`/applications/${id}/status`, { status });
+  updateApplicationStatus: async (id, statusData) => {
+    const body = typeof statusData === "string" ? { status: statusData } : statusData;
+    const response = await api.patch(`/applications/${id}/status`, body);
+    return response.data;
+  },
+
+  getProfile: async () => {
+    const response = await api.get("/recruiters/profile");
     return response.data;
   },
 
@@ -48,6 +54,17 @@ const recruiterService = {
 
   updateBasicInfo: async (basicInfo) => {
     const response = await api.put("/users/me", basicInfo);
+    return response.data;
+  },
+
+  uploadFile: async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await api.post("/files/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    });
     return response.data;
   }
 };

@@ -13,7 +13,6 @@ export default function Login() {
   const [showAlert, setShowAlert] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Clear inputs on mount (explicitly clean up post-logout cached values)
   useEffect(() => {
     setEmail("");
     setPassword("");
@@ -30,9 +29,11 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(user));
 
       if (user.role === "RECRUITER") {
-        navigate("/recruiter-dashboard");
+        navigate("/recruiter-dashboard", { replace: true });
+      } else if (user.role === "CANDIDATE") {
+        navigate("/candidate-dashboard", { replace: true });
       } else {
-        navigate("/");
+        navigate("/", { replace: true });
       }
     } catch (err) {
       console.error(err);
