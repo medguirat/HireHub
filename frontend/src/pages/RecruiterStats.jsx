@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import recruiterService from "../services/recruiterService";
+import fetchAllPages from "../utils/fetchAllPages";
 import AlertModal from "../components/AlertModal";
 
 export default function RecruiterStats() {
@@ -13,16 +14,6 @@ export default function RecruiterStats() {
   useEffect(() => {
     fetchData();
   }, []);
-
-  // Statistics must cover everything, not just the first page.
-  const fetchAllPages = async (fetchPage) => {
-    const items = [];
-    for (let page = 0; ; page++) {
-      const data = await fetchPage(page, 100);
-      items.push(...(data.content || []));
-      if (page + 1 >= (data.totalPages || 0)) return items;
-    }
-  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -98,15 +89,7 @@ export default function RecruiterStats() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
       {/* Top Header bar */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: "1.75rem", fontWeight: "700", background: "linear-gradient(135deg, #ffffff 0%, #8C8E90 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            Recruitment Analytics & Heatmap
-          </h2>
-          <p style={{ margin: "4px 0 0 0", color: "#8C8E90", fontSize: "0.9rem" }}>
-            Real-time pipeline performance, candidate conversion & contract distribution
-          </p>
-        </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
 
         <div style={{ display: "flex", gap: "8px", background: "rgba(255, 255, 255, 0.04)", padding: "4px", borderRadius: "12px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
           {["3M", "6M", "1Y"].map((tf) => (

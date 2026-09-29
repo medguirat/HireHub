@@ -2,6 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import candidateService from "../services/candidateService";
 import AlertModal from "../components/AlertModal";
+import ApplyModal from "../components/ApplyModal";
+import CvMatchModal from "../components/CvMatchModal";
+import EmptyState from "../components/EmptyState";
+import { SkeletonRows } from "../components/Skeleton";
+import { useToast } from "../components/Toast";
 
 export default function CandidateOverview() {
   const navigate = useNavigate();
@@ -21,18 +26,11 @@ export default function CandidateOverview() {
   // Detail Modal State
   const [selectedOffer, setSelectedOffer] = useState(null);
   const [showApplyModal, setShowApplyModal] = useState(false);
-  const [cvFile, setCvFile] = useState(null);
-  const [coverLetterType, setCoverLetterType] = useState("text"); // "text" or "file"
-  const [coverLetterText, setCoverLetterText] = useState("");
-  const [coverLetterFile, setCoverLetterFile] = useState(null);
-  const [applying, setApplying] = useState(false);
-  
+  const [showMatchModal, setShowMatchModal] = useState(false);
+  const toast = useToast();
+
   // Notification Modal State
   const [activeNotification, setActiveNotification] = useState(null);
-
-  // Success alert
-  const [successMsg, setSuccessMsg] = useState("");
-  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -91,51 +89,13 @@ export default function CandidateOverview() {
     }
   };
 
-  const handleApplyClickFromModal = () => {
-    setCvFile(null);
-    setCoverLetterText("");
-    setCoverLetterFile(null);
-    setCoverLetterType("text");
-    setShowApplyModal(true);
-  };
+  const handleApplyClickFromModal = () => setShowApplyModal(true);
 
-  const submitApplication = async () => {
-    if (!cvFile) {
-      setErrorMsg("Please upload your CV in PDF format.");
-      setShowAlert(true);
-      return;
-    }
-
-    setApplying(true);
-    try {
-      // 1. Upload CV file
-      const cvUploadRes = await candidateService.uploadFile(cvFile);
-      const cvUrl = cvUploadRes.url;
-
-      // 2. Upload Cover Letter file if chosen, or use text
-      let clValue = coverLetterText;
-      if (coverLetterType === "file" && coverLetterFile) {
-        const clUploadRes = await candidateService.uploadFile(coverLetterFile);
-        clValue = clUploadRes.url;
-      }
-
-      // 3. Create application
-      await candidateService.createApplication(cvUrl, clValue, selectedOffer.id);
-      
-      setShowApplyModal(false);
-      setSelectedOffer(null);
-      setSuccessMsg(`Successfully applied for the "${selectedOffer.title}" role.`);
-      setShowSuccessAlert(true);
-
-      // Refresh data
-      fetchData();
-    } catch (err) {
-      console.error(err);
-      setErrorMsg(err.response?.data?.message || err.response?.data || "Failed to submit application.");
-      setShowAlert(true);
-    } finally {
-      setApplying(false);
-    }
+  const handleApplied = (offer) => {
+    setShowApplyModal(false);
+    setSelectedOffer(null);
+    toast(`Your application for "${offer.title}" was sent.`);
+    fetchData();
   };
 
   const defaultLogo = "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3";
@@ -143,9 +103,7 @@ export default function CandidateOverview() {
   return (
     <div className="candidate-overview-dashboard">
       {loading ? (
-        <div className="loading-container" style={{ color: "#94a3b8" }}>
-          <div>Loading overview statistics...</div>
-        </div>
+        <SkeletonRows rows={6} />
       ) : (
         <>
           {/* Notifications Alerts Section */}
@@ -203,16 +161,14 @@ export default function CandidateOverview() {
             {/* Recent Opportunities */}
             <div className="dashboard-panel">
               <div className="panel-header">
-                <h2>Recent Opportunities</h2>
+                <h2>Newest offers</h2>
                 <button className="secondary-btn" onClick={() => navigate("/candidate-dashboard/offers")}>
-                  Search All
+                  All offers
                 </button>
               </div>
 
               {recentOffers.length === 0 ? (
-                <div className="empty-state" style={{ color: "#94a3b8", padding: "40px 0", textAlign: "center" }}>
-                  No recent job offers available at this moment.
-                </div>
+                <EmptyState title="No open offers right now" text="New offers appear here as soon as recruiters publish them." />
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                   {recentOffers.map((offer) => (
@@ -242,7 +198,7 @@ export default function CandidateOverview() {
             {/* Notification History Feed */}
             <div className="dashboard-panel">
               <div className="panel-header">
-                <h2>Activity & History</h2>
+                <h2>Messages</h2>
               </div>
               <div style={{ maxHeight: "300px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "10px", paddingRight: "4px" }}>
                 {notifications.length === 0 ? (
@@ -344,17 +300,8 @@ export default function CandidateOverview() {
               <button className="secondary-btn" onClick={() => setSelectedOffer(null)}>
                 Close
               </button>
-              <button 
-                className="secondary-btn" 
-                onClick={() => navigate("/candidate-dashboard/offers")}
-                style={{
-                  background: "linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))",
-                  border: "1px solid rgba(168, 85, 247, 0.5)",
-                  color: "#c084fc",
-                  fontWeight: "600"
-                }}
-              >
-                ✨ Conformité IA & Détails
+              <button className="secondary-btn" onClick={() => setShowMatchModal(true)}>
+                Check my CV match
               </button>
               {selectedOffer.alreadyApplied ? (
                 <button className="primary-btn" disabled style={{ backgroundColor: "#10b981", cursor: "not-allowed" }}>
@@ -374,79 +321,18 @@ export default function CandidateOverview() {
         </div>
       )}
 
-      {/* Apply Form Modal */}
       {showApplyModal && selectedOffer && (
-        <div className="modal-overlay" style={{ zIndex: 110 }}>
-          <div className="modal-content">
-            <div className="modal-header">
-              <h2>Submit Application</h2>
-              <button className="close-btn" onClick={() => setShowApplyModal(false)}>×</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>CV / Resume (PDF Only) *</label>
-                <input 
-                  type="file" 
-                  accept=".pdf"
-                  onChange={(e) => setCvFile(e.target.files[0])}
-                  required
-                  style={{ color: "#fff" }}
-                />
-                <small style={{ color: "#94a3b8", fontSize: "0.78rem" }}>
-                  Upload a PDF version of your CV.
-                </small>
-              </div>
+        <ApplyModal offer={selectedOffer} onClose={() => setShowApplyModal(false)} onApplied={handleApplied} />
+      )}
 
-              <div className="form-group">
-                <label>Cover Letter Format</label>
-                <div style={{ display: "flex", gap: "16px", marginBottom: "8px" }}>
-                  <label style={{ fontSize: "0.85rem", color: "#fff", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
-                    <input 
-                      type="radio" 
-                      name="clType" 
-                      checked={coverLetterType === "text"} 
-                      onChange={() => setCoverLetterType("text")}
-                    />
-                    Write letter
-                  </label>
-                  <label style={{ fontSize: "0.85rem", color: "#fff", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
-                    <input 
-                      type="radio" 
-                      name="clType" 
-                      checked={coverLetterType === "file"} 
-                      onChange={() => setCoverLetterType("file")}
-                    />
-                    Upload PDF file
-                  </label>
-                </div>
-
-                {coverLetterType === "text" ? (
-                  <textarea 
-                    rows="5" 
-                    placeholder="Introduce yourself and list your motivations..."
-                    value={coverLetterText}
-                    onChange={(e) => setCoverLetterText(e.target.value)}
-                  />
-                ) : (
-                  <input 
-                    type="file" 
-                    accept=".pdf"
-                    onChange={(e) => setCoverLetterFile(e.target.files[0])}
-                    style={{ color: "#fff" }}
-                  />
-                )}
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="secondary-btn" onClick={() => setShowApplyModal(false)} disabled={applying}>
-                Cancel
-              </button>
-              <button className="primary-btn" onClick={submitApplication} disabled={applying}>
-                {applying ? "Submitting..." : "Submit Application"}
-              </button>
-            </div>
-          </div>
-        </div>
+      {showMatchModal && selectedOffer && (
+        <CvMatchModal
+          key={selectedOffer.id}
+          offer={selectedOffer}
+          canApply={!selectedOffer.alreadyApplied && !selectedOffer.expired}
+          onClose={() => setShowMatchModal(false)}
+          onApply={() => { setShowMatchModal(false); setShowApplyModal(true); }}
+        />
       )}
 
       {/* Notification View Modal */}
@@ -498,17 +384,9 @@ export default function CandidateOverview() {
       <AlertModal 
         isOpen={showAlert}
         type="error"
-        title="Dashboard Error"
+        title="Something went wrong"
         message={errorMsg}
         onClose={() => setShowAlert(false)}
-      />
-
-      <AlertModal 
-        isOpen={showSuccessAlert}
-        type="success"
-        title="Success"
-        message={successMsg}
-        onClose={() => setShowSuccessAlert(false)}
       />
     </div>
   );

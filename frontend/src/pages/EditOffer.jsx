@@ -2,15 +2,19 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import AlertModal from "../components/AlertModal";
+import OfferForm, { serverFieldErrors, validateOffer } from "../components/OfferForm";
+import { SkeletonRows } from "../components/Skeleton";
+import { useToast } from "../components/Toast";
 
 export default function EditOffer() {
   const navigate = useNavigate();
+  const toast = useToast();
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
-  const [showAlert, setShowAlert] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  
+  const [serverErrors, setServerErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -36,118 +40,62 @@ export default function EditOffer() {
       });
     } catch (err) {
       console.error(err);
-      setErrorMsg("Failed to load job offer details.");
-      setShowAlert(true);
+      setErrorMsg("This job offer couldn't be loaded.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrorMsg("");
-    try {
-      await recruiterService.updateOffer(id, form);
-      setShowSuccess(true);
-    } catch (err) {
-      console.error(err);
-      setErrorMsg(err.response?.data?.message || err.response?.data || "Failed to update job offer.");
-      setShowAlert(true);
-    }
+  const errors = { ...serverErrors, ...validateOffer(form) };
+
+  const updateForm = (next) => {
+    setServerErrors({});
+    setForm(next);
   };
 
-  const handleSuccessClose = () => {
-    setShowSuccess(false);
-    navigate("/recruiter-dashboard/offers");
+  const handleSubmit = async () => {
+    if (Object.keys(validateOffer(form)).length > 0) return;
+    setSubmitting(true);
+    try {
+      await recruiterService.updateOffer(id, form);
+      toast("Your changes are saved.");
+      navigate("/recruiter-dashboard/offers");
+    } catch (err) {
+      console.error(err);
+      const fieldErrors = serverFieldErrors(err.response?.data);
+      if (Object.keys(fieldErrors).length > 0) {
+        setServerErrors(fieldErrors);
+      } else {
+        setErrorMsg(err.response?.data?.message || "Your changes couldn't be saved. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="dashboard-panel">
-      <h2>Edit Job Offer</h2>
       {loading ? (
-        <div className="loading-container">
-          <div>Loading job offer details...</div>
-        </div>
+        <SkeletonRows rows={5} />
       ) : (
-        <form onSubmit={handleSubmit} className="form-grid" style={{ marginTop: "24px" }}>
-          <div className="form-group form-full-width">
-            <label>Job Title *</label>
-            <input 
-              type="text" 
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              required
-            />
-          </div>
-
-          <div className="form-group form-full-width">
-            <label>Job Description *</label>
-            <textarea 
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Location *</label>
-            <input 
-              type="text" 
-              value={form.location}
-              onChange={(e) => setForm({ ...form, location: e.target.value })}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Contract Type *</label>
-            <select 
-              value={form.contractType}
-              onChange={(e) => setForm({ ...form, contractType: e.target.value })}
-              required
-            >
-              <option value="CDI">CDI</option>
-              <option value="CDD">CDD</option>
-              <option value="STAGE">Stage (Internship)</option>
-              <option value="FREELANCE">Freelance</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Application Deadline *</label>
-            <input 
-              type="date" 
-              value={form.deadline}
-              onChange={(e) => setForm({ ...form, deadline: e.target.value })}
-              required
-            />
-          </div>
-
-          <div className="form-actions form-full-width">
-            <button type="button" className="secondary-btn" onClick={() => navigate("/recruiter-dashboard/offers")}>
-              Cancel
-            </button>
-            <button type="submit" className="primary-btn">
-              Save Changes
-            </button>
-          </div>
-        </form>
+        <OfferForm
+          form={form}
+          setForm={updateForm}
+          errors={errors}
+          submitting={submitting}
+          submitLabel="Save changes"
+          submittingLabel="Saving…"
+          onSubmit={handleSubmit}
+          onCancel={() => navigate("/recruiter-dashboard/offers")}
+        />
       )}
 
-      <AlertModal 
-        isOpen={showAlert}
+      <AlertModal
+        isOpen={!!errorMsg}
         type="error"
-        title="Operation Failed"
+        title="Something went wrong"
         message={errorMsg}
-        onClose={() => setShowAlert(false)}
-      />
-
-      <AlertModal 
-        isOpen={showSuccess}
-        type="success"
-        title="Success"
-        message="Your changes have been saved successfully!"
-        onClose={handleSuccessClose}
+        onClose={() => setErrorMsg("")}
       />
     </div>
   );

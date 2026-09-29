@@ -1,30 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import candidateService from "../services/candidateService";
 import AlertModal from "../components/AlertModal";
+import ApplyModal from "../components/ApplyModal";
 import CvMatchModal from "../components/CvMatchModal";
+import EmptyState from "../components/EmptyState";
+import { SkeletonCards } from "../components/Skeleton";
+import { useToast } from "../components/Toast";
 
-// Keep in sync with the backend's spring.servlet.multipart.max-file-size.
-const MAX_FILE_SIZE_MB = 10;
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-
-/**
- * Client-side file check so a bad file never even reaches the network:
- * wrong extension or over-size fails fast with a clear message instead of
- * waiting on a round trip (and, before Phase 1's backend fix, a confusing
- * generic 500).
- */
-function validateFile(file, allowedExtensions) {
-  if (!file) return null;
-  const name = file.name.toLowerCase();
-  const hasAllowedExtension = allowedExtensions.some((ext) => name.endsWith(ext));
-  if (!hasAllowedExtension) {
-    return `Please choose a ${allowedExtensions.join(" or ")} file.`;
-  }
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    return `This file is ${(file.size / (1024 * 1024)).toFixed(1)} MB — please choose one under ${MAX_FILE_SIZE_MB} MB.`;
-  }
-  return null;
-}
+const EMPTY_FILTERS = { keyword: "", location: "", contractType: "" };
 
 export default function CandidateOffers() {
   const [offers, setOffers] = useState([]);
@@ -33,24 +16,13 @@ export default function CandidateOffers() {
   const [errorMsg, setErrorMsg] = useState("");
   const [showAlert, setShowAlert] = useState(false);
   
-  // Search Filters
-  const [filters, setFilters] = useState({
-    keyword: "",
-    location: "",
-    contractType: ""
-  });
+  // Search filters: what's typed, and what the current results were searched with.
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
+  const latestRequest = useRef(0);
+  const toast = useToast();
 
-  // Application Modal state
   const [showApplyModal, setShowApplyModal] = useState(false);
-  const [cvFile, setCvFile] = useState(null);
-  const [cvFileError, setCvFileError] = useState("");
-  const [coverLetterType, setCoverLetterType] = useState("text"); // "text" or "file"
-  const [coverLetterText, setCoverLetterText] = useState("");
-  const [coverLetterFile, setCoverLetterFile] = useState(null);
-  const [coverLetterFileError, setCoverLetterFileError] = useState("");
-  const [applying, setApplying] = useState(false);
-  const [successMsg, setSuccessMsg] = useState("");
-  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
 
   const [showMatchModal, setShowMatchModal] = useState(false);
 
@@ -60,7 +32,7 @@ export default function CandidateOffers() {
 
   useEffect(() => {
     fetchOffers();
-  }, [page]);
+  }, [page, appliedFilters]);
 
   const handleOpenMatch = (offer) => {
     if (!offer) return;
@@ -68,114 +40,57 @@ export default function CandidateOffers() {
     setShowMatchModal(true);
   };
 
-  const fetchOffers = async (resetPage = false) => {
+  // Only the latest search may update the list: an older, slower response
+  // arriving afterwards must not overwrite newer results.
+  const fetchOffers = async () => {
+    const requestId = ++latestRequest.current;
     setLoading(true);
-    const targetPage = resetPage ? 0 : page;
-    if (resetPage) setPage(0);
-
     try {
       const data = await candidateService.browseOffers({
-        ...filters,
-        page: targetPage,
+        ...appliedFilters,
+        page,
         size: 10
       });
-      setOffers(data.content || []);
+      if (requestId !== latestRequest.current) return;
+      const content = data.content || [];
+      setOffers(content);
       setTotalPages(data.totalPages || 0);
-
-      // Select first offer by default if available
-      if (data.content && data.content.length > 0) {
-        if (resetPage || !selectedOffer) {
-          setSelectedOffer(data.content[0]);
-        } else {
-          const updatedSelected = data.content.find(o => o.id === selectedOffer.id);
-          if (updatedSelected) {
-            setSelectedOffer(updatedSelected);
-          } else {
-            setSelectedOffer(data.content[0]);
-          }
-        }
-      } else {
-        setSelectedOffer(null);
-      }
+      // Keep the selected offer if it's still in the list, else select the first one.
+      setSelectedOffer((current) => content.find((o) => o.id === current?.id) || content[0] || null);
     } catch (err) {
+      if (requestId !== latestRequest.current) return;
       console.error(err);
-      setErrorMsg("Failed to fetch job offers.");
+      setErrorMsg("Job offers couldn't be loaded. Please try again.");
       setShowAlert(true);
     } finally {
-      setLoading(false);
+      if (requestId === latestRequest.current) setLoading(false);
     }
   };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    fetchOffers(true);
+    setPage(0);
+    setAppliedFilters({ ...filters });
+  };
+
+  const hasFilters = Object.values(appliedFilters).some(Boolean);
+
+  const clearFilters = () => {
+    setFilters(EMPTY_FILTERS);
+    setPage(0);
+    setAppliedFilters(EMPTY_FILTERS);
   };
 
   const handleApplyClick = () => {
-    if (!selectedOffer) return;
-    setCvFile(null);
-    setCvFileError("");
-    setCoverLetterText("");
-    setCoverLetterFile(null);
-    setCoverLetterFileError("");
-    setCoverLetterType("text");
-    setShowApplyModal(true);
+    if (selectedOffer) setShowApplyModal(true);
   };
 
-  const submitApplication = async () => {
-    if (!cvFile) {
-      setErrorMsg("Please upload your CV in PDF format.");
-      setShowAlert(true);
-      return;
-    }
-    // Belt and braces: the input's onChange already blocks bad selections and
-    // disables this button, but never trust client state alone.
-    const cvError = validateFile(cvFile, [".pdf"]);
-    if (cvError) {
-      setErrorMsg(cvError);
-      setShowAlert(true);
-      return;
-    }
-    if (coverLetterType === "file" && coverLetterFile) {
-      const clError = validateFile(coverLetterFile, [".pdf"]);
-      if (clError) {
-        setErrorMsg(clError);
-        setShowAlert(true);
-        return;
-      }
-    }
-
-    setApplying(true);
-    try {
-      // 1. Upload CV file
-      const cvUploadRes = await candidateService.uploadFile(cvFile);
-      const cvUrl = cvUploadRes.url;
-
-      // 2. Upload Cover Letter file if chosen, or use text
-      let clValue = coverLetterText;
-      if (coverLetterType === "file" && coverLetterFile) {
-        const clUploadRes = await candidateService.uploadFile(coverLetterFile);
-        clValue = clUploadRes.url;
-      }
-
-      // 3. Submit application
-      await candidateService.createApplication(cvUrl, clValue, selectedOffer.id);
-      
-      setShowApplyModal(false);
-      setSuccessMsg(`Successfully applied for the "${selectedOffer.title}" role.`);
-      setShowSuccessAlert(true);
-
-      // Refresh offer status (mark as alreadyApplied)
-      const updatedOffer = { ...selectedOffer, alreadyApplied: true };
-      setSelectedOffer(updatedOffer);
-      setOffers(offers.map(o => o.id === selectedOffer.id ? updatedOffer : o));
-    } catch (err) {
-      console.error(err);
-      setErrorMsg(err.response?.data?.message || err.response?.data || "Failed to submit application.");
-      setShowAlert(true);
-    } finally {
-      setApplying(false);
-    }
+  const handleApplied = (offer) => {
+    setShowApplyModal(false);
+    toast(`Your application for "${offer.title}" was sent.`);
+    const updated = { ...offer, alreadyApplied: true };
+    setSelectedOffer(updated);
+    setOffers((all) => all.map((o) => (o.id === offer.id ? updated : o)));
   };
 
   const defaultLogo = "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3";
@@ -212,22 +127,27 @@ export default function CandidateOffers() {
             <option value="CDI">CDI</option>
             <option value="CDD">CDD</option>
             <option value="FREELANCE">Freelance</option>
-            <option value="INTERNSHIP">Internship</option>
+            <option value="STAGE">Stage (Internship)</option>
           </select>
         </div>
-        <button className="search-btn" type="submit">
-          Search
+        <button className="search-btn" type="submit" disabled={loading}>
+          {loading ? "Searching…" : "Search"}
         </button>
       </form>
 
       {loading && offers.length === 0 ? (
-        <div className="loading-container" style={{ color: "#94a3b8" }}>
-          <div>Loading offers...</div>
-        </div>
+        <SkeletonCards count={4} />
       ) : offers.length === 0 ? (
-        <div className="empty-state" style={{ color: "#94a3b8", textAlign: "center", padding: "60px 0" }}>
-          No job offers found matching your criteria.
-        </div>
+        hasFilters ? (
+          <EmptyState
+            title="No offers match your search"
+            text="Try other keywords, another location or contract type."
+            actionLabel="Clear filters"
+            onAction={clearFilters}
+          />
+        ) : (
+          <EmptyState title="No open offers right now" text="New offers appear here as soon as recruiters publish them." />
+        )
       ) : (
         <div className="offers-split-layout">
           {/* Offers list panel */}
@@ -259,32 +179,6 @@ export default function CandidateOffers() {
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenMatch(offer);
-                  }}
-                  style={{
-                    marginTop: "10px",
-                    width: "100%",
-                    padding: "7px 12px",
-                    borderRadius: "8px",
-                    background: "linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))",
-                    border: "1px solid rgba(168, 85, 247, 0.4)",
-                    color: "#c084fc",
-                    fontSize: "0.8rem",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "6px",
-                    transition: "all 0.2s ease"
-                  }}
-                >
-                  Check my CV match
-                </button>
               </div>
             ))}
 
@@ -391,104 +285,8 @@ export default function CandidateOffers() {
         </div>
       )}
 
-      {/* Apply Modal */}
       {showApplyModal && selectedOffer && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h2>Apply for {selectedOffer.title}</h2>
-              <button className="close-btn" onClick={() => setShowApplyModal(false)}>×</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>CV / Resume (PDF Only, max {MAX_FILE_SIZE_MB} MB) *</label>
-                <input
-                  type="file"
-                  accept=".pdf"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    setCvFile(file || null);
-                    setCvFileError(file ? validateFile(file, [".pdf"]) || "" : "");
-                  }}
-                  required
-                  style={{ color: "#fff" }}
-                />
-                {cvFileError ? (
-                  <small style={{ color: "#f87171", fontSize: "0.78rem", display: "block" }}>
-                    {cvFileError}
-                  </small>
-                ) : (
-                  <small style={{ color: "#94a3b8", fontSize: "0.78rem" }}>
-                    Upload a PDF version of your CV.
-                  </small>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label>Cover Letter Format</label>
-                <div style={{ display: "flex", gap: "16px", marginBottom: "8px" }}>
-                  <label style={{ fontSize: "0.85rem", color: "#fff", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
-                    <input 
-                      type="radio" 
-                      name="offersClType" 
-                      checked={coverLetterType === "text"} 
-                      onChange={() => setCoverLetterType("text")}
-                    />
-                    Write letter
-                  </label>
-                  <label style={{ fontSize: "0.85rem", color: "#fff", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
-                    <input 
-                      type="radio" 
-                      name="offersClType" 
-                      checked={coverLetterType === "file"} 
-                      onChange={() => setCoverLetterType("file")}
-                    />
-                    Upload PDF file
-                  </label>
-                </div>
-
-                {coverLetterType === "text" ? (
-                  <textarea 
-                    rows="5" 
-                    placeholder="Introduce yourself and list your motivations..." 
-                    value={coverLetterText}
-                    onChange={(e) => setCoverLetterText(e.target.value)}
-                  />
-                ) : (
-                  <>
-                    <input
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => {
-                        const file = e.target.files[0];
-                        setCoverLetterFile(file || null);
-                        setCoverLetterFileError(file ? validateFile(file, [".pdf"]) || "" : "");
-                      }}
-                      style={{ color: "#fff" }}
-                    />
-                    {coverLetterFileError && (
-                      <small style={{ color: "#f87171", fontSize: "0.78rem", display: "block" }}>
-                        {coverLetterFileError}
-                      </small>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="secondary-btn" onClick={() => setShowApplyModal(false)} disabled={applying}>
-                Cancel
-              </button>
-              <button
-                className="primary-btn"
-                onClick={submitApplication}
-                disabled={applying || !!cvFileError || !!coverLetterFileError}
-              >
-                {applying ? "Submitting..." : "Submit Application"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ApplyModal offer={selectedOffer} onClose={() => setShowApplyModal(false)} onApplied={handleApplied} />
       )}
 
       {showMatchModal && selectedOffer && (
@@ -504,17 +302,9 @@ export default function CandidateOffers() {
       <AlertModal 
         isOpen={showAlert}
         type="error"
-        title="Application Error"
+        title="Something went wrong"
         message={errorMsg}
         onClose={() => setShowAlert(false)}
-      />
-
-      <AlertModal 
-        isOpen={showSuccessAlert}
-        type="success"
-        title="Application Submitted"
-        message={successMsg}
-        onClose={() => setShowSuccessAlert(false)}
       />
     </div>
   );

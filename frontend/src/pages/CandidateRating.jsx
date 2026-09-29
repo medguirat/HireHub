@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate, useOutletContext } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate, useOutletContext, useSearchParams } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import AlertModal from "../components/AlertModal";
+import { useToast } from "../components/Toast";
 
 export default function CandidateRating() {
   const { id } = useParams();
@@ -10,13 +11,15 @@ export default function CandidateRating() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [showAlert, setShowAlert] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const toast = useToast();
   const { user } = useOutletContext();
+  // "Accept…" in the application lists lands here with ?accept=1 to schedule the interview.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const acceptRequested = useRef(searchParams.get("accept") === "1");
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [interviewDate, setInterviewDate] = useState("");
   const [invitationLetter, setInvitationLetter] = useState("");
   const [scheduling, setScheduling] = useState(false);
-  const [successMsg, setSuccessMsg] = useState("");
   
   const [ratings, setRatings] = useState({
     techSkills: 3,
@@ -102,8 +105,7 @@ export default function CandidateRating() {
       });
       setFinalScore(saved.score);
       setSavedAt(saved.updatedAt);
-      setSuccessMsg("Your evaluation has been saved.");
-      setShowSuccess(true);
+      toast("Your evaluation has been saved.");
     } catch (err) {
       const data = err.response?.data;
       setErrorMsg(data?.message || (data && typeof data === "object" ? Object.values(data)[0] : data) ||
@@ -132,8 +134,7 @@ export default function CandidateRating() {
       await recruiterService.updateApplicationStatus(id, status);
       setIsAccepted(false);
       loadCandidateDetails();
-      setSuccessMsg("Candidate has been rejected.");
-      setShowSuccess(true);
+      toast("Candidate has been rejected.");
     } catch (err) {
       console.error(err);
       setErrorMsg(err.response?.data?.message || err.response?.data || "Failed to update candidate status.");
@@ -173,6 +174,13 @@ export default function CandidateRating() {
     setInvitationLetter(initialText);
     setShowScheduleModal(true);
   };
+
+  useEffect(() => {
+    if (!acceptRequested.current || !app) return;
+    acceptRequested.current = false;
+    setSearchParams({}, { replace: true });
+    if (app.status !== "ACCEPTED") handleAcceptClick();
+  }, [app]);
 
   const handleDateChange = (newDateVal) => {
     setInterviewDate(newDateVal);
@@ -220,8 +228,7 @@ export default function CandidateRating() {
       setIsAccepted(true);
       setShowScheduleModal(false);
       loadCandidateDetails();
-      setSuccessMsg("Candidate accepted and interview invitation sent successfully.");
-      setShowSuccess(true);
+      toast("Candidate accepted and interview invitation sent successfully.");
     } catch (err) {
       console.error(err);
       setErrorMsg(err.response?.data?.message || err.response?.data || "Failed to update status and schedule interview.");
@@ -518,13 +525,6 @@ export default function CandidateRating() {
         onClose={() => setShowAlert(false)}
       />
 
-      <AlertModal 
-        isOpen={showSuccess}
-        type="success"
-        title="Success"
-        message={successMsg || "Evaluation scores and notes saved successfully!"}
-        onClose={() => setShowSuccess(false)}
-      />
 
       {/* Schedule Interview Modal */}
       {showScheduleModal && app && (

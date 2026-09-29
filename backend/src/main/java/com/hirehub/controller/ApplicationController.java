@@ -10,6 +10,7 @@ import com.hirehub.security.CurrentUserProvider;
 import com.hirehub.service.ApplicationService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -31,7 +32,7 @@ public class ApplicationController {
     @GetMapping
     public PageResponseDto<ApplicationResponseDto> getAllApplications(
             @AuthenticationPrincipal UserDetails userDetails,
-            @PageableDefault(size = 10, sort = "id") Pageable pageable
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         User user = currentUserProvider.getAuthenticatedUser(userDetails);
         return PageResponseDto.from(applicationService.getAllApplications(user, pageable));

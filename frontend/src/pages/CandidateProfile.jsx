@@ -3,6 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import candidateService from "../services/candidateService";
 import aiService from "../services/aiService";
 import AlertModal from "../components/AlertModal";
+import { useToast } from "../components/Toast";
 
 export default function CandidateProfile() {
   const { user, setUser } = useOutletContext();
@@ -10,7 +11,7 @@ export default function CandidateProfile() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [showAlert, setShowAlert] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const toast = useToast();
 
   // States for forms
   const [basicForm, setBasicForm] = useState({
@@ -254,7 +255,7 @@ export default function CandidateProfile() {
         localStorage.setItem("user", JSON.stringify(updatedStored));
       }
 
-      setShowSuccess(true);
+      toast("Your profile is saved.");
     } catch (err) {
       console.error(err);
       setErrorMsg(
@@ -690,13 +691,6 @@ export default function CandidateProfile() {
         onClose={() => setShowAlert(false)}
       />
 
-      <AlertModal 
-        isOpen={showSuccess}
-        type="success"
-        title="Profile Updated"
-        message="Your candidate profile information has been saved successfully."
-        onClose={() => setShowSuccess(false)}
-      />
     </div>
   );
 }

@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import pageTitle from "./pageTitles";
 import "../styles/recruiterDashboard.css";
 import "../styles/candidateDashboard.css";
 
 export default function CandidateLayout() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -38,6 +40,8 @@ export default function CandidateLayout() {
 
   const displayName = `${user.firstName} ${user.lastName}`;
 
+  const { title, subtitle } = pageTitle(pathname);
+
   return (
     <div className="recruiter-layout">
       <Sidebar />
@@ -45,23 +49,14 @@ export default function CandidateLayout() {
       <div className="recruiter-content">
         <div className="content-header">
           <div>
-            <h1>Welcome back, {user.firstName}!</h1>
-            <p>Explore opportunities and land your dream job with HireHub</p>
+            <h1>{title}</h1>
+            {subtitle && <p>{subtitle}</p>}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <button 
-              className="primary-btn" 
-              onClick={() => navigate("/candidate-dashboard/offers")}
-              style={{ padding: "8px 16px", fontSize: "0.85rem" }}
-            >
-              Search Job Offers
-            </button>
-            <div className="user-badge">
-              {displayName}
-            </div>
+          <div className="user-badge">
+            {displayName}
           </div>
         </div>
-        
+
         <Outlet context={{ user, setUser }} />
       </div>
     </div>

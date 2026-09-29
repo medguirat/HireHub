@@ -1,16 +1,19 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import candidateService from "../services/candidateService";
 import AlertModal from "../components/AlertModal";
+import EmptyState from "../components/EmptyState";
+import { SkeletonRows } from "../components/Skeleton";
+import { useToast } from "../components/Toast";
 
 export default function CandidateApplications() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [showAlert, setShowAlert] = useState(false);
-
-  // Success alert
-  const [successMsg, setSuccessMsg] = useState("");
-  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [cancellingId, setCancellingId] = useState(null);
+  const navigate = useNavigate();
+  const toast = useToast();
 
   // Pagination state
   const [page, setPage] = useState(0);
@@ -31,7 +34,7 @@ export default function CandidateApplications() {
       setTotalPages(data.totalPages || 0);
     } catch (err) {
       console.error(err);
-      setErrorMsg("Failed to load your applications.");
+      setErrorMsg("Your applications couldn't be loaded. Please refresh the page.");
       setShowAlert(true);
     } finally {
       setLoading(false);
@@ -39,22 +42,24 @@ export default function CandidateApplications() {
   };
 
   const handleCancelApplication = async (id, title) => {
-    if (!window.confirm(`Are you sure you want to cancel your application for "${title}"?`)) {
+    if (!window.confirm(`Withdraw your application for "${title}"? This can't be undone.`)) {
       return;
     }
 
+    setCancellingId(id);
     try {
       await candidateService.deleteApplication(id);
-      setSuccessMsg(`Successfully cancelled application for "${title}".`);
-      setShowSuccessAlert(true);
+      toast(`Your application for "${title}" was withdrawn.`);
       fetchApplications();
       if (selectedApp?.id === id) {
         setSelectedApp(null);
       }
     } catch (err) {
       console.error(err);
-      setErrorMsg("Failed to cancel application.");
+      setErrorMsg(err.response?.data?.message || "Your application couldn't be withdrawn. Please try again.");
       setShowAlert(true);
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -72,20 +77,21 @@ export default function CandidateApplications() {
     <div style={{ display: "grid", gridTemplateColumns: selectedApp ? "1fr 1fr" : "1fr", gap: "24px", alignItems: "start" }}>
       <div className="dashboard-panel">
         <div className="panel-header">
-          <h2>My Applications</h2>
+          <h2>Newest first</h2>
           <div style={{ color: "#94a3b8", fontSize: "0.85rem" }}>
-            Track and manage your submitted applications
+            Click an application to see its details.
           </div>
         </div>
 
         {loading && applications.length === 0 ? (
-          <div className="loading-container" style={{ color: "#94a3b8", padding: "40px 0" }}>
-            <div>Loading applications...</div>
-          </div>
+          <SkeletonRows rows={5} />
         ) : applications.length === 0 ? (
-          <div className="empty-state" style={{ color: "#94a3b8", padding: "40px 0", textAlign: "center" }}>
-            You have not submitted any applications yet.
-          </div>
+          <EmptyState
+            title="No applications yet"
+            text="Find an offer that suits you and apply in a couple of clicks."
+            actionLabel="Browse job offers"
+            onAction={() => navigate("/candidate-dashboard/offers")}
+          />
         ) : (
           <>
             <div className="custom-table-container">
@@ -116,7 +122,7 @@ export default function CandidateApplications() {
                           </span>
                         )}
                       </td>
-                      <td>{app.recruiterCompany || "Company"}</td>
+                      <td>{app.recruiterCompany || "—"}</td>
                       <td>
                         <span className={`status-badge status-${app.status.toLowerCase()}`}>
                           {app.status}
@@ -134,9 +140,10 @@ export default function CandidateApplications() {
                           {app.status === "PENDING" && (
                             <button 
                               className="action-btn-small btn-reject"
+                              disabled={cancellingId === app.id}
                               onClick={() => handleCancelApplication(app.id, app.jobOfferTitle)}
                             >
-                              Cancel
+                              {cancellingId === app.id ? "Withdrawing…" : "Withdraw"}
                             </button>
                           )}
                         </div>
@@ -288,17 +295,9 @@ export default function CandidateApplications() {
       <AlertModal 
         isOpen={showAlert}
         type="error"
-        title="Application Status Error"
+        title="Something went wrong"
         message={errorMsg}
         onClose={() => setShowAlert(false)}
-      />
-
-      <AlertModal 
-        isOpen={showSuccessAlert}
-        type="success"
-        title="Application Cancelled"
-        message={successMsg}
-        onClose={() => setShowSuccessAlert(false)}
       />
     </div>
   );

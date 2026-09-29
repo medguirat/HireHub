@@ -923,3 +923,10 @@
   opacity: 0.6;
   cursor: default;
 }
+
+/* Recruiter offer cards aren't clickable as a whole (candidate cards are; that
+   stylesheet is global once loaded). Their actions are the buttons. */
+.offers-grid .offer-card,
+.offers-grid .offer-card h3 {
+  cursor: default;
+}

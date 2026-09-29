@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import AlertModal from "../components/AlertModal";
+import EmptyState from "../components/EmptyState";
+import { SkeletonRows } from "../components/Skeleton";
+import { useToast } from "../components/Toast";
+import fetchAllPages from "../utils/fetchAllPages";
 
 export default function RecruiterApplications() {
   const navigate = useNavigate();
@@ -9,6 +13,8 @@ export default function RecruiterApplications() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [showAlert, setShowAlert] = useState(false);
+  const [busyAppId, setBusyAppId] = useState(null);
+  const toast = useToast();
 
   useEffect(() => {
     loadApplications();
@@ -17,40 +23,48 @@ export default function RecruiterApplications() {
   const loadApplications = async () => {
     setLoading(true);
     try {
-      const data = await recruiterService.getApplications(0, 100);
-      setApplications(data.content || []);
+      setApplications(await fetchAllPages(recruiterService.getApplications));
     } catch (err) {
       console.error(err);
-      setErrorMsg("Failed to load candidate applications.");
+      setErrorMsg("Applications couldn't be loaded. Please refresh the page.");
       setShowAlert(true);
     } finally {
       setLoading(false);
     }
   };
 
+  // Only rejecting happens inline; accepting needs an interview date (evaluation page).
   const handleStatusChange = async (id, status) => {
+    if (status === "REJECTED" && !window.confirm("Reject this application? The candidate will be notified.")) return;
+    setBusyAppId(id);
     try {
       await recruiterService.updateApplicationStatus(id, status);
+      toast("Application rejected.");
       loadApplications();
     } catch (err) {
       console.error(err);
       setErrorMsg(err.response?.data?.message || err.response?.data || "Failed to update candidate status.");
       setShowAlert(true);
+    } finally {
+      setBusyAppId(null);
     }
   };
 
   return (
     <div className="dashboard-panel">
       <div className="panel-header">
-        <h2>Candidate Applications ({applications.length})</h2>
+        <h2>{loading ? "Loading…" : `${applications.length} application${applications.length === 1 ? "" : "s"}, newest first`}</h2>
       </div>
 
       {loading ? (
-        <div className="loading-container">
-          <div>Loading applications...</div>
-        </div>
+        <SkeletonRows rows={6} />
       ) : applications.length === 0 ? (
-        <div className="empty-state">No candidates have applied to your offers yet.</div>
+        <EmptyState
+          title="No applications yet"
+          text="When candidates apply to your offers, they'll appear here."
+          actionLabel="View my offers"
+          onAction={() => navigate("/recruiter-dashboard/offers")}
+        />
       ) : (
         <div className="custom-table-container">
           <table className="custom-table">
@@ -97,12 +111,15 @@ export default function RecruiterApplications() {
                     <div className="action-row">
                       <button 
                         className="action-btn-small btn-approve"
-                        onClick={() => handleStatusChange(app.id, "ACCEPTED")}
+                        disabled={busyAppId === app.id || app.status === "ACCEPTED"}
+                        onClick={() => navigate(`/recruiter-dashboard/applications/${app.id}/rate?accept=1`)}
+                        title="Accepting needs an interview date: opens the scheduling dialog"
                       >
-                        Accept
+                        Accept…
                       </button>
                       <button 
                         className="action-btn-small btn-reject"
+                        disabled={busyAppId === app.id || app.status === "REJECTED"}
                         onClick={() => handleStatusChange(app.id, "REJECTED")}
                       >
                         Reject
@@ -119,7 +136,7 @@ export default function RecruiterApplications() {
       <AlertModal 
         isOpen={showAlert}
         type="error"
-        title="Operation Failed"
+        title="Something went wrong"
         message={errorMsg}
         onClose={() => setShowAlert(false)}
       />

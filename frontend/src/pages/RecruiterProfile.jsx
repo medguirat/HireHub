@@ -3,6 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import aiService from "../services/aiService";
 import AlertModal from "../components/AlertModal";
+import { useToast } from "../components/Toast";
 
 const COMPANY_FIELDS = [
   "companyName", "website", "logo", "description", "foundedYear", "industry", "mission", "vision",
@@ -21,7 +22,7 @@ export default function RecruiterProfile() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [showAlert, setShowAlert] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const toast = useToast();
 
   // States for forms
   const [basicForm, setBasicForm] = useState({
@@ -209,7 +210,7 @@ export default function RecruiterProfile() {
           ...prev,
           description: `At ${companyForm.companyName || "our company"}, we are pioneering the future of technology. ${res.generated_bio} We empower top talent with autonomy and growth opportunities.`
         }));
-        setShowSuccess(true);
+        toast("A description draft was added. Review it before saving.");
       }
     } catch (err) {
       console.error("AI Pitch Error:", err);
@@ -293,7 +294,7 @@ export default function RecruiterProfile() {
         localStorage.setItem("user", JSON.stringify(updatedStored));
       }
 
-      setShowSuccess(true);
+      toast("Your company profile is saved.");
     } catch (err) {
       console.error(err);
       setErrorMsg(
@@ -784,13 +785,6 @@ export default function RecruiterProfile() {
         onClose={() => setShowAlert(false)}
       />
 
-      <AlertModal 
-        isOpen={showSuccess}
-        type="success"
-        title="Success"
-        message="Corporate profile has been updated successfully!"
-        onClose={() => setShowSuccess(false)}
-      />
     </div>
   );
 }

@@ -2,10 +2,16 @@ import { useState, useEffect } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import AlertModal from "../components/AlertModal";
+import EmptyState from "../components/EmptyState";
+import { SkeletonRows } from "../components/Skeleton";
+import { useToast } from "../components/Toast";
+import fetchAllPages from "../utils/fetchAllPages";
 
 export default function RecruiterOverview() {
   const navigate = useNavigate();
-  const { user } = useOutletContext();
+  useOutletContext();
+  const toast = useToast();
+  const [busyAppId, setBusyAppId] = useState(null);
   const [offers, setOffers] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,31 +25,39 @@ export default function RecruiterOverview() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const offersData = await recruiterService.getOffers(0, 50);
-      const appsData = await recruiterService.getApplications(0, 100);
-      setOffers(offersData.content || []);
-      setApplications(appsData.content || []);
+      const [allOffers, allApplications] = await Promise.all([
+        fetchAllPages(recruiterService.getOffers),
+        fetchAllPages(recruiterService.getApplications)
+      ]);
+      setOffers(allOffers);
+      setApplications(allApplications);
     } catch (err) {
       console.error(err);
-      setErrorMsg("Failed to load dashboard statistics.");
+      setErrorMsg("Your overview couldn't be loaded. Please refresh the page.");
       setShowAlert(true);
     } finally {
       setLoading(false);
     }
   };
 
+  // Only rejecting happens inline; accepting needs an interview date (evaluation page).
   const handleStatusChange = async (id, status) => {
+    if (status === "REJECTED" && !window.confirm("Reject this application? The candidate will be notified.")) return;
+    setBusyAppId(id);
     try {
       await recruiterService.updateApplicationStatus(id, status);
+      toast("Application rejected.");
       fetchData(); // Refresh
     } catch (err) {
       console.error(err);
       setErrorMsg(err.response?.data?.message || err.response?.data || "Failed to update candidate status.");
       setShowAlert(true);
+    } finally {
+      setBusyAppId(null);
     }
   };
 
-  const totalOffers = offers.length;
+  const openOffers = offers.filter((offer) => offer.status !== "CLOSED").length;
   const totalApplications = applications.length;
   const pendingApps = applications.filter((app) => app.status === "PENDING").length;
   const acceptedApps = applications.filter((app) => app.status === "ACCEPTED").length;
@@ -51,15 +65,13 @@ export default function RecruiterOverview() {
   return (
     <div>
       {loading ? (
-        <div className="loading-container">
-          <div>Loading overview stats...</div>
-        </div>
+        <SkeletonRows rows={6} />
       ) : (
         <>
           <div className="stats-grid">
             <div className="stat-card blue">
-              <div className="stat-title">Total Job Offers</div>
-              <div className="stat-value">{totalOffers}</div>
+              <div className="stat-title">Open job offers</div>
+              <div className="stat-value">{openOffers}</div>
             </div>
             <div className="stat-card orange">
               <div className="stat-title">Applications Received</div>
@@ -79,17 +91,28 @@ export default function RecruiterOverview() {
             <div className="panel-header">
               <h2>Recent Applications</h2>
               <div style={{ display: "flex", gap: "10px" }}>
-                <button className="primary-btn" onClick={() => navigate("/recruiter-dashboard/create-offer")}>
-                  Create Job Offer
-                </button>
                 <button className="secondary-btn" onClick={() => navigate("/recruiter-dashboard/applications")}>
-                  View All
+                  All applications
                 </button>
               </div>
             </div>
 
             {applications.length === 0 ? (
-              <div className="empty-state">No applications received yet.</div>
+              offers.length === 0 ? (
+                <EmptyState
+                  title="No job offers yet"
+                  text="Publish an offer to start receiving applications."
+                  actionLabel="Create your first offer"
+                  onAction={() => navigate("/recruiter-dashboard/create-offer")}
+                />
+              ) : (
+                <EmptyState
+                  title="No applications yet"
+                  text="Applications to your offers will show up here."
+                  actionLabel="View my offers"
+                  onAction={() => navigate("/recruiter-dashboard/offers")}
+                />
+              )
             ) : (
               <div className="custom-table-container">
                 <table className="custom-table">
@@ -132,12 +155,15 @@ export default function RecruiterOverview() {
                           <div className="action-row">
                             <button 
                               className="action-btn-small btn-approve"
-                              onClick={() => handleStatusChange(app.id, "ACCEPTED")}
+                              disabled={busyAppId === app.id || app.status === "ACCEPTED"}
+                              onClick={() => navigate(`/recruiter-dashboard/applications/${app.id}/rate?accept=1`)}
+                              title="Accepting needs an interview date: opens the scheduling dialog"
                             >
-                              Accept
+                              Accept…
                             </button>
                             <button 
                               className="action-btn-small btn-reject"
+                              disabled={busyAppId === app.id || app.status === "REJECTED"}
                               onClick={() => handleStatusChange(app.id, "REJECTED")}
                             >
                               Reject
@@ -157,7 +183,7 @@ export default function RecruiterOverview() {
       <AlertModal 
         isOpen={showAlert}
         type="error"
-        title="Action Error"
+        title="Something went wrong"
         message={errorMsg}
         onClose={() => setShowAlert(false)}
       />

@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import AlertModal from "../components/AlertModal";
+import EmptyState from "../components/EmptyState";
+import { SkeletonCards } from "../components/Skeleton";
+import { useToast } from "../components/Toast";
+import fetchAllPages from "../utils/fetchAllPages";
 
 export default function RecruiterOffers() {
   const navigate = useNavigate();
@@ -9,7 +13,8 @@ export default function RecruiterOffers() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [showAlert, setShowAlert] = useState(false);
-  const [infoMsg, setInfoMsg] = useState("");
+  const [busyOfferId, setBusyOfferId] = useState(null);
+  const toast = useToast();
 
   useEffect(() => {
     loadOffers();
@@ -18,11 +23,10 @@ export default function RecruiterOffers() {
   const loadOffers = async () => {
     setLoading(true);
     try {
-      const data = await recruiterService.getOffers(0, 50);
-      setOffers(data.content || []);
+      setOffers(await fetchAllPages(recruiterService.getOffers));
     } catch (err) {
       console.error(err);
-      setErrorMsg("Failed to load active job offers.");
+      setErrorMsg("Your job offers couldn't be loaded. Please refresh the page.");
       setShowAlert(true);
     } finally {
       setLoading(false);
@@ -38,14 +42,17 @@ export default function RecruiterOffers() {
         "candidates will no longer see it, and you keep access to its applicants. Close it?"
       : `Delete "${offer.title}"? This can't be undone.`;
     if (!window.confirm(question)) return;
+    setBusyOfferId(offer.id);
     try {
       const result = await recruiterService.deleteOffer(offer.id);
-      setInfoMsg(result.message);
+      toast(result.message);
       loadOffers();
     } catch (err) {
       console.error(err);
       setErrorMsg(err.response?.data?.message || err.response?.data || "The offer couldn't be deleted. Please try again.");
       setShowAlert(true);
+    } finally {
+      setBusyOfferId(null);
     }
   };
 
@@ -67,34 +74,27 @@ export default function RecruiterOffers() {
   return (
     <div>
       <div className="panel-header" style={{ marginBottom: "24px" }}>
-        <h2>Job offers ({openOffers.length} open, {offers.length - openOffers.length} closed)</h2>
+        <h2>{loading ? "Loading…" : `${openOffers.length} open · ${offers.length - openOffers.length} closed`}</h2>
         <button className="primary-btn" onClick={() => navigate("/recruiter-dashboard/create-offer")}>
-          Create New Offer
+          New job offer
         </button>
       </div>
 
       {loading ? (
-        <div className="loading-container">
-          <div>Loading your job offers...</div>
-        </div>
+        <SkeletonCards count={3} />
       ) : sortedOffers.length === 0 ? (
-        <div className="empty-state">
-          You haven't posted any job offers yet. Create your first offer to attract talent!
-        </div>
+        <EmptyState
+          title="No job offers yet"
+          text="Publish your first offer and candidates will see it right away."
+          actionLabel="Create your first offer"
+          onAction={() => navigate("/recruiter-dashboard/create-offer")}
+        />
       ) : (
         <div className="offers-grid">
           {sortedOffers.map((offer) => (
             <div key={offer.id} className={`offer-card ${offer.status === "CLOSED" ? "offer-card--closed" : ""}`}>
               <div className="offer-card-header">
-                <h3 
-                  style={{ cursor: "pointer", color: "#60a5fa", transition: "color 0.2s" }}
-                  onClick={() => navigate(`/recruiter-dashboard/offers/${offer.id}/applications`)}
-                  onMouseOver={(e) => e.target.style.color = "#3b82f6"}
-                  onMouseOut={(e) => e.target.style.color = "#60a5fa"}
-                  title="Click to view applications for this offer"
-                >
-                  {offer.title}
-                </h3>
+                <h3>{offer.title}</h3>
                 <span className={`contract-badge badge-${(offer.contractType || 'cdi').toLowerCase()}`}>
                   {offer.contractType || "CDI"}
                 </span>
@@ -108,9 +108,6 @@ export default function RecruiterOffers() {
                 <div className="meta-item">
                   Deadline: {formatDate(offer.deadline)}
                 </div>
-                <div className="meta-item">
-                  Applications: {offer.applicationCount ?? 0}
-                </div>
               </div>
               <div className="offer-actions" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <button 
@@ -118,7 +115,7 @@ export default function RecruiterOffers() {
                   onClick={() => navigate(`/recruiter-dashboard/offers/${offer.id}/applications`)}
                   style={{ flex: "1 1 100%", fontSize: "0.85rem", padding: "8px 12px" }}
                 >
-                  Voir les candidatures
+                  View applications ({offer.applicationCount ?? 0})
                 </button>
                 {offer.status !== "CLOSED" && (
                   <>
@@ -132,9 +129,10 @@ export default function RecruiterOffers() {
                     <button
                       className="btn-delete"
                       onClick={() => handleDelete(offer)}
+                      disabled={busyOfferId === offer.id}
                       style={{ flex: 1 }}
                     >
-                      {offer.applicationCount > 0 ? "Close offer" : "Delete"}
+                      {busyOfferId === offer.id ? "Working…" : offer.applicationCount > 0 ? "Close offer" : "Delete"}
                     </button>
                   </>
                 )}
@@ -147,16 +145,9 @@ export default function RecruiterOffers() {
       <AlertModal
         isOpen={showAlert}
         type="error"
-        title="Operation Failed"
+        title="Something went wrong"
         message={errorMsg}
         onClose={() => setShowAlert(false)}
-      />
-      <AlertModal
-        isOpen={!!infoMsg}
-        type="success"
-        title="Done"
-        message={infoMsg}
-        onClose={() => setInfoMsg("")}
       />
     </div>
   );

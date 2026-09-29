@@ -53,6 +53,23 @@ class ApplicationControllerIT {
     }
 
     @Test
+    void applicationsAreListedNewestFirst() throws Exception {
+        User recruiter = persistUser("rec-order@test.com", Role.RECRUITER);
+        JobOffer first = persistOffer(recruiter, LocalDate.now().plusDays(10));
+        JobOffer second = persistOffer(recruiter, LocalDate.now().plusDays(10));
+        User candidate = persistUser("cand-order@test.com", Role.CANDIDATE);
+        Application older = applicationRepository.save(Application.builder().cv("a.pdf").status(ApplicationStatus.PENDING)
+                .applicationDate(LocalDate.now()).candidate(candidate).jobOffer(first).build());
+        Application newer = applicationRepository.save(Application.builder().cv("b.pdf").status(ApplicationStatus.PENDING)
+                .applicationDate(LocalDate.now()).candidate(candidate).jobOffer(second).build());
+
+        mockMvc.perform(get("/api/applications").header("Authorization", "Bearer " + jwtService.generateToken(recruiter.getEmail())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(newer.getId()))
+                .andExpect(jsonPath("$.content[1].id").value(older.getId()));
+    }
+
+    @Test
     void createApplication_returns200OnValidRequest() throws Exception {
         User recruiter = persistUser("rec1@test.com", Role.RECRUITER);
         User candidate = persistUser("cand1@test.com", Role.CANDIDATE);
