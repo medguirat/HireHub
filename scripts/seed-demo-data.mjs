@@ -244,6 +244,8 @@ const CANDIDATES = [
   {
     user: { firstName: "Amine", lastName: "Trabelsi", email: `amine.trabelsi@${DOMAIN}` },
     profile: {
+      headline: "Senior Backend Engineer",
+      education: "Engineering degree in Computer Science, ENIT (2012–2017)",
       bio: "Backend engineer building payment platforms with Java and Spring Boot.",
       skills: ["Java", "Spring Boot", "PostgreSQL", "Docker", "Kubernetes", "Kafka"],
       urlLinkedin: "https://www.linkedin.com/in/amine-trabelsi-demo",
@@ -283,6 +285,8 @@ English: fluent (C1), French: fluent, Arabic: native`,
   {
     user: { firstName: "Sarra", lastName: "Ben Salah", email: `sarra.bensalah@${DOMAIN}` },
     profile: {
+      headline: "Java Developer",
+      education: "Licence (Bachelor's degree) in Computer Science, ISIMS (2018–2021)",
       bio: "Java developer who enjoys building web applications.",
       skills: ["Java", "Spring", "MySQL", "HTML", "CSS"],
       experiences: [{ position: "Java Developer", company: "WebCraft", startDate: "2024-03-01", endDate: null }],
@@ -312,6 +316,8 @@ English (B1), French (B2), Arabic (native)`,
   {
     user: { firstName: "Yasmine", lastName: "Gharbi", email: `yasmine.gharbi@${DOMAIN}` },
     profile: {
+      headline: "Data Analyst",
+      education: "Master's degree in Statistics, ISG Tunis (2019–2021)",
       bio: "Data analyst turning sales and customer data into dashboards and recommendations.",
       skills: ["SQL", "Python", "Power BI", "Excel", "Tableau"],
       experiences: [{ position: "Data Analyst", company: "RetailCo", startDate: "2022-02-01", endDate: null }],
@@ -341,6 +347,8 @@ English (C1), French (fluent), Arabic (native)`,
   {
     user: { firstName: "Mehdi", lastName: "Jaziri", email: `mehdi.jaziri@${DOMAIN}` },
     profile: {
+      headline: "Frontend Developer",
+      education: "Bachelor's degree in Computer Science, ISI Ariana (2017–2020)",
       bio: "Frontend developer focused on accessible React interfaces.",
       skills: ["React", "TypeScript", "CSS", "Next.js", "Jest"],
       urlGithub: "https://github.com/mehdi-jaziri-demo",
@@ -378,6 +386,8 @@ French (fluent), English (B2), Arabic (native)`,
   {
     user: { firstName: "Nour", lastName: "Hammami", email: `nour.hammami@${DOMAIN}` },
     profile: {
+      headline: "Développeuse Java Senior",
+      education: "Ingénieur en informatique, ENIS (2013–2018)",
       bio: "Développeuse backend Java / Spring Boot, spécialisée dans les systèmes de paiement.",
       skills: ["Java", "Spring Boot", "PostgreSQL", "Docker", "Kubernetes"],
       experiences: [
@@ -415,6 +425,8 @@ Français : courant, Anglais : bon niveau, Arabe : langue maternelle`,
   {
     user: { firstName: "Ines", lastName: "Chaabane", email: `ines.chaabane@${DOMAIN}` },
     profile: {
+      headline: "Digital Marketing Officer",
+      education: "Bachelor's degree in Marketing, IHEC Sfax (2019–2022)",
       bio: "Digital marketer growing e-commerce brands through SEO and paid social.",
       skills: ["SEO", "Google Ads", "Content writing", "Excel"],
       experiences: [{ position: "Digital Marketing Officer", company: "ShopNow", startDate: "2023-01-01", endDate: null }],

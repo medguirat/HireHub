@@ -200,3 +200,21 @@
   .experience-row { grid-template-columns: 1fr 1fr; }
 }
 .contents { display: contents; }
+
+.pdf-preview__pages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-height: 640px;
+  overflow-y: auto;
+  border-radius: var(--radius);
+}
+
+.pdf-preview__page {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  box-shadow: var(--shadow-pop);
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import candidateService from "../services/candidateService";
 import aiService from "../services/aiService";
@@ -11,6 +11,9 @@ import {
   DraftNote, Missing, ProfileCompleteness, SectionCard, focusField, isValidUrl, normalizeUrl
 } from "../components/ProfileParts";
 import "../styles/profile.css";
+
+// pdf.js is large: only loaded when a CV preview is shown.
+const PdfPreview = lazy(() => import("../components/PdfPreview"));
 
 const EMPTY_EXPERIENCE = { position: "", company: "", startDate: "", endDate: "" };
 const LINKS = [
@@ -73,6 +76,7 @@ export default function CandidateProfile() {
 
   const [cv, setCv] = useState(null);
   const [cvUrl, setCvUrl] = useState("");
+  const [cvBlob, setCvBlob] = useState(null);
   const [cvUploading, setCvUploading] = useState(false);
   const [cvError, setCvError] = useState("");
 
@@ -101,14 +105,17 @@ export default function CandidateProfile() {
       const meta = await candidateService.getMyCv();
       setCv(meta);
       if (meta.fileName?.toLowerCase().endsWith(".pdf")) {
-        const blob = await candidateService.getMyCvFile();
-        setCvUrl(URL.createObjectURL(new Blob([blob], { type: "application/pdf" })));
+        const blob = new Blob([await candidateService.getMyCvFile()], { type: "application/pdf" });
+        setCvBlob(blob);
+        setCvUrl(URL.createObjectURL(blob));
       } else {
+        setCvBlob(null);
         setCvUrl("");
       }
     } catch (err) {
       if (err.response?.status !== 404) console.error(err);
       setCv(null);
+      setCvBlob(null);
       setCvUrl("");
     }
   };
@@ -266,7 +273,7 @@ export default function CandidateProfile() {
   ];
 
   const experiences = [...(profile.experiences || [])].sort((a, b) =>
-    (a.endDate ? 0 : 1) - (b.endDate ? 0 : 1) || String(b.startDate).localeCompare(String(a.startDate)));
+    (a.endDate ? 1 : 0) - (b.endDate ? 1 : 0) || String(b.startDate).localeCompare(String(a.startDate)));
 
   const cvCard = (
     <SectionCard id="cv" title="My CV"
@@ -288,8 +295,10 @@ export default function CandidateProfile() {
             </div>
             {cvUrl && <a className="cv-link text-sm" href={cvUrl} target="_blank" rel="noreferrer">Open</a>}
           </div>
-          {cvUrl ? (
-            <iframe className="cv-preview" src={cvUrl} title={`Preview of ${cv.fileName}`} />
+          {cvBlob ? (
+            <Suspense fallback={<p className="hint">Loading the preview…</p>}>
+              <PdfPreview data={cvBlob} title={`Preview of ${cv.fileName}`} />
+            </Suspense>
           ) : (
             <p className="hint">The preview is available for PDF files. Your DOCX CV is used for matching as it is.</p>
           )}
