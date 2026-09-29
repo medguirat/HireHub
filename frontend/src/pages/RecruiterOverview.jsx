@@ -90,7 +90,7 @@ export default function RecruiterOverview() {
           <div className="dashboard-panel">
             <div className="panel-header">
               <h2>Recent Applications</h2>
-              <div style={{ display: "flex", gap: "10px" }}>
+              <div className="row">
                 <button className="secondary-btn" onClick={() => navigate("/recruiter-dashboard/applications")}>
                   All applications
                 </button>
@@ -115,7 +115,7 @@ export default function RecruiterOverview() {
               )
             ) : (
               <div className="custom-table-container">
-                <table className="custom-table">
+                <table className="custom-table responsive-table">
                   <thead>
                     <tr>
                       <th>Candidate Name</th>
@@ -128,16 +128,13 @@ export default function RecruiterOverview() {
                   <tbody>
                     {applications.slice(0, 5).map((app) => (
                       <tr key={app.id}>
-                        <td>
-                          <span 
-                            className="candidate-name-link"
-                            onClick={() => navigate(`/recruiter-dashboard/applications/${app.id}/rate`)}
-                          >
+                        <td data-label="Candidate Name">
+                          <button type="button" className="candidate-name-link link-reset" onClick={() => navigate(`/recruiter-dashboard/applications/${app.id}/rate`)}>
                             {app.candidateName} {app.candidateLastName}
-                          </span>
+                          </button>
                         </td>
-                        <td>{app.jobOfferTitle}</td>
-                        <td>
+                        <td data-label="Applied Position">{app.jobOfferTitle}</td>
+                        <td data-label="CV / Resume">
                           {app.cv ? (
                             <a href={app.cv} target="_blank" rel="noreferrer" className="cv-link">
                               View CV
@@ -146,12 +143,12 @@ export default function RecruiterOverview() {
                             "No CV"
                           )}
                         </td>
-                        <td>
+                        <td data-label="Status">
                           <span className={`status-badge status-${app.status.toLowerCase()}`}>
                             {app.status}
                           </span>
                         </td>
-                        <td>
+                        <td data-label="Actions">
                           <div className="action-row">
                             <button 
                               className="action-btn-small btn-approve"

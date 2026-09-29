@@ -1,9 +1,14 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import authService from "../services/authService";
 import Logo from "./Logo";
 
 export default function Sidebar() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  // Small screens: the menu collapses behind a button in the top bar.
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => setMenuOpen(false), [pathname]);
 
   const storedUser = localStorage.getItem("user");
   const user = storedUser ? JSON.parse(storedUser) : null;
@@ -16,12 +21,17 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="recruiter-sidebar">
+    <nav className={`recruiter-sidebar ${menuOpen ? "is-open" : ""}`} aria-label="Main">
       <div className="sidebar-brand">
         <Logo width={160} />
+        <button type="button" className="sidebar-toggle" aria-expanded={menuOpen} aria-controls="sidebar-menu"
+          onClick={() => setMenuOpen((open) => !open)}>
+          <span aria-hidden="true">{menuOpen ? "✕" : "☰"}</span>
+          <span className="visually-hidden">{menuOpen ? "Close menu" : "Open menu"}</span>
+        </button>
       </div>
 
-      <div className="sidebar-menu">
+      <div className="sidebar-menu" id="sidebar-menu">
         {isRecruiter ? (
           <>
             <NavLink 
@@ -95,10 +105,10 @@ export default function Sidebar() {
       </div>
 
       <div className="sidebar-footer">
-        <button className="sidebar-item logout-btn" onClick={handleLogout}>
-          Logout
+        <button type="button" className="sidebar-item logout-btn" onClick={handleLogout}>
+          Log out
         </button>
       </div>
-    </div>
+    </nav>
   );
 }

@@ -109,10 +109,10 @@ export default function CandidateProfile() {
   const completenessScore = calculateCompleteness();
 
   const getBadgeInfo = (score) => {
-    if (score >= 90) return { label: "⭐ All-Star Profile", color: "#10b981", bg: "rgba(16, 185, 129, 0.15)", border: "rgba(16, 185, 129, 0.4)" };
-    if (score >= 75) return { label: "🥇 Strong Profile", color: "#60a5fa", bg: "rgba(96, 165, 250, 0.15)", border: "rgba(96, 165, 250, 0.4)" };
-    if (score >= 50) return { label: "🥈 Intermediate Profile", color: "#f59e0b", bg: "rgba(245, 158, 11, 0.15)", border: "rgba(245, 158, 11, 0.4)" };
-    return { label: "🥉 Basic Profile", color: "#94a3b8", bg: "rgba(148, 163, 184, 0.15)", border: "rgba(148, 163, 184, 0.4)" };
+    if (score >= 90) return { label: "⭐ All-Star Profile", color: "var(--green)", bg: "rgba(var(--green-rgb), 0.15)", border: "rgba(var(--green-rgb), 0.4)" };
+    if (score >= 75) return { label: "🥇 Strong Profile", color: "var(--cyan)", bg: "rgba(var(--cyan-rgb), 0.15)", border: "rgba(var(--cyan-rgb), 0.4)" };
+    if (score >= 50) return { label: "🥈 Intermediate Profile", color: "var(--orange)", bg: "rgba(var(--orange-rgb), 0.15)", border: "rgba(var(--orange-rgb), 0.4)" };
+    return { label: "🥉 Basic Profile", color: "var(--text-muted)", bg: "rgba(var(--text-muted-rgb), 0.15)", border: "rgba(var(--text-muted-rgb), 0.4)" };
   };
 
   const badgeInfo = getBadgeInfo(completenessScore);
@@ -280,9 +280,9 @@ export default function CandidateProfile() {
           marginBottom: "32px",
           padding: "28px",
           position: "relative",
-          background: "linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9))",
-          border: "1px solid rgba(96, 165, 250, 0.2)",
-          boxShadow: "0 12px 32px rgba(0, 0, 0, 0.3)"
+          background: "linear-gradient(135deg, rgba(var(--bg-rgb), 0.9), rgba(var(--surface-raised-rgb), 0.9))",
+          border: "1px solid rgba(var(--cyan-rgb), 0.2)",
+          boxShadow: "0 12px 32px rgba(var(--black-rgb), 0.3)"
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "24px", flexWrap: "wrap", marginBottom: "20px" }}>
@@ -295,17 +295,17 @@ export default function CandidateProfile() {
                 height: "100px",
                 borderRadius: "50%",
                 objectFit: "cover",
-                backgroundColor: "rgba(255, 255, 255, 0.05)",
-                border: "3px solid #3b82f6",
+                backgroundColor: "rgba(var(--white-rgb), 0.05)",
+                border: "3px solid var(--cyan)",
                 padding: "3px",
-                boxShadow: "0 8px 24px rgba(59, 130, 246, 0.25)"
+                boxShadow: "0 8px 24px rgba(var(--cyan-rgb), 0.25)"
               }}
               onError={(e) => { e.target.src = defaultAvatar; }}
             />
           </div>
           <div style={{ flex: 1, minWidth: "220px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-              <h2 style={{ margin: 0, fontSize: "1.75rem", fontWeight: "700", color: "#fff" }}>
+              <h2 style={{ margin: 0, fontSize: "1.75rem", fontWeight: "700", color: "var(--white)" }}>
                 {basicForm.firstName} {basicForm.lastName}
               </h2>
               <span style={{
@@ -334,8 +334,8 @@ export default function CandidateProfile() {
               className="primary-btn"
               onClick={() => setShowAiAssistantModal(true)}
               style={{
-                background: "linear-gradient(135deg, #6366f1, #a855f7)",
-                boxShadow: "0 4px 15px rgba(168, 85, 247, 0.4)",
+                background: "linear-gradient(135deg, var(--violet), var(--violet))",
+                boxShadow: "0 4px 15px rgba(var(--violet-rgb), 0.4)",
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
@@ -350,22 +350,22 @@ export default function CandidateProfile() {
         </div>
 
         {/* Profile Completeness Bar */}
-        <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
+        <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid rgba(var(--white-rgb), 0.08)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: "8px" }}>
-            <span style={{ color: "#94a3b8", fontWeight: "500" }}>Profile Completeness Meter</span>
+            <span style={{ color: "var(--text-muted)", fontWeight: "500" }}>Profile Completeness Meter</span>
             <span style={{ color: badgeInfo.color, fontWeight: "700" }}>{completenessScore}% Complete</span>
           </div>
-          <div style={{ height: "8px", width: "100%", backgroundColor: "rgba(255, 255, 255, 0.1)", borderRadius: "4px", overflow: "hidden" }}>
+          <div style={{ height: "8px", width: "100%", backgroundColor: "rgba(var(--white-rgb), 0.1)", borderRadius: "4px", overflow: "hidden" }}>
             <div style={{
               height: "100%",
               width: `${completenessScore}%`,
-              background: "linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899)",
+              background: "linear-gradient(90deg, var(--cyan), var(--violet), var(--magenta))",
               borderRadius: "4px",
               transition: "width 0.6s ease-in-out"
             }} />
           </div>
           {completenessScore < 100 && (
-            <div style={{ fontSize: "0.78rem", color: "#64748b", marginTop: "6px" }}>
+            <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "6px" }}>
               💡 Tip: {completenessScore < 50 ? "Add your skills and bio to boost candidate visibility." : completenessScore < 80 ? "Add professional links (LinkedIn/GitHub) & experience to reach All-Star status." : "Complete any missing fields for 100% maximum recruiter appeal."}
             </div>
           )}
@@ -376,7 +376,7 @@ export default function CandidateProfile() {
       <form onSubmit={handleSaveProfile}>
         {/* Personal Details Section */}
         <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "#60a5fa" }}>
+          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)" }}>
             Personal Details
           </h3>
           <div className="form-grid">
@@ -404,7 +404,7 @@ export default function CandidateProfile() {
 
         {/* Bio Section */}
         <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "#60a5fa" }}>
+          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)" }}>
             Professional Bio
           </h3>
           <div className="form-group" style={{ marginBottom: "16px" }}>
@@ -413,9 +413,9 @@ export default function CandidateProfile() {
               type="file" 
               accept="image/*"
               onChange={handlePictureFileChange}
-              style={{ color: "#fff" }}
+              style={{ color: "var(--white)" }}
             />
-            {uploadingPic && <span style={{ fontSize: "0.8rem", color: "#60a5fa", marginTop: "4px" }}>Uploading image...</span>}
+            {uploadingPic && <span style={{ fontSize: "0.8rem", color: "var(--cyan)", marginTop: "4px" }}>Uploading image...</span>}
           </div>
           <div className="form-group">
             <label>Bio (Introduce yourself to recruiters) *</label>
@@ -432,7 +432,7 @@ export default function CandidateProfile() {
 
         {/* Social Links Section */}
         <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "#60a5fa" }}>
+          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)" }}>
             Professional Links
           </h3>
           <div className="form-grid">
@@ -470,7 +470,7 @@ export default function CandidateProfile() {
 
         {/* Skills Section */}
         <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "#60a5fa" }}>
+          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)" }}>
             Skills
           </h3>
           <div className="skills-input-row">
@@ -479,7 +479,7 @@ export default function CandidateProfile() {
               placeholder="e.g. React, Java, UI/UX" 
               value={skillInput}
               onChange={(e) => setSkillInput(e.target.value)}
-              style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.2)", border: "1px solid var(--border-color)", color: "#fff", padding: "10px", borderRadius: "8px", outline: "none" }}
+              style={{ flex: 1, backgroundColor: "rgba(var(--black-rgb), 0.2)", border: "1px solid var(--border-color)", color: "var(--white)", padding: "10px", borderRadius: "8px", outline: "none" }}
               onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); handleAddSkill(e); } }}
             />
             <button type="button" className="secondary-btn" onClick={handleAddSkill} style={{ height: "42px" }}>
@@ -495,7 +495,7 @@ export default function CandidateProfile() {
               </span>
             ))}
             {skills.length === 0 && (
-              <div style={{ color: "#94a3b8", fontSize: "0.85rem", fontStyle: "italic", marginTop: "8px" }}>
+              <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", fontStyle: "italic", marginTop: "8px" }}>
                 No skills added yet. Add some to get noticed!
               </div>
             )}
@@ -504,13 +504,13 @@ export default function CandidateProfile() {
 
         {/* Experiences Section */}
         <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "#60a5fa" }}>
+          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)" }}>
             Professional Experience
           </h3>
           
           {/* New Experience Inline Form */}
           <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "20px", marginBottom: "20px" }}>
-            <h4 style={{ margin: "0 0 14px 0", fontSize: "0.95rem", color: "#94a3b8" }}>Add Professional Experience</h4>
+            <h4 style={{ margin: "0 0 14px 0", fontSize: "0.95rem", color: "var(--text-muted)" }}>Add Professional Experience</h4>
             <div className="experience-form-row">
               <div className="form-group">
                 <label>Job Position *</label>
@@ -578,7 +578,7 @@ export default function CandidateProfile() {
               </div>
             ))}
             {experiences.length === 0 && (
-              <div style={{ color: "#94a3b8", fontSize: "0.85rem", fontStyle: "italic", textAlign: "center", padding: "20px 0" }}>
+              <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", fontStyle: "italic", textAlign: "center", padding: "20px 0" }}>
                 No experience listed. Add one to show recruiters your work history.
               </div>
             )}
@@ -601,13 +601,13 @@ export default function CandidateProfile() {
       {/* AI Profile Enhancer & Skill Extractor Modal */}
       {showAiAssistantModal && (
         <div className="modal-overlay" style={{ backdropFilter: "blur(8px)" }}>
-          <div className="modal-content" style={{ maxWidth: "650px", width: "90%", borderRadius: "20px", border: "1px solid rgba(168, 85, 247, 0.4)" }}>
-            <div className="modal-header" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <div className="modal-content" style={{ maxWidth: "650px", width: "90%", borderRadius: "20px", border: "1px solid rgba(var(--violet-rgb), 0.4)" }}>
+            <div className="modal-header" style={{ borderBottom: "1px solid rgba(var(--white-rgb), 0.08)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <span style={{ fontSize: "1.5rem" }}>✨</span>
                 <div>
                   <h2 style={{ margin: 0, fontSize: "1.25rem" }}>AI Candidate Profile Generator</h2>
-                  <p style={{ margin: "2px 0 0 0", fontSize: "0.82rem", color: "#a78bfa" }}>
+                  <p style={{ margin: "2px 0 0 0", fontSize: "0.82rem", color: "var(--violet-soft)" }}>
                     Automatically extract technical skills & generate a compelling bio summary
                   </p>
                 </div>
@@ -641,24 +641,24 @@ export default function CandidateProfile() {
                 className="primary-btn" 
                 onClick={handleGenerateAiProfile}
                 disabled={generatingAi}
-                style={{ width: "100%", background: "linear-gradient(135deg, #6366f1, #a855f7)", padding: "12px" }}
+                style={{ width: "100%", background: "linear-gradient(135deg, var(--violet), var(--violet))", padding: "12px" }}
               >
                 {generatingAi ? "Generating Profile Summary..." : "✨ Extract Skills & Generate Bio"}
               </button>
 
               {aiGenResult && (
-                <div style={{ marginTop: "20px", background: "rgba(255, 255, 255, 0.03)", padding: "16px", borderRadius: "12px", border: "1px solid rgba(168, 85, 247, 0.3)" }}>
-                  <h4 style={{ margin: "0 0 10px 0", color: "#a78bfa", fontSize: "0.95rem" }}>Generated Professional Bio:</h4>
-                  <p style={{ color: "#e2e8f0", fontSize: "0.9rem", lineHeight: "1.5", margin: "0 0 14px 0" }}>
+                <div style={{ marginTop: "20px", background: "rgba(var(--white-rgb), 0.03)", padding: "16px", borderRadius: "12px", border: "1px solid rgba(var(--violet-rgb), 0.3)" }}>
+                  <h4 style={{ margin: "0 0 10px 0", color: "var(--violet-soft)", fontSize: "0.95rem" }}>Generated Professional Bio:</h4>
+                  <p style={{ color: "var(--text-sub)", fontSize: "0.9rem", lineHeight: "1.5", margin: "0 0 14px 0" }}>
                     "{aiGenResult.generated_bio}"
                   </p>
 
                   {aiGenResult.extracted_skills && aiGenResult.extracted_skills.length > 0 && (
                     <div>
-                      <h5 style={{ margin: "0 0 8px 0", color: "#94a3b8", fontSize: "0.85rem" }}>Extracted Skills:</h5>
+                      <h5 style={{ margin: "0 0 8px 0", color: "var(--text-muted)", fontSize: "0.85rem" }}>Extracted Skills:</h5>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                         {aiGenResult.extracted_skills.map((s, i) => (
-                          <span key={i} style={{ backgroundColor: "rgba(99, 102, 241, 0.2)", color: "#a5b4fc", padding: "2px 8px", borderRadius: "12px", fontSize: "0.78rem" }}>
+                          <span key={i} style={{ backgroundColor: "rgba(var(--violet-rgb), 0.2)", color: "var(--violet-soft)", padding: "2px 8px", borderRadius: "12px", fontSize: "0.78rem" }}>
                             {s}
                           </span>
                         ))}
@@ -669,12 +669,12 @@ export default function CandidateProfile() {
               )}
             </div>
 
-            <div className="modal-footer" style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "14px", display: "flex", justifyContent: "space-between" }}>
+            <div className="modal-footer" style={{ borderTop: "1px solid rgba(var(--white-rgb), 0.08)", paddingTop: "14px", display: "flex", justifyContent: "space-between" }}>
               <button className="secondary-btn" onClick={() => setShowAiAssistantModal(false)}>
                 Cancel
               </button>
               {aiGenResult && (
-                <button className="primary-btn" onClick={handleApplyAiResult} style={{ backgroundColor: "#10b981" }}>
+                <button className="primary-btn" onClick={handleApplyAiResult} style={{ backgroundColor: "var(--green)" }}>
                   Apply to Profile Form
                 </button>
               )}

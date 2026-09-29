@@ -78,9 +78,8 @@ function CategoryRow({ name, category }) {
           <span className="match-category__weight"> · {Math.round(category.effective_weight * 100)}% of the score</span>
         </span>
       </div>
-      <div className="match-bar" aria-hidden="true">
-        <div className={`match-bar__fill match-bar__fill--${band(category.score).key}`} style={{ width: `${category.score}%` }} />
-      </div>
+      <progress className={`match-bar match-bar--${band(category.score).key}`} max="100" value={category.score}
+        aria-hidden="true" />
       <p className="match-category__summary">{category.summary}</p>
     </div>
   );

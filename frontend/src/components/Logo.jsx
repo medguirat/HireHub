@@ -5,12 +5,8 @@ export default function Logo({ width = 180 }) {
     <img
       src={logo}
       alt="HireHub"
-      style={{
-        width,
-        height: "auto",
-        display: "block",
-        filter: "brightness(1.06) saturate(1.08)",
-      }}
+      width={width}
+      className="brand-logo"
     />
   );
 }

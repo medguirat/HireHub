@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import candidateService from "../services/candidateService";
 import AlertModal from "../components/AlertModal";
+import Avatar from "../components/Avatar";
 import ApplyModal from "../components/ApplyModal";
 import CvMatchModal from "../components/CvMatchModal";
 import EmptyState from "../components/EmptyState";
@@ -98,71 +99,50 @@ export default function CandidateOverview() {
     fetchData();
   };
 
-  const defaultLogo = "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3";
+  const unread = notifications.filter((n) => !n.read);
 
   return (
-    <div className="candidate-overview-dashboard">
+    <div className="page-stack">
       {loading ? (
         <SkeletonRows rows={6} />
       ) : (
         <>
-          {/* Notifications Alerts Section */}
-          {notifications.filter(n => !n.read).length > 0 && (
-            <div className="dashboard-panel" style={{ border: "1px solid rgba(59, 130, 246, 0.3)", backgroundColor: "rgba(59, 130, 246, 0.05)", padding: "16px", marginBottom: "24px" }}>
-              <h3 style={{ margin: "0 0 12px 0", fontSize: "1.05rem", fontWeight: "600", color: "#60a5fa" }}>
-                Unread Messages
-              </h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {notifications.filter(n => !n.read).map(notif => (
-                  <div 
-                    key={notif.id} 
-                    onClick={() => handleNotificationClick(notif)}
-                    style={{ 
-                      padding: "10px 14px", 
-                      borderRadius: "8px", 
-                      backgroundColor: "rgba(255, 255, 255, 0.03)", 
-                      cursor: "pointer", 
-                      fontSize: "0.88rem", 
-                      borderLeft: "4px solid #3b82f6",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center"
-                    }}
-                  >
-                    <span>{notif.message}</span>
-                    <span style={{ fontSize: "0.75rem", color: "#60a5fa", textDecoration: "underline" }}>View Invitation</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {unread.length > 0 && (
+            <section className="glass-card stack accent-cyan" aria-labelledby="unread-title">
+              <h2 id="unread-title" className="section-title text-accent">Unread messages</h2>
+              {unread.map((notif) => (
+                <button key={notif.id} type="button" className="notice" onClick={() => handleNotificationClick(notif)}>
+                  <span className="grow">{notif.message}</span>
+                  <span className="text-accent text-xs">Open</span>
+                </button>
+              ))}
+            </section>
           )}
 
-          {/* Stats Grid */}
           <div className="stats-grid">
             <div className="stat-card blue">
-              <div className="stat-title">Total Applications</div>
+              <div className="stat-title">Applications</div>
               <div className="stat-value">{stats.totalApplications}</div>
             </div>
             <div className="stat-card orange">
-              <div className="stat-title">Pending Review</div>
+              <div className="stat-title">Pending review</div>
               <div className="stat-value">{stats.pendingApplications}</div>
             </div>
             <div className="stat-card green">
-              <div className="stat-title">Accepted Offers</div>
+              <div className="stat-title">Accepted</div>
               <div className="stat-value">{stats.acceptedApplications}</div>
             </div>
             <div className="stat-card red">
-              <div className="stat-title">Rejected Applications</div>
+              <div className="stat-title">Rejected</div>
               <div className="stat-value">{stats.rejectedApplications}</div>
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1.2fr", gap: "24px", marginTop: "24px" }}>
-            {/* Recent Opportunities */}
-            <div className="dashboard-panel">
+          <div className="grid-two">
+            <section className="dashboard-panel">
               <div className="panel-header">
                 <h2>Newest offers</h2>
-                <button className="secondary-btn" onClick={() => navigate("/candidate-dashboard/offers")}>
+                <button type="button" className="secondary-btn" onClick={() => navigate("/candidate-dashboard/offers")}>
                   All offers
                 </button>
               </div>
@@ -170,151 +150,100 @@ export default function CandidateOverview() {
               {recentOffers.length === 0 ? (
                 <EmptyState title="No open offers right now" text="New offers appear here as soon as recruiters publish them." />
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <ul className="stack list-reset">
                   {recentOffers.map((offer) => (
-                    <div 
-                      key={offer.id} 
-                      className="offer-card"
-                      onClick={() => setSelectedOffer(offer)}
-                      style={{ padding: "16px", borderRadius: "12px", border: "1px solid var(--border-color)", cursor: "pointer" }}
-                    >
-                      <h3 style={{ margin: "0 0 4px 0", fontSize: "1.05rem" }}>{offer.title}</h3>
-                      <div className="offer-company" style={{ fontSize: "0.85rem", color: "#3b82f6", marginBottom: "8px" }}>
-                        {offer.companyName}
-                      </div>
-                      <div className="offer-meta" style={{ display: "flex", gap: "12px", fontSize: "0.78rem", color: "#94a3b8" }}>
-                        <span>Location: {offer.location}</span>
-                        <span>Contract: {offer.contractType}</span>
-                        {offer.alreadyApplied && (
-                          <span style={{ color: "#10b981" }}>Applied</span>
-                        )}
-                      </div>
-                    </div>
+                    <li key={offer.id}>
+                      <button type="button" className="offer-card offer-card--compact card-button" onClick={() => setSelectedOffer(offer)}>
+                        <h3>{offer.title}</h3>
+                        <div className="offer-company">{offer.companyName}</div>
+                        <div className="offer-meta">
+                          <span>Location: {offer.location}</span>
+                          <span>Contract: {offer.contractType}</span>
+                          {offer.alreadyApplied && <span className="applied-flag">Applied</span>}
+                        </div>
+                      </button>
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
-            </div>
+            </section>
 
-            {/* Notification History Feed */}
-            <div className="dashboard-panel">
+            <section className="dashboard-panel">
               <div className="panel-header">
                 <h2>Messages</h2>
               </div>
-              <div style={{ maxHeight: "300px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "10px", paddingRight: "4px" }}>
-                {notifications.length === 0 ? (
-                  <div style={{ color: "#94a3b8", fontStyle: "italic", fontSize: "0.85rem", textAlign: "center", padding: "20px 0" }}>
-                    No notifications to display.
-                  </div>
-                ) : (
-                  notifications.map((notif) => (
-                    <div 
-                      key={notif.id}
-                      onClick={() => handleNotificationClick(notif)}
-                      style={{ 
-                        padding: "10px 12px", 
-                        borderRadius: "8px", 
-                        backgroundColor: notif.read ? "rgba(255,255,255,0.01)" : "rgba(59, 130, 246, 0.05)", 
-                        border: notif.read ? "1px solid var(--border-color)" : "1px solid rgba(59,130,246,0.2)",
-                        cursor: "pointer",
-                        fontSize: "0.8rem",
-                        color: notif.read ? "#94a3b8" : "#ffffff"
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                        <span style={{ fontWeight: notif.read ? "normal" : "600" }}>
-                          {notif.read ? "Read Message" : "New Invitation"}
+              {notifications.length === 0 ? (
+                <p className="text-muted text-sm">No messages yet. Interview invitations will appear here.</p>
+              ) : (
+                <ul className="message-list list-reset">
+                  {notifications.map((notif) => (
+                    <li key={notif.id}>
+                      <button type="button" className={`message-item card-button ${notif.read ? "" : "message-item--unread"}`}
+                        onClick={() => handleNotificationClick(notif)}>
+                        <span className="row-between">
+                          <span className="message-item__kind">{notif.read ? "Read" : "New invitation"}</span>
+                          <span className="text-accent text-xs accent-cyan">Open</span>
                         </span>
-                        <span style={{ fontSize: "0.7rem", color: "#60a5fa" }}>View</span>
-                      </div>
-                      <p style={{ margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {notif.message}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+                        <span className="truncate">{notif.message}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           </div>
         </>
       )}
 
-      {/* Opportunity Details & Company Profile Modal */}
       {selectedOffer && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: "700px" }}>
+          <div className="modal-content modal-content--wide" role="dialog" aria-modal="true" aria-labelledby="offer-modal-title">
             <div className="modal-header">
-              <h2>Opportunity Details</h2>
-              <button className="close-btn" onClick={() => setSelectedOffer(null)}>×</button>
+              <h2 id="offer-modal-title">Offer details</h2>
+              <button type="button" className="close-btn" aria-label="Close" onClick={() => setSelectedOffer(null)}>×</button>
             </div>
-            <div className="modal-body" style={{ maxHeight: "70vh", overflowY: "auto", paddingRight: "8px" }}>
-              
-              {/* Job Offer Header */}
-              <div style={{ display: "flex", gap: "20px", borderBottom: "1px solid var(--border-color)", paddingBottom: "20px", marginBottom: "20px" }}>
-                <img 
-                  src={selectedOffer.companyLogo || defaultLogo} 
-                  alt="Company Logo"
-                  style={{ width: "80px", height: "80px", borderRadius: "12px", objectFit: "cover", backgroundColor: "rgba(255,255,255,0.05)" }}
-                  onError={(e) => { e.target.src = defaultLogo; }}
-                />
-                <div>
-                  <h3 style={{ margin: "0 0 6px 0", fontSize: "1.4rem" }}>{selectedOffer.title}</h3>
-                  <div style={{ fontSize: "1rem", color: "#3b82f6", fontWeight: "600", marginBottom: "6px" }}>
-                    {selectedOffer.companyName}
-                  </div>
-                  <div style={{ display: "flex", gap: "16px", fontSize: "0.85rem", color: "#94a3b8" }}>
+            <div className="modal-body modal-body--scroll">
+              <div className="offer-hero">
+                <Avatar src={selectedOffer.companyLogo} name={selectedOffer.companyName} size="md" shape="rounded" />
+                <div className="stack">
+                  <h3 className="offer-hero__title">{selectedOffer.title}</h3>
+                  <div className="offer-company">{selectedOffer.companyName}</div>
+                  <div className="row text-sm text-muted">
                     <span>Location: {selectedOffer.location}</span>
                     <span>Contract: {selectedOffer.contractType}</span>
                     {selectedOffer.companyWebsite && (
-                      <span>
-                        Website: <a href={selectedOffer.companyWebsite} target="_blank" rel="noreferrer" style={{ color: "#3b82f6" }}>{selectedOffer.companyWebsite.replace(/^https?:\/\//, "")}</a>
-                      </span>
+                      <a href={selectedOffer.companyWebsite} target="_blank" rel="noreferrer" className="cv-link">
+                        {selectedOffer.companyWebsite.replace(/^https?:\/\//, "")}
+                      </a>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Job Description */}
-              <div style={{ marginBottom: "24px" }}>
-                <h4 style={{ margin: "0 0 10px 0", color: "#60a5fa" }}>Role Description</h4>
-                <p style={{ color: "#d1d5db", fontSize: "0.92rem", lineHeight: "1.6", whiteSpace: "pre-wrap" }}>
-                  {selectedOffer.description}
-                </p>
-              </div>
+              <h4 className="info-card__title">About the role</h4>
+              <p className="body-text">{selectedOffer.description}</p>
 
-              {/* Company Profile Details */}
-              <div style={{ backgroundColor: "rgba(255, 255, 255, 0.02)", padding: "16px", borderRadius: "12px", border: "1px solid var(--border-color)" }}>
-                <h4 style={{ margin: "0 0 12px 0", color: "#60a5fa" }}>Company Profile</h4>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "0.85rem", color: "#94a3b8", marginBottom: "12px" }}>
-                  <div>Industry: <strong style={{ color: "#fff" }}>{selectedOffer.companyIndustry || "Not specified"}</strong></div>
-                  <div>Headquarters: <strong style={{ color: "#fff" }}>{selectedOffer.companyHeadquarters || "Not specified"}</strong></div>
+              <div className="info-card">
+                <h4 className="info-card__title">About {selectedOffer.companyName}</h4>
+                <div className="info-card__grid">
+                  <div>Industry: <strong>{selectedOffer.companyIndustry || "Not specified"}</strong></div>
+                  <div>Headquarters: <strong>{selectedOffer.companyHeadquarters || "Not specified"}</strong></div>
                 </div>
-                {selectedOffer.companyDescription && (
-                  <p style={{ margin: 0, fontSize: "0.85rem", color: "#94a3b8", lineHeight: "1.5" }}>
-                    {selectedOffer.companyDescription}
-                  </p>
-                )}
+                {selectedOffer.companyDescription && <p className="info-card__text">{selectedOffer.companyDescription}</p>}
               </div>
             </div>
 
-            <div className="modal-footer" style={{ gap: "10px", flexWrap: "wrap" }}>
-              <button className="secondary-btn" onClick={() => setSelectedOffer(null)}>
-                Close
-              </button>
-              <button className="secondary-btn" onClick={() => setShowMatchModal(true)}>
+            <div className="modal-footer">
+              <button type="button" className="secondary-btn" onClick={() => setSelectedOffer(null)}>Close</button>
+              <button type="button" className="accent-btn accent-violet" onClick={() => setShowMatchModal(true)}>
                 Check my CV match
               </button>
               {selectedOffer.alreadyApplied ? (
-                <button className="primary-btn" disabled style={{ backgroundColor: "#10b981", cursor: "not-allowed" }}>
-                  Already Applied
-                </button>
+                <span className="state-badge accent-green">Already applied</span>
               ) : selectedOffer.expired ? (
-                <button className="primary-btn" disabled style={{ backgroundColor: "#ef4444", cursor: "not-allowed" }}>
-                  Expired
-                </button>
+                <span className="state-badge accent-red">Expired</span>
               ) : (
-                <button className="primary-btn" onClick={handleApplyClickFromModal}>
-                  Apply Now
-                </button>
+                <button type="button" className="primary-btn" onClick={handleApplyClickFromModal}>Apply Now</button>
               )}
             </div>
           </div>
@@ -335,53 +264,32 @@ export default function CandidateOverview() {
         />
       )}
 
-      {/* Notification View Modal */}
       {activeNotification && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: "550px" }}>
+          <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="notification-title">
             <div className="modal-header">
-              <h2>Interview Invitation Details</h2>
-              <button className="close-btn" onClick={() => setActiveNotification(null)}>×</button>
+              <h2 id="notification-title">Interview invitation</h2>
+              <button type="button" className="close-btn" aria-label="Close" onClick={() => setActiveNotification(null)}>×</button>
             </div>
             <div className="modal-body">
-              <p style={{ color: "#fff", fontSize: "0.95rem", paddingBottom: "10px", borderBottom: "1px solid var(--border-color)" }}>
-                {activeNotification.message}
-              </p>
-              
+              <p className="text-strong">{activeNotification.message}</p>
               {activeNotification.application?.interviewLetter ? (
-                <div style={{ marginTop: "16px" }}>
-                  <h4 style={{ color: "#60a5fa", marginBottom: "8px" }}>Official Invitation Letter</h4>
-                  <pre 
-                    style={{ 
-                      backgroundColor: "rgba(0,0,0,0.2)", 
-                      padding: "16px", 
-                      borderRadius: "8px", 
-                      border: "1px solid var(--border-color)",
-                      color: "#d1d5db", 
-                      fontSize: "0.85rem",
-                      whiteSpace: "pre-wrap",
-                      fontFamily: "inherit"
-                    }}
-                  >
-                    {activeNotification.application.interviewLetter}
-                  </pre>
-                </div>
+                <>
+                  <h4 className="info-card__title">Invitation letter</h4>
+                  <pre className="letter-block">{activeNotification.application.interviewLetter}</pre>
+                </>
               ) : (
-                <p style={{ color: "#94a3b8", fontSize: "0.85rem", fontStyle: "italic", marginTop: "10px" }}>
-                  No invitation letter text has been attached. Check "My Applications" for updates.
-                </p>
+                <p className="text-muted text-sm">No invitation letter is attached. Check "My applications" for updates.</p>
               )}
             </div>
             <div className="modal-footer">
-              <button className="primary-btn" onClick={() => setActiveNotification(null)}>
-                Dismiss
-              </button>
+              <button type="button" className="primary-btn" onClick={() => setActiveNotification(null)}>Close</button>
             </div>
           </div>
         </div>
       )}
 
-      <AlertModal 
+      <AlertModal
         isOpen={showAlert}
         type="error"
         title="Something went wrong"

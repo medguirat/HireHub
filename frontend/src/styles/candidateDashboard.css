@@ -25,7 +25,7 @@
 }
 
 .search-field input, .search-field select {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgba(var(--black-rgb), 0.2);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   padding: 10px 14px;
@@ -47,7 +47,7 @@
   font-weight: 600;
   cursor: pointer;
   background-color: var(--color-primary);
-  color: #fff;
+  color: var(--white);
   border: none;
   transition: opacity 0.2s ease;
 }
@@ -91,11 +91,11 @@
 
 .offer-card:hover, .offer-card.active {
   border-color: var(--color-primary);
-  background-color: rgba(59, 130, 246, 0.03);
+  background-color: rgba(var(--cyan-rgb), 0.03);
 }
 
 .offer-card.active {
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 15px rgba(var(--cyan-rgb), 0.15);
   border-color: var(--color-primary);
 }
 
@@ -121,7 +121,7 @@
 }
 
 .offer-meta span {
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: rgba(var(--white-rgb), 0.03);
   padding: 4px 10px;
   border-radius: 6px;
 }
@@ -163,7 +163,7 @@
 .details-body {
   font-size: 0.95rem;
   line-height: 1.6;
-  color: #d1d5db;
+  color: var(--text-sub);
   white-space: pre-line;
 }
 
@@ -174,7 +174,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(var(--black-rgb), 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -190,7 +190,7 @@
   border-radius: 16px;
   padding: 30px;
   position: relative;
-  box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+  box-shadow: 0 15px 40px rgba(var(--black-rgb), 0.5);
   color: var(--text-primary);
   font-family: var(--font-family);
 }
@@ -205,7 +205,7 @@
 .modal-header h2 {
   margin: 0;
   font-size: 1.3rem;
-  background: linear-gradient(to right, #ffffff, #94a3b8);
+  background: linear-gradient(to right, var(--white), var(--text-muted));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -237,7 +237,7 @@
 }
 
 .form-group input, .form-group textarea {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgba(var(--black-rgb), 0.2);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   padding: 12px;
@@ -266,9 +266,9 @@
 }
 
 .skill-tag {
-  background-color: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  color: #93c5fd;
+  background-color: rgba(var(--cyan-rgb), 0.1);
+  border: 1px solid rgba(var(--cyan-rgb), 0.2);
+  color: var(--cyan-soft);
   padding: 6px 12px;
   border-radius: 20px;
   font-size: 0.85rem;
@@ -280,7 +280,7 @@
 .remove-tag-btn {
   background: none;
   border: none;
-  color: #f87171;
+  color: var(--red-soft);
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -302,7 +302,7 @@
 }
 
 .experience-item-card {
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: rgba(var(--white-rgb), 0.02);
   border: 1px solid var(--border-color);
   padding: 18px;
   border-radius: 12px;
@@ -340,3 +340,7 @@
     grid-template-columns: 1fr;
   }
 }
+
+.details-header .offer-company { font-size: var(--fs-md); }
+.details-header .details-meta-row { margin-top: 14px; }
+.details-actions { margin-top: var(--space-5); }

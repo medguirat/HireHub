@@ -73,7 +73,7 @@ export default function RecruiterOffers() {
 
   return (
     <div>
-      <div className="panel-header" style={{ marginBottom: "24px" }}>
+      <div className="panel-header panel-header--spaced">
         <h2>{loading ? "Loading…" : `${openOffers.length} open · ${offers.length - openOffers.length} closed`}</h2>
         <button className="primary-btn" onClick={() => navigate("/recruiter-dashboard/create-offer")}>
           New job offer
@@ -109,28 +109,25 @@ export default function RecruiterOffers() {
                   Deadline: {formatDate(offer.deadline)}
                 </div>
               </div>
-              <div className="offer-actions" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <div className="offer-actions">
                 <button 
-                  className="primary-btn" 
+                  className="primary-btn offer-actions__main"
                   onClick={() => navigate(`/recruiter-dashboard/offers/${offer.id}/applications`)}
-                  style={{ flex: "1 1 100%", fontSize: "0.85rem", padding: "8px 12px" }}
                 >
                   View applications ({offer.applicationCount ?? 0})
                 </button>
                 {offer.status !== "CLOSED" && (
                   <>
                     <button
-                      className="btn-edit"
+                      className="btn-edit offer-actions__half"
                       onClick={() => navigate(`/recruiter-dashboard/edit-offer/${offer.id}`)}
-                      style={{ flex: 1 }}
                     >
                       Edit
                     </button>
                     <button
-                      className="btn-delete"
+                      className="btn-delete offer-actions__half"
                       onClick={() => handleDelete(offer)}
                       disabled={busyOfferId === offer.id}
-                      style={{ flex: 1 }}
                     >
                       {busyOfferId === offer.id ? "Working…" : offer.applicationCount > 0 ? "Close offer" : "Delete"}
                     </button>

@@ -65,7 +65,7 @@ export default function ApplyModal({ offer, onClose, onApplied }) {
   };
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 110 }}>
+    <div className="modal-overlay modal-overlay--top">
       <div className="modal-content">
         <div className="modal-header">
           <h2>Apply for {offer.title}</h2>
@@ -82,24 +82,24 @@ export default function ApplyModal({ offer, onClose, onApplied }) {
                 setCvFile(file || null);
                 setCvFileError(file ? validateFile(file, [".pdf"]) || "" : "");
               }}
-              style={{ color: "#fff" }}
+              className="file-input"
             />
             {cvFileError ? (
               <span className="field-error">{cvFileError}</span>
             ) : (
-              <small style={{ color: "#94a3b8", fontSize: "0.78rem" }}>Upload a PDF version of your CV.</small>
+              <small className="hint">Upload a PDF version of your CV.</small>
             )}
           </div>
 
           <div className="form-group">
             <label>Cover letter</label>
-            <div style={{ display: "flex", gap: "16px", marginBottom: "8px" }}>
-              <label style={{ fontSize: "0.85rem", color: "#fff", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+            <div className="radio-row">
+              <label className="radio-option">
                 <input type="radio" name="coverLetterType" checked={coverLetterType === "text"}
                   onChange={() => setCoverLetterType("text")} />
                 Write letter
               </label>
-              <label style={{ fontSize: "0.85rem", color: "#fff", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+              <label className="radio-option">
                 <input type="radio" name="coverLetterType" checked={coverLetterType === "file"}
                   onChange={() => setCoverLetterType("file")} />
                 Upload PDF file
@@ -123,7 +123,7 @@ export default function ApplyModal({ offer, onClose, onApplied }) {
                     setCoverLetterFile(file || null);
                     setCoverLetterFileError(file ? validateFile(file, [".pdf"]) || "" : "");
                   }}
-                  style={{ color: "#fff" }}
+                  className="file-input"
                 />
                 {coverLetterFileError && <span className="field-error">{coverLetterFileError}</span>}
               </>

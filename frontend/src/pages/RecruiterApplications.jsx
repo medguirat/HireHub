@@ -67,7 +67,7 @@ export default function RecruiterApplications() {
         />
       ) : (
         <div className="custom-table-container">
-          <table className="custom-table">
+          <table className="custom-table responsive-table">
             <thead>
               <tr>
                 <th>Candidate</th>
@@ -81,16 +81,13 @@ export default function RecruiterApplications() {
             <tbody>
               {applications.map((app) => (
                 <tr key={app.id}>
-                  <td>
-                    <span 
-                      className="candidate-name-link"
-                      onClick={() => navigate(`/recruiter-dashboard/applications/${app.id}/rate`)}
-                    >
+                  <td data-label="Candidate">
+                    <button type="button" className="candidate-name-link link-reset" onClick={() => navigate(`/recruiter-dashboard/applications/${app.id}/rate`)}>
                       {app.candidateName} {app.candidateLastName}
-                    </span>
+                    </button>
                   </td>
-                  <td>{app.jobOfferTitle}</td>
-                  <td>
+                  <td data-label="Job Position">{app.jobOfferTitle}</td>
+                  <td data-label="CV / Resume">
                     {app.cv ? (
                       <a href={app.cv} target="_blank" rel="noreferrer" className="cv-link">
                         Open CV
@@ -99,15 +96,15 @@ export default function RecruiterApplications() {
                       "No CV"
                     )}
                   </td>
-                  <td style={{ maxWidth: "240px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={app.coverLetter}>
+                  <td data-label="Cover Letter" className="cell-truncate" title={app.coverLetter}>
                     {app.coverLetter || "No cover letter"}
                   </td>
-                  <td>
+                  <td data-label="Status">
                     <span className={`status-badge status-${app.status.toLowerCase()}`}>
                       {app.status}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Actions">
                     <div className="action-row">
                       <button 
                         className="action-btn-small btn-approve"

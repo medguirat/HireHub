@@ -4,6 +4,7 @@ import AlertModal from "../components/AlertModal";
 import ApplyModal from "../components/ApplyModal";
 import CvMatchModal from "../components/CvMatchModal";
 import EmptyState from "../components/EmptyState";
+import Pagination from "../components/Pagination";
 import { SkeletonCards } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
 
@@ -153,15 +154,19 @@ export default function CandidateOffers() {
           {/* Offers list panel */}
           <div className="offers-list">
             {offers.map((offer) => (
-              <div 
-                key={offer.id} 
+              <div
+                key={offer.id}
                 className={`offer-card ${selectedOffer?.id === offer.id ? "active" : ""}`}
+                role="button"
+                tabIndex={0}
+                aria-pressed={selectedOffer?.id === offer.id}
                 onClick={() => setSelectedOffer(offer)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedOffer(offer); } }}
               >
                 <h3>
                   {offer.title}
                   {offer.newlyPublished && (
-                    <span className="status-chip status-chip--new" style={{ marginLeft: 8 }} title="Published in the last 48 hours">
+                    <span className="status-chip status-chip--new chip-inline" title="Published in the last 48 hours">
                       New
                     </span>
                   )}
@@ -173,7 +178,7 @@ export default function CandidateOffers() {
                   <span>Location: {offer.location}</span>
                   <span>Contract: {offer.contractType}</span>
                   {offer.alreadyApplied && (
-                    <span style={{ color: "#10b981", backgroundColor: "rgba(16, 185, 129, 0.1)" }}>
+                    <span className="applied-flag">
                       Applied
                     </span>
                   )}
@@ -182,30 +187,7 @@ export default function CandidateOffers() {
               </div>
             ))}
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="pagination-row" style={{ display: "flex", gap: "10px", marginTop: "10px", justifyContent: "center" }}>
-                <button 
-                  disabled={page === 0}
-                  className="secondary-btn" 
-                  style={{ padding: "6px 12px", fontSize: "0.85rem" }}
-                  onClick={() => setPage(page - 1)}
-                >
-                  Previous
-                </button>
-                <span style={{ color: "#94a3b8", display: "flex", alignItems: "center", fontSize: "0.88rem" }}>
-                  Page {page + 1} of {totalPages}
-                </span>
-                <button 
-                  disabled={page >= totalPages - 1}
-                  className="secondary-btn" 
-                  style={{ padding: "6px 12px", fontSize: "0.85rem" }}
-                  onClick={() => setPage(page + 1)}
-                >
-                  Next
-                </button>
-              </div>
-            )}
+            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
           </div>
 
           {/* Offer Details Panel */}
@@ -213,11 +195,11 @@ export default function CandidateOffers() {
             <div className="offer-details-panel">
               <div className="details-header">
                 <h2>{selectedOffer.title}</h2>
-                <div className="offer-company" style={{ fontSize: "1rem" }}>
+                <div className="offer-company">
                   Posted by {selectedOffer.companyName}
                 </div>
 
-                <div className="details-meta-row" style={{ marginTop: "14px" }}>
+                <div className="details-meta-row">
                   <div className="details-meta-item">Location: <strong>{selectedOffer.location}</strong></div>
                   <div className="details-meta-item">Contract: <strong>{selectedOffer.contractType}</strong></div>
                   {selectedOffer.deadline && (
@@ -225,58 +207,41 @@ export default function CandidateOffers() {
                   )}
                 </div>
 
-                <div style={{ marginTop: "20px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                <div className="row details-actions">
                   {selectedOffer.alreadyApplied ? (
-                    <button className="primary-btn" disabled style={{ backgroundColor: "#10b981", cursor: "not-allowed", opacity: 0.8 }}>
-                      Already Applied
-                    </button>
+                    <span className="state-badge accent-green">Already applied</span>
                   ) : selectedOffer.expired ? (
-                    <button className="primary-btn" disabled style={{ backgroundColor: "#ef4444", cursor: "not-allowed", opacity: 0.8 }}>
-                      Expired
-                    </button>
+                    <span className="state-badge accent-red">Expired</span>
                   ) : (
                     <button className="primary-btn" onClick={handleApplyClick}>
                       Apply Now
                     </button>
                   )}
 
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    onClick={() => handleOpenMatch(selectedOffer)}
-                    style={{
-                      background: "linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))",
-                      border: "1px solid rgba(168, 85, 247, 0.5)",
-                      color: "#c084fc",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      fontWeight: "600"
-                    }}
-                  >
-                    <span>Check my CV match</span>
+                  <button type="button" className="accent-btn accent-violet" onClick={() => handleOpenMatch(selectedOffer)}>
+                    Check my CV match
                   </button>
                 </div>
               </div>
 
 
               {/* Company Details Section inside Offers detail view */}
-              <div style={{ backgroundColor: "rgba(255, 255, 255, 0.02)", padding: "16px", borderRadius: "12px", border: "1px solid var(--border-color)", margin: "20px 0" }}>
-                <h4 style={{ margin: "0 0 10px 0", color: "#60a5fa" }}>Company Details</h4>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "0.82rem", color: "#94a3b8", marginBottom: "10px" }}>
+              <div className="info-card">
+                <h4 className="info-card__title">About {selectedOffer.companyName}</h4>
+                <div className="info-card__grid">
                   <div>Industry: <strong>{selectedOffer.companyIndustry || "Not specified"}</strong></div>
                   <div>Headquarters: <strong>{selectedOffer.companyHeadquarters || "Not specified"}</strong></div>
                 </div>
                 {selectedOffer.companyDescription && (
-                  <p style={{ margin: 0, fontSize: "0.82rem", color: "#94a3b8", lineHeight: "1.5" }}>
+                  <p className="info-card__text">
                     {selectedOffer.companyDescription}
                   </p>
                 )}
               </div>
 
               <div className="details-body">
-                <h3>Role Description</h3>
-                <div style={{ color: "#94a3b8", whiteSpace: "pre-wrap", marginTop: "10px" }}>
+                <h3>About the role</h3>
+                <div className="body-text">
                   {selectedOffer.description}
                 </div>
               </div>

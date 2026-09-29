@@ -2,13 +2,55 @@ import { useState, useEffect } from "react";
 import recruiterService from "../services/recruiterService";
 import fetchAllPages from "../utils/fetchAllPages";
 import AlertModal from "../components/AlertModal";
+import { SkeletonCards } from "../components/Skeleton";
+
+const TIMEFRAMES = [
+  { key: "3M", months: 3, label: "Last 3 months" },
+  { key: "6M", months: 6, label: "Last 6 months" },
+  { key: "1Y", months: 12, label: "Last 12 months" },
+];
+
+const CONTRACTS = [
+  { types: ["CDI"], title: "CDI", subtitle: "Permanent contracts", accent: "violet", icon: "💼" },
+  { types: ["CDD"], title: "CDD", subtitle: "Fixed-term contracts", accent: "cyan", icon: "📄" },
+  { types: ["STAGE", "INTERNSHIP"], title: "Internships", subtitle: "Students and trainees", accent: "green", icon: "🎓" },
+  { types: ["FREELANCE"], title: "Freelance", subtitle: "Independent contractors", accent: "magenta", icon: "🚀" },
+];
+
+const OUTCOMES = [
+  { status: "ACCEPTED", label: "Accepted", accent: "green", ring: "donut__accepted" },
+  { status: "PENDING", label: "Pending review", accent: "orange", ring: "donut__pending" },
+  { status: "REJECTED", label: "Rejected", accent: "red", ring: "donut__rejected" },
+];
+
+const percent = (part, total) => (total ? Math.round((part / total) * 100) : 0);
+
+// Chart geometry: x spread over 800 units, y from 220 (zero) up to 40 (period maximum).
+function chartGeometry(points) {
+  const maxApps = Math.max(1, ...points.map((p) => p.apps));
+  const coords = points.map((p, i) => ({
+    x: points.length === 1 ? 400 : (i * 800) / (points.length - 1),
+    y: 220 - (p.apps / maxApps) * 180,
+    apps: p.apps,
+  }));
+  const line = coords.reduce((path, pt, i) => {
+    if (i === 0) return `M ${pt.x} ${pt.y}`;
+    const prev = coords[i - 1];
+    const midX = (prev.x + pt.x) / 2;
+    return `${path} C ${midX} ${prev.y}, ${midX} ${pt.y}, ${pt.x} ${pt.y}`;
+  }, "");
+  const area = `${line} L ${coords[coords.length - 1].x} 220 L ${coords[0].x} 220 Z`;
+  return { coords, line, area };
+}
+
+const DONUT_RADIUS = 24;
+const DONUT_LENGTH = 2 * Math.PI * DONUT_RADIUS;
 
 export default function RecruiterStats() {
   const [offers, setOffers] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
-  const [showAlert, setShowAlert] = useState(false);
   const [timeframe, setTimeframe] = useState("6M");
 
   useEffect(() => {
@@ -26,478 +68,187 @@ export default function RecruiterStats() {
       setApplications(allApplications);
     } catch (err) {
       console.error(err);
-      setErrorMsg("Failed to load recruitment analytics data.");
-      setShowAlert(true);
+      setErrorMsg("Your statistics couldn't be loaded. Please refresh the page.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Metric Calculations
   const totalOffers = offers.length;
   const totalApplications = applications.length;
-  const pendingApps = applications.filter((app) => app.status === "PENDING").length;
-  const acceptedApps = applications.filter((app) => app.status === "ACCEPTED").length;
-  const rejectedApps = applications.filter((app) => app.status === "REJECTED").length;
 
-  const countContracts = (type) => {
-    return offers.filter((o) => (o.contractType || "").toUpperCase() === type.toUpperCase()).length;
-  };
+  const contracts = CONTRACTS.map((c) => {
+    const count = offers.filter((o) => c.types.includes((o.contractType || "").toUpperCase())).length;
+    return { ...c, count, pct: percent(count, totalOffers) };
+  });
 
-  const cdiCount = countContracts("CDI");
-  const cddCount = countContracts("CDD");
-  const stageCount = countContracts("STAGE") + countContracts("INTERNSHIP");
-  const freelanceCount = countContracts("FREELANCE");
-
-  const cdiPct = totalOffers ? Math.round((cdiCount / totalOffers) * 100) : 0;
-  const cddPct = totalOffers ? Math.round((cddCount / totalOffers) * 100) : 0;
-  const stagePct = totalOffers ? Math.round((stageCount / totalOffers) * 100) : 0;
-  const freelancePct = totalOffers ? Math.round((freelanceCount / totalOffers) * 100) : 0;
-
-  const acceptedPct = totalApplications ? Math.round((acceptedApps / totalApplications) * 100) : 0;
-  const pendingPct = totalApplications ? Math.round((pendingApps / totalApplications) * 100) : 0;
-  const rejectedPct = totalApplications ? Math.round((rejectedApps / totalApplications) * 100) : 0;
+  let donutStart = 0;
+  const outcomes = OUTCOMES.map((o) => {
+    const count = applications.filter((a) => a.status === o.status).length;
+    const length = totalApplications ? (count / totalApplications) * DONUT_LENGTH : 0;
+    const segment = { ...o, count, pct: percent(count, totalApplications), length, start: donutStart };
+    donutStart += length;
+    return segment;
+  });
+  const acceptedPct = outcomes[0].pct;
 
   // Applications received per month over the selected period, from real application dates.
-  const monthsInTimeframe = { "3M": 3, "6M": 6, "1Y": 12 }[timeframe];
+  const { months, label: periodLabel } = TIMEFRAMES.find((t) => t.key === timeframe);
   const now = new Date();
-  const wavePoints = Array.from({ length: monthsInTimeframe }, (_, i) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - (monthsInTimeframe - 1 - i), 1);
+  const monthly = Array.from({ length: months }, (_, i) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (months - 1 - i), 1);
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
     return {
       month: date.toLocaleString("en", { month: "short" }),
       apps: applications.filter((a) => (a.applicationDate || "").startsWith(key)).length
     };
   });
-  const periodTotal = wavePoints.reduce((sum, p) => sum + p.apps, 0);
-
-  // Chart geometry: x spread over 800px, y from 220 (zero) up to 40 (period maximum).
-  const maxApps = Math.max(1, ...wavePoints.map((p) => p.apps));
-  const chartPoints = wavePoints.map((p, i) => ({
-    x: wavePoints.length === 1 ? 400 : (i * 800) / (wavePoints.length - 1),
-    y: 220 - (p.apps / maxApps) * 180,
-    apps: p.apps
-  }));
-  const linePath = chartPoints.reduce((path, pt, i) => {
-    if (i === 0) return `M ${pt.x} ${pt.y}`;
-    const prev = chartPoints[i - 1];
-    const midX = (prev.x + pt.x) / 2;
-    return `${path} C ${midX} ${prev.y}, ${midX} ${pt.y}, ${pt.x} ${pt.y}`;
-  }, "");
-  const areaPath = `${linePath} L ${chartPoints[chartPoints.length - 1].x} 220 L ${chartPoints[0].x} 220 Z`;
+  const periodTotal = monthly.reduce((sum, p) => sum + p.apps, 0);
+  const chart = chartGeometry(monthly);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
-      {/* Top Header bar */}
-      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-
-        <div style={{ display: "flex", gap: "8px", background: "rgba(255, 255, 255, 0.04)", padding: "4px", borderRadius: "12px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
-          {["3M", "6M", "1Y"].map((tf) => (
-            <button
-              key={tf}
-              onClick={() => setTimeframe(tf)}
-              style={{
-                padding: "6px 14px",
-                borderRadius: "8px",
-                border: "none",
-                background: timeframe === tf ? "linear-gradient(135deg, #132B64, #E81B6B)" : "transparent",
-                color: timeframe === tf ? "#ffffff" : "#8C8E90",
-                fontWeight: "600",
-                fontSize: "0.82rem",
-                cursor: "pointer",
-                transition: "all 0.2s ease"
-              }}
-            >
-              {tf}
+    <div className="page-stack">
+      <div className="row-end">
+        <div className="segmented" role="group" aria-label="Period">
+          {TIMEFRAMES.map((t) => (
+            <button key={t.key} type="button" aria-pressed={timeframe === t.key} title={t.label}
+              onClick={() => setTimeframe(t.key)}>
+              {t.key}
             </button>
           ))}
         </div>
       </div>
 
       {loading ? (
-        <div className="loading-container" style={{ minHeight: "350px", color: "#8C8E90" }}>
-          <div>Loading analytics dashboard...</div>
-        </div>
+        <SkeletonCards count={3} />
       ) : (
         <>
-          {/* Top 4 Frosted Glass Metric Cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: "20px" }}>
-            
-            {/* Card 1 - Violet #804B9E Glow (CDI) */}
-            <div style={{
-              background: "linear-gradient(135deg, rgba(128, 75, 158, 0.35), rgba(128, 75, 158, 0.12))",
-              backdropFilter: "blur(16px)",
-              border: "1px solid rgba(128, 75, 158, 0.4)",
-              borderRadius: "20px",
-              padding: "22px",
-              boxShadow: "0 10px 30px -10px rgba(128, 75, 158, 0.35)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              position: "relative",
-              overflow: "hidden"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #804B9E, #132B64)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", boxShadow: "0 4px 12px rgba(128,75,158,0.4)" }}>
-                    💼
+          <section className="grid-cards" aria-label="Offers by contract type">
+            {contracts.map((c) => (
+              <article key={c.title} className={`metric-card accent-${c.accent}`}>
+                <div className="metric-card__head">
+                  <div className="row">
+                    <span className="icon-bubble" aria-hidden="true">{c.icon}</span>
+                    <div>
+                      <div className="metric-card__title">{c.title}</div>
+                      <div className="metric-card__subtitle">{c.subtitle}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: "0.9rem", fontWeight: "700", color: "#ffffff" }}>CDI Pipeline</div>
-                    <div style={{ fontSize: "0.75rem", color: "#d8b4fe" }}>Permanent Contracts</div>
-                  </div>
+                  <span className="pill">{c.pct}%</span>
                 </div>
-                <span style={{ fontSize: "0.75rem", padding: "3px 8px", borderRadius: "10px", background: "rgba(128, 75, 158, 0.3)", color: "#f3e8ff", fontWeight: "600" }}>
-                  {cdiPct}%
-                </span>
-              </div>
-              <div style={{ fontSize: "2.2rem", fontWeight: "800", color: "#ffffff", letterSpacing: "-0.5px" }}>
-                {cdiCount} <span style={{ fontSize: "0.9rem", fontWeight: "500", color: "#cbd5e1" }}>Offers</span>
-              </div>
-              <div style={{ width: "100%", height: "6px", background: "rgba(255, 255, 255, 0.1)", borderRadius: "3px", marginTop: "12px", overflow: "hidden" }}>
-                <div style={{ width: `${cdiPct}%`, height: "100%", background: "linear-gradient(90deg, #804B9E, #c084fc)", borderRadius: "3px" }} />
-              </div>
-            </div>
-
-            {/* Card 2 - Bleu Cyan #55BDE8 Glow (CDD) */}
-            <div style={{
-              background: "linear-gradient(135deg, rgba(85, 189, 232, 0.35), rgba(85, 189, 232, 0.12))",
-              backdropFilter: "blur(16px)",
-              border: "1px solid rgba(85, 189, 232, 0.4)",
-              borderRadius: "20px",
-              padding: "22px",
-              boxShadow: "0 10px 30px -10px rgba(85, 189, 232, 0.35)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              position: "relative",
-              overflow: "hidden"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #55BDE8, #132B64)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", boxShadow: "0 4px 12px rgba(85,189,232,0.4)" }}>
-                    📄
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "0.9rem", fontWeight: "700", color: "#ffffff" }}>CDD Pipeline</div>
-                    <div style={{ fontSize: "0.75rem", color: "#a5f3fc" }}>Fixed-Term Contracts</div>
-                  </div>
+                <div className="metric-value">
+                  {c.count} <span className="metric-unit">{c.count === 1 ? "offer" : "offers"}</span>
                 </div>
-                <span style={{ fontSize: "0.75rem", padding: "3px 8px", borderRadius: "10px", background: "rgba(85, 189, 232, 0.3)", color: "#e0f2fe", fontWeight: "600" }}>
-                  {cddPct}%
-                </span>
-              </div>
-              <div style={{ fontSize: "2.2rem", fontWeight: "800", color: "#ffffff", letterSpacing: "-0.5px" }}>
-                {cddCount} <span style={{ fontSize: "0.9rem", fontWeight: "500", color: "#cbd5e1" }}>Offers</span>
-              </div>
-              <div style={{ width: "100%", height: "6px", background: "rgba(255, 255, 255, 0.1)", borderRadius: "3px", marginTop: "12px", overflow: "hidden" }}>
-                <div style={{ width: `${cddPct}%`, height: "100%", background: "linear-gradient(90deg, #55BDE8, #38bdf8)", borderRadius: "3px" }} />
-              </div>
-            </div>
+                <progress className="meter" max="100" value={c.pct} aria-label={`${c.title}: ${c.pct}% of your offers`} />
+              </article>
+            ))}
+          </section>
 
-            {/* Card 3 - Vert Clair #69C85B Glow (Stage) */}
-            <div style={{
-              background: "linear-gradient(135deg, rgba(105, 200, 91, 0.35), rgba(105, 200, 91, 0.12))",
-              backdropFilter: "blur(16px)",
-              border: "1px solid rgba(105, 200, 91, 0.4)",
-              borderRadius: "20px",
-              padding: "22px",
-              boxShadow: "0 10px 30px -10px rgba(105, 200, 91, 0.35)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              position: "relative",
-              overflow: "hidden"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #69C85B, #4CAF50)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", boxShadow: "0 4px 12px rgba(105,200,91,0.4)" }}>
-                    🎓
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "0.9rem", fontWeight: "700", color: "#ffffff" }}>Internships</div>
-                    <div style={{ fontSize: "0.75rem", color: "#bbf7d0" }}>Student & Trainees</div>
-                  </div>
-                </div>
-                <span style={{ fontSize: "0.75rem", padding: "3px 8px", borderRadius: "10px", background: "rgba(105, 200, 91, 0.3)", color: "#dcfce7", fontWeight: "600" }}>
-                  {stagePct}%
-                </span>
-              </div>
-              <div style={{ fontSize: "2.2rem", fontWeight: "800", color: "#ffffff", letterSpacing: "-0.5px" }}>
-                {stageCount} <span style={{ fontSize: "0.9rem", fontWeight: "500", color: "#cbd5e1" }}>Offers</span>
-              </div>
-              <div style={{ width: "100%", height: "6px", background: "rgba(255, 255, 255, 0.1)", borderRadius: "3px", marginTop: "12px", overflow: "hidden" }}>
-                <div style={{ width: `${stagePct}%`, height: "100%", background: "linear-gradient(90deg, #69C85B, #4CAF50)", borderRadius: "3px" }} />
-              </div>
-            </div>
-
-            {/* Card 4 - Rose / Magenta #E81B6B Glow (Freelance) */}
-            <div style={{
-              background: "linear-gradient(135deg, rgba(232, 27, 107, 0.35), rgba(232, 27, 107, 0.12))",
-              backdropFilter: "blur(16px)",
-              border: "1px solid rgba(232, 27, 107, 0.4)",
-              borderRadius: "20px",
-              padding: "22px",
-              boxShadow: "0 10px 30px -10px rgba(232, 27, 107, 0.35)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              position: "relative",
-              overflow: "hidden"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #E81B6B, #132B64)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", boxShadow: "0 4px 12px rgba(232,27,107,0.4)" }}>
-                    🚀
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "0.9rem", fontWeight: "700", color: "#ffffff" }}>Freelance</div>
-                    <div style={{ fontSize: "0.75rem", color: "#fbcfe8" }}>Independent Contractors</div>
-                  </div>
-                </div>
-              </div>
-              <div style={{ fontSize: "2.2rem", fontWeight: "800", color: "#ffffff", letterSpacing: "-0.5px" }}>
-                {freelanceCount} <span style={{ fontSize: "0.9rem", fontWeight: "500", color: "#cbd5e1" }}>Offers</span>
-              </div>
-              <div style={{ width: "100%", height: "6px", background: "rgba(255, 255, 255, 0.1)", borderRadius: "3px", marginTop: "12px", overflow: "hidden" }}>
-                <div style={{ width: `${freelancePct}%`, height: "100%", background: "linear-gradient(90deg, #E81B6B, #f472b6)", borderRadius: "3px" }} />
-              </div>
-            </div>
-
-          </div>
-
-          {/* Middle Main Section - Heatmap Wave Graph & Application Status Ratio */}
-          <div style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr", gap: "24px", alignItems: "stretch" }}>
-            
-            {/* SVG Smooth Area Wave Chart ("Heatmap") */}
-            <div style={{
-              background: "rgba(19, 43, 100, 0.22)",
-              backdropFilter: "blur(16px)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              borderRadius: "24px",
-              padding: "26px",
-              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.35)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          <div className="grid-main-aside">
+            <section className="glass-card stack-lg">
+              <div className="row-between">
                 <div>
-                  <h3 style={{ margin: 0, fontSize: "1.25rem", color: "#ffffff", fontWeight: "700" }}>
-                    Recruitment Heatmap & Candidate Inflow
-                  </h3>
-                  <p style={{ margin: "4px 0 0 0", fontSize: "0.84rem", color: "#8C8E90" }}>
-                    Applications received per month · {periodTotal} in this period
-                  </p>
+                  <h2 className="section-title">Applications per month</h2>
+                  <p className="section-sub">{periodLabel} · {periodTotal} application{periodTotal === 1 ? "" : "s"}</p>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.82rem", color: "#E81B6B" }}>
-                  <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#E81B6B", display: "inline-block" }} />
-                  Applications
-                </div>
+                <span className="row text-sm accent-magenta text-accent">
+                  <span className="legend-dot" aria-hidden="true" /> Applications
+                </span>
               </div>
 
-              {/* SVG Curve Wave Render */}
-              <div style={{ width: "100%", height: "260px", position: "relative" }}>
-                <svg viewBox="0 0 800 240" style={{ width: "100%", height: "100%", overflow: "visible" }}>
+              <div className="chart" role="img"
+                aria-label={monthly.map((p) => `${p.month}: ${p.apps}`).join(", ")}>
+                <svg viewBox="0 0 800 240" aria-hidden="true">
                   <defs>
-                    <linearGradient id="waveGradientMagenta" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#E81B6B" stopOpacity="0.45" />
-                      <stop offset="100%" stopColor="#E81B6B" stopOpacity="0.0" />
+                    <linearGradient id="chartAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop className="chart__area-stop" offset="0%" stopOpacity="0.45" />
+                      <stop className="chart__area-stop" offset="100%" stopOpacity="0" />
                     </linearGradient>
                   </defs>
-
-                  {/* Horizontal Grid lines */}
-                  {[40, 90, 140, 190].map((yVal, idx) => (
-                    <line key={idx} x1="0" y1={yVal} x2="800" y2={yVal} stroke="rgba(255, 255, 255, 0.05)" strokeDasharray="4 4" />
+                  {[40, 90, 140, 190].map((y) => (
+                    <line key={y} className="chart__grid" x1="0" y1={y} x2="800" y2={y} />
                   ))}
-
-                  {/* Applications per month (real data) */}
-                  <path d={areaPath} fill="url(#waveGradientMagenta)" />
-                  <path d={linePath} fill="none" stroke="#E81B6B" strokeWidth="3.5" strokeLinecap="round" />
-                  {chartPoints.map((pt, i) => (
+                  <path className="chart__area" d={chart.area} />
+                  <path className="chart__line" d={chart.line} />
+                  {chart.coords.map((pt, i) => (
                     <g key={i}>
-                      <circle cx={pt.x} cy={pt.y} r="5" fill="#E81B6B" stroke="#ffffff" strokeWidth="2" />
-                      {pt.apps > 0 && (
-                        <text x={pt.x} y={pt.y - 12} textAnchor="middle" fill="#ffffff" fontSize="13" fontWeight="700">
-                          {pt.apps}
-                        </text>
-                      )}
+                      <circle className="chart__point" cx={pt.x} cy={pt.y} r="5" />
+                      {pt.apps > 0 && <text className="chart__value" x={pt.x} y={pt.y - 12}>{pt.apps}</text>}
                     </g>
                   ))}
                   {periodTotal === 0 && (
-                    <text x="400" y="130" textAnchor="middle" fill="#8C8E90" fontSize="15">
-                      No applications received in this period
-                    </text>
+                    <text className="chart__empty" x="400" y="130">No applications received in this period</text>
                   )}
                 </svg>
-
-                {/* X-Axis Month labels */}
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px", color: "#8C8E90", fontSize: "0.8rem" }}>
-                  {wavePoints.map((p, i) => (
-                    <span key={i} style={{ color: i === wavePoints.length - 1 ? "#E81B6B" : "#8C8E90", fontWeight: i === wavePoints.length - 1 ? "700" : "500" }}>
-                      {p.month}
-                    </span>
+                <div className="chart__axis">
+                  {monthly.map((p, i) => (
+                    <span key={i} className={i === monthly.length - 1 ? "is-current" : undefined}>{p.month}</span>
                   ))}
                 </div>
               </div>
-            </div>
+            </section>
 
-            {/* Right Panel - Ratio */}
-            <div style={{
-              background: "rgba(19, 43, 100, 0.22)",
-              backdropFilter: "blur(16px)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              borderRadius: "24px",
-              padding: "26px",
-              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.35)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between"
-            }}>
+            <section className="glass-card stack-lg">
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                  <h3 style={{ margin: 0, fontSize: "1.15rem", color: "#ffffff", fontWeight: "700" }}>
-                    Application Status Ratio
-                  </h3>
-                  <span style={{ fontSize: "1.2rem", color: "#8C8E90" }}>⚡</span>
-                </div>
-                <p style={{ margin: "0 0 20px 0", fontSize: "0.82rem", color: "#8C8E90" }}>
-                  Candidate review progression breakdown
-                </p>
+                <h2 className="section-title">Application outcomes</h2>
+                <p className="section-sub">Where every application to your offers stands</p>
+              </div>
 
-                {/* Circular Indicator Summary */}
-                <div style={{
-                  background: "linear-gradient(135deg, rgba(19, 43, 100, 0.4), rgba(7, 11, 20, 0.8))",
-                  borderRadius: "16px",
-                  padding: "18px",
-                  border: "1px solid rgba(255, 255, 255, 0.06)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "16px",
-                  marginBottom: "20px"
-                }}>
-                  <div style={{
-                    width: "60px",
-                    height: "60px",
-                    borderRadius: "50%",
-                    background: "conic-gradient(#4CAF50 0% " + acceptedPct + "%, #FBC02D " + acceptedPct + "% " + (acceptedPct + pendingPct) + "%, #E83A30 " + (acceptedPct + pendingPct) + "% 100%)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center"
-                  }}>
-                    <div style={{ width: "44px", height: "44px", borderRadius: "50%", background: "#070b14", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "800", color: "#fff" }}>
-                      {totalApplications}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: "0.95rem", fontWeight: "700", color: "#fff" }}>Total Candidates</div>
-                    <div style={{ fontSize: "0.78rem", color: "#69C85B", fontWeight: "600" }}>
-                      {acceptedPct}% Approval Rate
-                    </div>
-                  </div>
-                </div>
-
-                {/* Status List with User Palette Colors */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: "12px", background: "rgba(76, 175, 80, 0.12)", border: "1px solid rgba(76, 175, 80, 0.3)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#4CAF50" }} />
-                      <span style={{ fontSize: "0.88rem", color: "#ffffff", fontWeight: "600" }}>Accepted</span>
-                    </div>
-                    <span style={{ fontSize: "0.9rem", color: "#69C85B", fontWeight: "700" }}>{acceptedApps} ({acceptedPct}%)</span>
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: "12px", background: "rgba(251, 192, 45, 0.12)", border: "1px solid rgba(251, 192, 45, 0.3)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#FBC02D" }} />
-                      <span style={{ fontSize: "0.88rem", color: "#ffffff", fontWeight: "600" }}>Pending Review</span>
-                    </div>
-                    <span style={{ fontSize: "0.9rem", color: "#FBC02D", fontWeight: "700" }}>{pendingApps} ({pendingPct}%)</span>
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: "12px", background: "rgba(232, 58, 48, 0.12)", border: "1px solid rgba(232, 58, 48, 0.3)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#E83A30" }} />
-                      <span style={{ fontSize: "0.88rem", color: "#ffffff", fontWeight: "600" }}>Rejected</span>
-                    </div>
-                    <span style={{ fontSize: "0.9rem", color: "#E83A30", fontWeight: "700" }}>{rejectedApps} ({rejectedPct}%)</span>
-                  </div>
+              <div className="summary-box">
+                <span className="donut-wrap">
+                  <svg className="donut" viewBox="0 0 60 60" aria-hidden="true">
+                    <circle className="donut__track" cx="30" cy="30" r={DONUT_RADIUS} />
+                    {outcomes.filter((o) => o.length > 0).map((o) => (
+                      <circle key={o.status} className={o.ring} cx="30" cy="30" r={DONUT_RADIUS}
+                        strokeDasharray={`${o.length} ${DONUT_LENGTH}`} strokeDashoffset={-o.start} />
+                    ))}
+                  </svg>
+                  <span className="donut-wrap__label">{totalApplications}</span>
+                </span>
+                <div>
+                  <div className="text-strong">Total applications</div>
+                  <div className="text-sm accent-green text-accent">{acceptedPct}% accepted</div>
                 </div>
               </div>
-            </div>
 
+              <ul className="stack list-reset" aria-label="Applications by status">
+                {outcomes.map((o) => (
+                  <li key={o.status} className={`status-row accent-${o.accent}`}>
+                    <span className="status-row__label"><span className="legend-dot" aria-hidden="true" />{o.label}</span>
+                    <span className="status-row__value">{o.count} ({o.pct}%)</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
           </div>
 
-          {/* Bottom Row - Detailed Contract Distribution Bars */}
-          <div style={{
-            background: "rgba(19, 43, 100, 0.22)",
-            backdropFilter: "blur(16px)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
-            borderRadius: "24px",
-            padding: "26px",
-            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.35)"
-          }}>
-            <h3 style={{ margin: "0 0 6px 0", fontSize: "1.2rem", color: "#ffffff", fontWeight: "700" }}>
-              Detailed Contract Distribution & Placement Velocity
-            </h3>
-            <p style={{ margin: "0 0 20px 0", fontSize: "0.85rem", color: "#8C8E90" }}>
-              Proportions of published offers and conversion timelines across agreement types
-            </p>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px" }}>
-              
-              <div style={{ background: "rgba(255,255,255,0.02)", padding: "16px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.05)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem", marginBottom: "8px" }}>
-                  <span style={{ color: "#ffffff", fontWeight: "600" }}>CDI (Permanent)</span>
-                  <span style={{ color: "#804B9E", fontWeight: "700" }}>{cdiCount} offers ({cdiPct}%)</span>
-                </div>
-                <div style={{ width: "100%", height: "8px", background: "rgba(255,255,255,0.05)", borderRadius: "4px" }}>
-                  <div style={{ width: `${cdiPct}%`, height: "100%", background: "#804B9E", borderRadius: "4px" }} />
-                </div>
-              </div>
-
-              <div style={{ background: "rgba(255,255,255,0.02)", padding: "16px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.05)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem", marginBottom: "8px" }}>
-                  <span style={{ color: "#ffffff", fontWeight: "600" }}>CDD (Fixed Term)</span>
-                  <span style={{ color: "#55BDE8", fontWeight: "700" }}>{cddCount} offers ({cddPct}%)</span>
-                </div>
-                <div style={{ width: "100%", height: "8px", background: "rgba(255,255,255,0.05)", borderRadius: "4px" }}>
-                  <div style={{ width: `${cddPct}%`, height: "100%", background: "#55BDE8", borderRadius: "4px" }} />
-                </div>
-              </div>
-
-              <div style={{ background: "rgba(255,255,255,0.02)", padding: "16px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.05)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem", marginBottom: "8px" }}>
-                  <span style={{ color: "#ffffff", fontWeight: "600" }}>Internship / Stage</span>
-                  <span style={{ color: "#69C85B", fontWeight: "700" }}>{stageCount} offers ({stagePct}%)</span>
-                </div>
-                <div style={{ width: "100%", height: "8px", background: "rgba(255,255,255,0.05)", borderRadius: "4px" }}>
-                  <div style={{ width: `${stagePct}%`, height: "100%", background: "#69C85B", borderRadius: "4px" }} />
-                </div>
-              </div>
-
-              <div style={{ background: "rgba(255,255,255,0.02)", padding: "16px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.05)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem", marginBottom: "8px" }}>
-                  <span style={{ color: "#ffffff", fontWeight: "600" }}>Freelance</span>
-                  <span style={{ color: "#E81B6B", fontWeight: "700" }}>{freelanceCount} offers ({freelancePct}%)</span>
-                </div>
-                <div style={{ width: "100%", height: "8px", background: "rgba(255,255,255,0.05)", borderRadius: "4px" }}>
-                  <div style={{ width: `${freelancePct}%`, height: "100%", background: "#E81B6B", borderRadius: "4px" }} />
-                </div>
-              </div>
-
+          <section className="glass-card stack-lg">
+            <div>
+              <h2 className="section-title">Offers by contract type</h2>
+              <p className="section-sub">Share of your {totalOffers} published offer{totalOffers === 1 ? "" : "s"}</p>
             </div>
-          </div>
+            <div className="grid-cards">
+              {contracts.map((c) => (
+                <div key={c.title} className={`subtle-card stack accent-${c.accent}`}>
+                  <div className="row-between text-sm">
+                    <span className="text-strong">{c.title} · {c.subtitle}</span>
+                    <span className="text-accent text-strong">{c.count} ({c.pct}%)</span>
+                  </div>
+                  <progress className="meter meter--thick meter--solid" max="100" value={c.pct}
+                    aria-label={`${c.title}: ${c.pct}%`} />
+                </div>
+              ))}
+            </div>
+          </section>
         </>
       )}
 
-      <AlertModal 
-        isOpen={showAlert}
+      <AlertModal
+        isOpen={!!errorMsg}
         type="error"
-        title="Analytics Error"
+        title="Something went wrong"
         message={errorMsg}
-        onClose={() => setShowAlert(false)}
+        onClose={() => setErrorMsg("")}
       />
     </div>
   );

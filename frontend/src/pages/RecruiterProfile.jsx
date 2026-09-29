@@ -325,9 +325,9 @@ export default function RecruiterProfile() {
           marginBottom: "32px",
           padding: "28px",
           position: "relative",
-          background: "linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))",
-          border: "1px solid rgba(59, 130, 246, 0.3)",
-          boxShadow: "0 12px 32px rgba(0, 0, 0, 0.3)"
+          background: "linear-gradient(135deg, rgba(var(--bg-rgb), 0.95), rgba(var(--surface-raised-rgb), 0.95))",
+          border: "1px solid rgba(var(--cyan-rgb), 0.3)",
+          boxShadow: "0 12px 32px rgba(var(--black-rgb), 0.3)"
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "24px", flexWrap: "wrap", marginBottom: "20px" }}>
@@ -340,24 +340,24 @@ export default function RecruiterProfile() {
                 height: "100px",
                 borderRadius: "16px",
                 objectFit: "cover",
-                backgroundColor: "rgba(255, 255, 255, 0.05)",
-                border: "3px solid #3b82f6",
+                backgroundColor: "rgba(var(--white-rgb), 0.05)",
+                border: "3px solid var(--cyan)",
                 padding: "3px",
-                boxShadow: "0 8px 24px rgba(59, 130, 246, 0.25)"
+                boxShadow: "0 8px 24px rgba(var(--cyan-rgb), 0.25)"
               }}
               onError={(e) => { e.target.src = defaultLogo; }}
             />
           </div>
           <div style={{ flex: 1, minWidth: "220px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-              <h2 style={{ margin: 0, fontSize: "1.75rem", fontWeight: "700", color: "#fff" }}>
+              <h2 style={{ margin: 0, fontSize: "1.75rem", fontWeight: "700", color: "var(--white)" }}>
                 {companyForm.companyName || "Your Company Profile"}
               </h2>
               {completenessScore >= 80 && (
                 <span style={{
-                  backgroundColor: "rgba(16, 185, 129, 0.15)",
-                  color: "#10b981",
-                  border: "1px solid rgba(16, 185, 129, 0.4)",
+                  backgroundColor: "rgba(var(--green-rgb), 0.15)",
+                  color: "var(--green)",
+                  border: "1px solid rgba(var(--green-rgb), 0.4)",
                   padding: "4px 10px",
                   borderRadius: "16px",
                   fontSize: "0.78rem",
@@ -385,9 +385,9 @@ export default function RecruiterProfile() {
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "12px" }}>
                 {companyForm.technologies.split(",").map((tech, idx) => (
                   <span key={idx} style={{
-                    backgroundColor: "rgba(59, 130, 246, 0.15)",
-                    border: "1px solid rgba(59, 130, 246, 0.3)",
-                    color: "#93c5fd",
+                    backgroundColor: "rgba(var(--cyan-rgb), 0.15)",
+                    border: "1px solid rgba(var(--cyan-rgb), 0.3)",
+                    color: "var(--cyan-soft)",
                     padding: "2px 8px",
                     borderRadius: "12px",
                     fontSize: "0.75rem",
@@ -407,8 +407,8 @@ export default function RecruiterProfile() {
               onClick={handleGenerateAiPitch}
               disabled={generatingPitch}
               style={{
-                background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-                boxShadow: "0 4px 15px rgba(59, 130, 246, 0.3)",
+                background: "linear-gradient(135deg, var(--cyan), var(--violet))",
+                boxShadow: "0 4px 15px rgba(var(--cyan-rgb), 0.3)",
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
@@ -423,16 +423,16 @@ export default function RecruiterProfile() {
         </div>
 
         {/* Company Profile Completeness Meter */}
-        <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
+        <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid rgba(var(--white-rgb), 0.08)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: "8px" }}>
-            <span style={{ color: "#94a3b8", fontWeight: "500" }}>Company Profile Completeness</span>
-            <span style={{ color: completenessScore >= 80 ? "#10b981" : "#60a5fa", fontWeight: "700" }}>{completenessScore}% Complete</span>
+            <span style={{ color: "var(--text-muted)", fontWeight: "500" }}>Company Profile Completeness</span>
+            <span style={{ color: completenessScore >= 80 ? "var(--green)" : "var(--cyan)", fontWeight: "700" }}>{completenessScore}% Complete</span>
           </div>
-          <div style={{ height: "8px", width: "100%", backgroundColor: "rgba(255, 255, 255, 0.1)", borderRadius: "4px", overflow: "hidden" }}>
+          <div style={{ height: "8px", width: "100%", backgroundColor: "rgba(var(--white-rgb), 0.1)", borderRadius: "4px", overflow: "hidden" }}>
             <div style={{
               height: "100%",
               width: `${completenessScore}%`,
-              background: "linear-gradient(90deg, #3b82f6, #10b981)",
+              background: "linear-gradient(90deg, var(--cyan), var(--green))",
               borderRadius: "4px",
               transition: "width 0.6s ease-in-out"
             }} />
@@ -475,7 +475,7 @@ export default function RecruiterProfile() {
         
         {/* Representative Section */}
         <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "#60a5fa", display: "flex", alignItems: "center", gap: "8px" }}>
+          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)", display: "flex", alignItems: "center", gap: "8px" }}>
             Corporate Representative
           </h3>
           <div className="form-grid">
@@ -503,7 +503,7 @@ export default function RecruiterProfile() {
 
         {/* Section 1: Company Information */}
         <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "#60a5fa", display: "flex", alignItems: "center", gap: "8px" }}>
+          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)", display: "flex", alignItems: "center", gap: "8px" }}>
             Company Information
           </h3>
           <div className="form-grid">
@@ -540,9 +540,9 @@ export default function RecruiterProfile() {
                 type="file" 
                 accept="image/*"
                 onChange={handleLogoFileChange}
-                style={{ color: "#fff" }}
+                style={{ color: "var(--white)" }}
               />
-              {uploadingLogo && <span style={{ fontSize: "0.8rem", color: "#60a5fa", marginTop: "4px" }}>Uploading logo...</span>}
+              {uploadingLogo && <span style={{ fontSize: "0.8rem", color: "var(--cyan)", marginTop: "4px" }}>Uploading logo...</span>}
             </div>
 
             <div className="form-group form-full-width">
@@ -558,7 +558,7 @@ export default function RecruiterProfile() {
 
         {/* Section 2: Company Details */}
         <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "#60a5fa", display: "flex", alignItems: "center", gap: "8px" }}>
+          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)", display: "flex", alignItems: "center", gap: "8px" }}>
             Company Details
           </h3>
           <div className="form-grid">
@@ -606,7 +606,7 @@ export default function RecruiterProfile() {
 
         {/* Section 3: Locations */}
         <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "#60a5fa", display: "flex", alignItems: "center", gap: "8px" }}>
+          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)", display: "flex", alignItems: "center", gap: "8px" }}>
             Locations
           </h3>
           <div className="form-grid">
@@ -644,7 +644,7 @@ export default function RecruiterProfile() {
 
         {/* Section 4: Mission & Vision */}
         <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "#60a5fa", display: "flex", alignItems: "center", gap: "8px" }}>
+          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)", display: "flex", alignItems: "center", gap: "8px" }}>
             Mission & Vision
           </h3>
           <div className="form-grid">
@@ -682,7 +682,7 @@ export default function RecruiterProfile() {
 
         {/* Section 5: Technologies */}
         <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "#60a5fa", display: "flex", alignItems: "center", gap: "8px" }}>
+          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)", display: "flex", alignItems: "center", gap: "8px" }}>
             Technologies
           </h3>
           <div className="form-grid">
@@ -700,7 +700,7 @@ export default function RecruiterProfile() {
 
         {/* Section 6: Social Media */}
         <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "#60a5fa", display: "flex", alignItems: "center", gap: "8px" }}>
+          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)", display: "flex", alignItems: "center", gap: "8px" }}>
             Social Media
           </h3>
           <div className="form-grid">
@@ -748,7 +748,7 @@ export default function RecruiterProfile() {
 
         {/* Section 7: Contact */}
         <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "32px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "#60a5fa", display: "flex", alignItems: "center", gap: "8px" }}>
+          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)", display: "flex", alignItems: "center", gap: "8px" }}>
             Contact
           </h3>
           <div className="form-grid">

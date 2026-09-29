@@ -81,18 +81,8 @@ export default function CreateAccount() {
         <label>Role</label>
         <select 
           value={form.role} 
-          onChange={(e)=>setForm({...form,role:e.target.value})} 
-          style={{
-            width: "100%",
-            padding: "10px 12px",
-            borderRadius: "10px",
-            border: "1px solid rgba(16, 42, 114, 0.14)",
-            color: "#0b1020",
-            background: "rgba(248, 250, 255, 0.9)",
-            fontSize: "0.94rem",
-            outline: "none",
-            cursor: "pointer"
-          }}
+          onChange={(e)=>setForm({...form,role:e.target.value})}
+          className="auth-flow-select"
         >
           <option value="CANDIDATE">Candidate</option>
           <option value="RECRUITER">Recruiter</option>
@@ -113,7 +103,7 @@ export default function CreateAccount() {
           {submitting ? "Creating your account…" : "Create account"}
         </button>
 
-        {error && <p className="error-message" style={{ color: "#d32f2f", marginTop: "10px", fontSize: "0.88rem", textAlign: "center" }}>{error}</p>}
+        {error && <p className="error-message auth-flow-error" role="alert">{error}</p>}
 
         <button className="auth-flow-secondary" type="button" onClick={() => navigate("/login")}>
           Already have an account?

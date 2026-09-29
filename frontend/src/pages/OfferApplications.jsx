@@ -63,7 +63,7 @@ export default function OfferApplications() {
 
   return (
     <div className="dashboard-panel">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+      <div className="row-between panel-header--spaced">
         <button className="secondary-btn" onClick={() => navigate("/recruiter-dashboard/offers")}>
           Back to job offers
         </button>
@@ -73,14 +73,16 @@ export default function OfferApplications() {
         <SkeletonRows rows={5} />
       ) : (
         <>
-          <div style={{ marginBottom: "30px" }}>
-            <h2 style={{ margin: "0 0 8px 0" }}>{offer?.title}</h2>
-            <span className={`contract-badge badge-${(offer?.contractType || 'cdi').toLowerCase()}`} style={{ marginRight: "10px" }}>
-              {offer?.contractType || "CDI"}
-            </span>
-            <span style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-              Location: {offer?.location} | Deadline: {new Date(offer?.deadline).toLocaleDateString("fr-FR")}
-            </span>
+          <div className="stack panel-header--spaced">
+            <h2 className="page-heading">{offer?.title}</h2>
+            <div className="row">
+              <span className={`contract-badge badge-${(offer?.contractType || 'cdi').toLowerCase()}`}>
+                {offer?.contractType || "CDI"}
+              </span>
+              <span className="text-muted text-sm">
+                Location: {offer?.location} · Deadline: {new Date(offer?.deadline).toLocaleDateString("fr-FR")}
+              </span>
+            </div>
           </div>
 
           {applications.length === 0 ? (
@@ -90,7 +92,7 @@ export default function OfferApplications() {
             />
           ) : (
             <div className="custom-table-container">
-              <table className="custom-table">
+              <table className="custom-table responsive-table">
                 <thead>
                   <tr>
                     <th>Candidate</th>
@@ -103,15 +105,12 @@ export default function OfferApplications() {
                 <tbody>
                   {applications.map((app) => (
                     <tr key={app.id}>
-                      <td>
-                        <span 
-                          className="candidate-name-link"
-                          onClick={() => navigate(`/recruiter-dashboard/applications/${app.id}/rate`)}
-                        >
+                      <td data-label="Candidate">
+                        <button type="button" className="candidate-name-link link-reset" onClick={() => navigate(`/recruiter-dashboard/applications/${app.id}/rate`)}>
                           {app.candidateName} {app.candidateLastName}
-                        </span>
+                        </button>
                       </td>
-                      <td>
+                      <td data-label="CV / Resume">
                         {app.cv ? (
                           <a href={app.cv} target="_blank" rel="noreferrer" className="cv-link">
                             Open CV
@@ -120,15 +119,15 @@ export default function OfferApplications() {
                           "No CV"
                         )}
                       </td>
-                      <td style={{ maxWidth: "240px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={app.coverLetter}>
+                      <td data-label="Cover Letter" className="cell-truncate" title={app.coverLetter}>
                         {app.coverLetter || "No cover letter"}
                       </td>
-                      <td>
+                      <td data-label="Status">
                         <span className={`status-badge status-${app.status.toLowerCase()}`}>
                           {app.status}
                         </span>
                       </td>
-                      <td>
+                      <td data-label="Actions">
                         <div className="action-row">
                           <button 
                             className="action-btn-small btn-approve"

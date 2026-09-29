@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import candidateService from "../services/candidateService";
 import AlertModal from "../components/AlertModal";
 import EmptyState from "../components/EmptyState";
+import Pagination from "../components/Pagination";
 import { SkeletonRows } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
 
@@ -73,14 +74,14 @@ export default function CandidateApplications() {
     }
   };
 
+  const statusLabel = (status) => status.charAt(0) + status.slice(1).toLowerCase();
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: selectedApp ? "1fr 1fr" : "1fr", gap: "24px", alignItems: "start" }}>
+    <div className={`split-view ${selectedApp ? "split-view--open" : ""}`}>
       <div className="dashboard-panel">
         <div className="panel-header">
           <h2>Newest first</h2>
-          <div style={{ color: "#94a3b8", fontSize: "0.85rem" }}>
-            Click an application to see its details.
-          </div>
+          <span className="text-muted text-sm">Select an application to see its details.</span>
         </div>
 
         {loading && applications.length === 0 ? (
@@ -95,54 +96,41 @@ export default function CandidateApplications() {
         ) : (
           <>
             <div className="custom-table-container">
-              <table className="custom-table">
+              <table className="custom-table responsive-table">
                 <thead>
                   <tr>
-                    <th>Job Title</th>
+                    <th>Job title</th>
                     <th>Company</th>
                     <th>Status</th>
-                    <th>Actions</th>
+                    <th><span className="visually-hidden">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
                   {applications.map((app) => (
-                    <tr 
-                      key={app.id}
-                      style={{ cursor: "pointer", backgroundColor: selectedApp?.id === app.id ? "rgba(59, 130, 246, 0.05)" : "transparent" }}
-                      onClick={() => setSelectedApp(app)}
-                    >
-                      <td>
-                        <span style={{ fontWeight: 500 }}>
-                          {app.jobOfferTitle}
-                        </span>
+                    <tr key={app.id} className={`row-selectable ${selectedApp?.id === app.id ? "is-selected" : ""}`}
+                      onClick={() => setSelectedApp(app)}>
+                      <td data-label="Job title">
+                        <span className="text-strong">{app.jobOfferTitle}</span>
                         {app.offerClosed && (
-                          <span className="status-chip status-chip--closed" style={{ marginLeft: 8 }}
+                          <span className="status-chip status-chip--closed chip-inline"
                             title="The recruiter closed this offer; your application is kept">
                             Offer closed
                           </span>
                         )}
                       </td>
-                      <td>{app.recruiterCompany || "—"}</td>
-                      <td>
-                        <span className={`status-badge status-${app.status.toLowerCase()}`}>
-                          {app.status}
-                        </span>
+                      <td data-label="Company">{app.recruiterCompany || "—"}</td>
+                      <td data-label="Status">
+                        <span className={`status-badge status-${app.status.toLowerCase()}`}>{statusLabel(app.status)}</span>
                       </td>
-                      <td>
-                        <div style={{ display: "flex", gap: "8px" }} onClick={(e) => e.stopPropagation()}>
-                          <button 
-                            className="secondary-btn"
-                            style={{ padding: "4px 8px", fontSize: "0.78rem" }}
-                            onClick={() => setSelectedApp(app)}
-                          >
+                      <td data-label="Actions">
+                        <div className="row" onClick={(e) => e.stopPropagation()}>
+                          <button type="button" className="secondary-btn btn-compact" onClick={() => setSelectedApp(app)}
+                            aria-label={`Details of your application for ${app.jobOfferTitle}`}>
                             Details
                           </button>
                           {app.status === "PENDING" && (
-                            <button 
-                              className="action-btn-small btn-reject"
-                              disabled={cancellingId === app.id}
-                              onClick={() => handleCancelApplication(app.id, app.jobOfferTitle)}
-                            >
+                            <button type="button" className="action-btn-small btn-reject" disabled={cancellingId === app.id}
+                              onClick={() => handleCancelApplication(app.id, app.jobOfferTitle)}>
                               {cancellingId === app.id ? "Withdrawing…" : "Withdraw"}
                             </button>
                           )}
@@ -153,146 +141,77 @@ export default function CandidateApplications() {
                 </tbody>
               </table>
             </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="pagination-row" style={{ display: "flex", gap: "10px", marginTop: "20px", justifyContent: "center" }}>
-                <button 
-                  disabled={page === 0}
-                  className="secondary-btn" 
-                  style={{ padding: "6px 12px", fontSize: "0.85rem" }}
-                  onClick={() => setPage(page - 1)}
-                >
-                  Previous
-                </button>
-                <span style={{ color: "#94a3b8", display: "flex", alignItems: "center", fontSize: "0.88rem" }}>
-                  Page {page + 1} of {totalPages}
-                </span>
-                <button 
-                  disabled={page >= totalPages - 1}
-                  className="secondary-btn" 
-                  style={{ padding: "6px 12px", fontSize: "0.85rem" }}
-                  onClick={() => setPage(page + 1)}
-                >
-                  Next
-                </button>
-              </div>
-            )}
+            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
           </>
         )}
       </div>
 
-      {/* Expanded Details Side Panel (Interview Letter) */}
       {selectedApp && (
-        <div className="dashboard-panel">
-          <div className="panel-header" style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "14px", marginBottom: "16px" }}>
-            <h3>Application Details</h3>
-            <button 
-              className="close-btn" 
-              style={{ fontSize: "1.2rem", padding: "0 4px" }}
-              onClick={() => setSelectedApp(null)}
-            >
-              ×
-            </button>
+        <aside className="dashboard-panel" aria-labelledby="application-details-title">
+          <div className="panel-header panel-header--divided">
+            <h3 id="application-details-title">Application details</h3>
+            <button type="button" className="close-btn" aria-label="Close details" onClick={() => setSelectedApp(null)}>×</button>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "14px", fontSize: "0.9rem" }}>
+          <dl className="detail-list">
             <div>
-              <span style={{ color: "#94a3b8" }}>Job Offer:</span>
-              <strong style={{ display: "block", color: "#fff", fontSize: "1.05rem", marginTop: "4px" }}>
-                {selectedApp.jobOfferTitle}
-              </strong>
+              <dt>Job offer</dt>
+              <dd>{selectedApp.jobOfferTitle}</dd>
               {selectedApp.offerClosed && (
-                <span style={{ display: "block", color: "#94a3b8", fontSize: "0.82rem", marginTop: "4px" }}>
-                  The recruiter has closed this offer. Your application is kept and its status may still change.
-                </span>
+                <p className="hint">The recruiter has closed this offer. Your application is kept and its status may still change.</p>
               )}
             </div>
-
             <div>
-              <span style={{ color: "#94a3b8" }}>Company:</span>
-              <strong style={{ display: "block", color: "#fff", marginTop: "4px" }}>
-                {selectedApp.recruiterCompany}
-              </strong>
+              <dt>Company</dt>
+              <dd>{selectedApp.recruiterCompany || "—"}</dd>
             </div>
-
             <div>
-              <span style={{ color: "#94a3b8" }}>Status:</span>
-              <div style={{ marginTop: "4px" }}>
-                <span className={`status-badge status-${selectedApp.status.toLowerCase()}`}>
-                  {selectedApp.status}
-                </span>
-              </div>
+              <dt>Status</dt>
+              <dd><span className={`status-badge status-${selectedApp.status.toLowerCase()}`}>{statusLabel(selectedApp.status)}</span></dd>
             </div>
-
             <div>
-              <span style={{ color: "#94a3b8" }}>CV / Resume:</span>
-              <div style={{ marginTop: "4px" }}>
+              <dt>CV</dt>
+              <dd>
                 {selectedApp.cv ? (
-                  <a href={selectedApp.cv} target="_blank" rel="noreferrer" className="cv-link" style={{ color: "#3b82f6", textDecoration: "underline" }}>
-                    View Submitted CV (PDF)
-                  </a>
-                ) : (
-                  "No CV file"
-                )}
-              </div>
+                  <a href={selectedApp.cv} target="_blank" rel="noreferrer" className="cv-link">Open the CV you sent (PDF)</a>
+                ) : "No CV file"}
+              </dd>
             </div>
-
             {selectedApp.coverLetter && (
               <div>
-                <span style={{ color: "#94a3b8" }}>Cover Letter:</span>
-                <div style={{ marginTop: "4px" }}>
+                <dt>Cover letter</dt>
+                <dd>
                   {selectedApp.coverLetter.startsWith("http") ? (
-                    <a href={selectedApp.coverLetter} target="_blank" rel="noreferrer" className="cv-link" style={{ color: "#3b82f6", textDecoration: "underline" }}>
-                      View Submitted Cover Letter (PDF)
-                    </a>
+                    <a href={selectedApp.coverLetter} target="_blank" rel="noreferrer" className="cv-link">Open your cover letter (PDF)</a>
                   ) : (
-                    <p style={{ margin: 0, padding: "10px", backgroundColor: "rgba(0,0,0,0.15)", borderRadius: "6px", color: "#d1d5db", whiteSpace: "pre-wrap", border: "1px solid var(--border-color)", fontSize: "0.85rem" }}>
-                      {selectedApp.coverLetter}
-                    </p>
+                    <p className="letter-block">{selectedApp.coverLetter}</p>
                   )}
-                </div>
+                </dd>
               </div>
             )}
+          </dl>
 
-            {/* Scheduled Interview Details */}
-            {selectedApp.status === "ACCEPTED" && selectedApp.interviewDate && (
-              <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: "16px", marginTop: "10px" }}>
-                <h4 style={{ color: "#60a5fa", margin: "0 0 10px 0" }}>Interview Details</h4>
-                <div style={{ marginBottom: "12px" }}>
-                  <span style={{ color: "#94a3b8", fontSize: "0.82rem" }}>Scheduled For:</span>
-                  <strong style={{ display: "block", color: "#fff", fontSize: "0.95rem", marginTop: "2px" }}>
-                    {formatInterviewDate(selectedApp.interviewDate)}
-                  </strong>
+          {selectedApp.status === "ACCEPTED" && selectedApp.interviewDate && (
+            <section className="divided-section">
+              <h4 className="info-card__title">Interview</h4>
+              <dl className="detail-list">
+                <div>
+                  <dt>Scheduled for</dt>
+                  <dd>{formatInterviewDate(selectedApp.interviewDate)}</dd>
                 </div>
-
                 {selectedApp.interviewLetter && (
                   <div>
-                    <span style={{ color: "#94a3b8", fontSize: "0.82rem" }}>Invitation Letter:</span>
-                    <pre 
-                      style={{ 
-                        marginTop: "6px",
-                        padding: "12px", 
-                        backgroundColor: "rgba(0,0,0,0.2)", 
-                        border: "1px solid var(--border-color)",
-                        borderRadius: "8px", 
-                        color: "#d1d5db", 
-                        fontSize: "0.8rem", 
-                        whiteSpace: "pre-wrap",
-                        fontFamily: "inherit"
-                      }}
-                    >
-                      {selectedApp.interviewLetter}
-                    </pre>
+                    <dt>Invitation letter</dt>
+                    <dd><pre className="letter-block">{selectedApp.interviewLetter}</pre></dd>
                   </div>
                 )}
-              </div>
-            )}
-          </div>
-        </div>
+              </dl>
+            </section>
+          )}
+        </aside>
       )}
 
-      <AlertModal 
+      <AlertModal
         isOpen={showAlert}
         type="error"
         title="Something went wrong"

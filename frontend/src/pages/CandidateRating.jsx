@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useOutletContext, useSearchParams } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import AlertModal from "../components/AlertModal";
+import { SkeletonRows } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
 
 export default function CandidateRating() {
@@ -240,231 +241,114 @@ export default function CandidateRating() {
 
   // Describes the recruiter's own ratings; it is not an automatic recommendation.
   const getEvaluationStatus = () => {
-    if (finalScore >= 16) return { text: "Your ratings: outstanding", color: "#10b981" };
-    if (finalScore >= 12) return { text: "Your ratings: strong", color: "#3b82f6" };
-    if (finalScore >= 8) return { text: "Your ratings: average", color: "#f59e0b" };
-    return { text: "Your ratings: weak", color: "#ef4444" };
+    if (finalScore >= 16) return { text: "Your ratings: outstanding", accent: "green" };
+    if (finalScore >= 12) return { text: "Your ratings: strong", accent: "cyan" };
+    if (finalScore >= 8) return { text: "Your ratings: average", accent: "orange" };
+    return { text: "Your ratings: weak", accent: "red" };
   };
 
   const evalStatus = getEvaluationStatus();
+  const companyName = user?.recruiterProfile?.companyName || "";
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }} className="no-print">
-        <button className="secondary-btn" onClick={() => navigate("/recruiter-dashboard/applications")}>
-          Back to Applications
+    <div className="page-stack">
+      <div className="row-between no-print">
+        <button type="button" className="secondary-btn" onClick={() => navigate("/recruiter-dashboard/applications")}>
+          Back to applications
         </button>
         {app && (
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button 
-              className="action-btn-small btn-reject"
-              style={{ padding: "10px 20px" }}
-              onClick={() => handleStatusChange("REJECTED")}
-            >
-              Reject Candidate
+          <div className="row">
+            <button type="button" className="action-btn-small btn-reject btn-large" onClick={() => handleStatusChange("REJECTED")}>
+              Reject candidate
             </button>
-            <button 
-              className="action-btn-small btn-approve"
-              style={{ padding: "10px 20px" }}
-              onClick={() => handleStatusChange("ACCEPTED")}
-            >
-              Accept Candidate
+            <button type="button" className="action-btn-small btn-approve btn-large" onClick={() => handleStatusChange("ACCEPTED")}>
+              Accept candidate…
             </button>
           </div>
         )}
       </div>
 
       {loading ? (
-        <div className="loading-container">
-          <div>Loading candidate evaluation...</div>
-        </div>
+        <SkeletonRows rows={6} />
       ) : !app ? (
         <div className="empty-state">Application not found.</div>
       ) : (
         <>
-          {/* Rating workspace panel */}
-          <div className="dashboard-panel no-print">
+          <section className="dashboard-panel no-print">
             <h2>Your evaluation of {app.candidateName} {app.candidateLastName}</h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+            <p className="text-muted text-sm">
               Your own assessment after reviewing the CV and interviewing the candidate. It is saved to your
               account and is separate from the automatic CV match score.
             </p>
 
             <div className="rating-section">
-              {/* Technical skills */}
-              <div className="rating-row">
-                <div className="rating-criteria">
-                  <span className="criteria-title">Technical Competence</span>
-                  <span className="criteria-desc">Core languages, algorithms, framework capabilities</span>
-                </div>
-                <div className="rating-stars">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <span 
-                      key={s} 
-                      className={`star-input ${s <= ratings.techSkills ? "active" : ""}`}
-                      onClick={() => handleStarClick("techSkills", s)}
-                    >
-                      ★
-                    </span>
+              {CRITERIA.map((c) => (
+                <StarRating key={c.key} label={c.title} description={c.description}
+                  value={ratings[c.key]} onChange={(stars) => handleStarClick(c.key, stars)} />
+              ))}
+
+              <fieldset className="plain-fieldset">
+                <legend className="criteria-title">Checklist</legend>
+                <div className="checklist-grid">
+                  {CHECKS.map((c) => (
+                    <label key={c.key} className="checkbox-row checkbox-row--boxed">
+                      <input type="checkbox" className="checkbox-input" checked={checks[c.key]}
+                        onChange={(e) => setChecks({ ...checks, [c.key]: e.target.checked })} />
+                      <span>{c.label}</span>
+                    </label>
                   ))}
                 </div>
+              </fieldset>
+
+              <div className="form-group">
+                <label htmlFor="evaluation-notes">Your notes</label>
+                <textarea id="evaluation-notes" placeholder="Your remarks about the candidate and the interview..."
+                  value={notes} onChange={(e) => setNotes(e.target.value)} />
               </div>
 
-              {/* Experience */}
-              <div className="rating-row">
-                <div className="rating-criteria">
-                  <span className="criteria-title">Professional Experience</span>
-                  <span className="criteria-desc">Relevance of former companies, projects, and work timeline</span>
-                </div>
-                <div className="rating-stars">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <span 
-                      key={s} 
-                      className={`star-input ${s <= ratings.experience ? "active" : ""}`}
-                      onClick={() => handleStarClick("experience", s)}
-                    >
-                      ★
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Communication */}
-              <div className="rating-row">
-                <div className="rating-criteria">
-                  <span className="criteria-title">Communication & Soft Skills</span>
-                  <span className="criteria-desc">Clarity of speech, responsiveness, problem explanation</span>
-                </div>
-                <div className="rating-stars">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <span 
-                      key={s} 
-                      className={`star-input ${s <= ratings.communication ? "active" : ""}`}
-                      onClick={() => handleStarClick("communication", s)}
-                    >
-                      ★
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Cultural fit */}
-              <div className="rating-row">
-                <div className="rating-criteria">
-                  <span className="criteria-title">Company Cultural Fit</span>
-                  <span className="criteria-desc">Alignment with core corporate values and team synergy</span>
-                </div>
-                <div className="rating-stars">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <span 
-                      key={s} 
-                      className={`star-input ${s <= ratings.culturalFit ? "active" : ""}`}
-                      onClick={() => handleStarClick("culturalFit", s)}
-                    >
-                      ★
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Checkbox validations */}
-              <div style={{ marginTop: "16px" }}>
-                <h4 style={{ margin: "0 0 12px 0" }}>Checklist Qualifications</h4>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-                  <label className="checkbox-row" style={{ backgroundColor: "rgba(255,255,255,0.01)", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
-                    <input 
-                      type="checkbox" 
-                      className="checkbox-input"
-                      checked={checks.hasDegree}
-                      onChange={(e) => setChecks({ ...checks, hasDegree: e.target.checked })}
-                    />
-                    <span>Has Required Degree</span>
-                  </label>
-
-                  <label className="checkbox-row" style={{ backgroundColor: "rgba(255,255,255,0.01)", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
-                    <input 
-                      type="checkbox" 
-                      className="checkbox-input"
-                      checked={checks.passedTest}
-                      onChange={(e) => setChecks({ ...checks, passedTest: e.target.checked })}
-                    />
-                    <span>Passed Tech Assessment</span>
-                  </label>
-
-                  <label className="checkbox-row" style={{ backgroundColor: "rgba(255,255,255,0.01)", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
-                    <input 
-                      type="checkbox" 
-                      className="checkbox-input"
-                      checked={checks.availableNow}
-                      onChange={(e) => setChecks({ ...checks, availableNow: e.target.checked })}
-                    />
-                    <span>Available Immediately</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Text notes */}
-              <div className="form-group" style={{ marginTop: "16px" }}>
-                <label>Recruiter Assessment Notes</label>
-                <textarea 
-                  placeholder="Enter custom remarks regarding the candidate interview..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-              </div>
-
-              {/* Interview Settings */}
               {isAccepted && (
-                <div className="form-group" style={{ marginTop: "16px" }}>
-                  <label>Scheduled Interview Modality</label>
-                  <select 
-                    value={interviewType}
-                    onChange={(e) => setInterviewType(e.target.value)}
-                    style={{ width: "min(300px, 100%)" }}
-                  >
-                    <option value="REMOTE">Remote (Google Meet / Zoom)</option>
-                    <option value="ONSITE">Onsite (Face-to-Face Meeting)</option>
+                <div className="form-group">
+                  <label htmlFor="interview-type">Interview format</label>
+                  <select id="interview-type" className="select-narrow" value={interviewType}
+                    onChange={(e) => setInterviewType(e.target.value)}>
+                    <option value="REMOTE">Remote (video call)</option>
+                    <option value="ONSITE">Onsite (in person)</option>
                   </select>
                 </div>
               )}
 
-              {/* Results & Saving */}
               <div className="rating-score-box">
                 <div className="score-display">
-                  <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", textTransform: "uppercase" }}>Your evaluation score</span>
+                  <span className="eyebrow">Your evaluation score</span>
                   <span className="score-number">{finalScore} / 20</span>
-                  <span style={{ color: evalStatus.color, fontWeight: 700, fontSize: "0.95rem" }}>
-                    {evalStatus.text}
-                  </span>
-                  <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+                  <span className={`text-strong text-accent accent-${evalStatus.accent}`}>{evalStatus.text}</span>
+                  <span className="hint">
                     {savedAt ? `Last saved ${new Date(savedAt).toLocaleString()}` : "Not saved yet"}
                   </span>
                 </div>
-                <div style={{ display: "flex", gap: "12px" }}>
-                  <button className="secondary-btn" onClick={handleSaveEvaluation} disabled={savingEvaluation}>
+                <div className="row">
+                  <button type="button" className="secondary-btn" onClick={handleSaveEvaluation} disabled={savingEvaluation}>
                     {savingEvaluation ? "Saving…" : "Save evaluation"}
                   </button>
                   {isAccepted && (
-                    <button className="primary-btn" onClick={handlePrintPDF}>
-                      Print Hiring Letter (PDF)
+                    <button type="button" className="primary-btn" onClick={handlePrintPDF}>
+                      Print hiring letter (PDF)
                     </button>
                   )}
                 </div>
               </div>
-
             </div>
-          </div>
+          </section>
 
-          {/* PRINT DOCUMENT SECTION (Letter of Hire) */}
           {isAccepted && (
             <div className="print-document-container">
               <div className="doc-header">
                 <div>
                   <div className="doc-title">Letter of Hire & Assignment</div>
-                  <div style={{ fontSize: "1.1rem", fontWeight: 700 }}>HireHub Recruitment Corp.</div>
+                  {companyName && <div className="doc-company">{companyName}</div>}
                 </div>
                 <div className="doc-meta">
-                  <div>Document ID: HH-LETTER-{app.id}</div>
+                  <div>Reference: HH-LETTER-{app.id}</div>
                   <div>Date: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</div>
                 </div>
               </div>
@@ -472,44 +356,37 @@ export default function CandidateRating() {
               <div className="doc-recipient">
                 <strong>To:</strong><br />
                 {app.candidateName} {app.candidateLastName}<br />
-                Candidate Application reference: ID {app.id}<br />
-                Position applied: {app.jobOfferTitle}
+                Application reference: {app.id}<br />
+                Position: {app.jobOfferTitle}
               </div>
 
               <div className="doc-body">
                 <p>Dear {app.candidateName} {app.candidateLastName},</p>
-                
                 <p>
-                  Following the review of your application credentials and technical evaluations, we are pleased to inform you that you have succeeded in the selection process. Your application score reached <strong>{finalScore}/20</strong>, classifying you as one of our top prospects.
+                  Following the review of your application, we are pleased to inform you that you have succeeded in
+                  the selection process for the {app.jobOfferTitle} position. Your evaluation score is <strong>{finalScore}/20</strong>.
                 </p>
-
                 <p>
-                  We are delighted to invite you for a final <strong>{interviewType === "REMOTE" ? "Remote Google Meet Interview" : "Onsite Face-to-Face Interview"}</strong> with our engineering leadership to align on contract terms and onboarding logistics. Our hiring team will contact you shortly to coordinate calendar details.
+                  We would like to invite you to a final <strong>{interviewType === "REMOTE" ? "remote interview" : "onsite interview"}</strong> to
+                  agree on the contract terms and onboarding. We will contact you shortly to set a date.
                 </p>
-
-                <p>
-                  Please find below the remarks compiled during your assessment process:
-                </p>
-                
-                <blockquote style={{ borderLeft: "3px solid #cbd5e1", paddingLeft: "16px", fontStyle: "italic", margin: "20px 0" }}>
-                  "{notes || "Excellent profile matching technical and soft skills parameters required for this position."}"
-                </blockquote>
-
-                <p>
-                  We look forward to collaborating with you and building an outstanding future together at our corporation.
-                </p>
-
+                {notes && (
+                  <>
+                    <p>Remarks from your assessment:</p>
+                    <blockquote className="doc-quote">"{notes}"</blockquote>
+                  </>
+                )}
                 <p>Sincerely,</p>
               </div>
 
               <div className="doc-footer">
                 <div className="signature-box">
                   <div className="signature-line"></div>
-                  <div>Corporate HR Team</div>
+                  <div>{companyName ? `${companyName} HR team` : "HR team"}</div>
                 </div>
                 <div className="signature-box">
                   <div className="signature-line"></div>
-                  <div>Candidate Acknowledgment</div>
+                  <div>Candidate acknowledgment</div>
                 </div>
               </div>
             </div>
@@ -517,66 +394,80 @@ export default function CandidateRating() {
         </>
       )}
 
-      <AlertModal 
+      <AlertModal
         isOpen={showAlert}
         type="error"
-        title="Operation Failed"
+        title="Something went wrong"
         message={errorMsg}
         onClose={() => setShowAlert(false)}
       />
 
-
-      {/* Schedule Interview Modal */}
       {showScheduleModal && app && (
-        <div className="modal-overlay" style={{ zIndex: 110 }}>
-          <div className="modal-content" style={{ color: "var(--text-primary)", maxWidth: "600px" }}>
+        <div className="modal-overlay modal-overlay--top">
+          <div className="modal-content modal-content--medium" role="dialog" aria-modal="true" aria-labelledby="schedule-title">
             <div className="modal-header">
-              <h2>Schedule Interview & Send Invite</h2>
-              <button className="close-btn" onClick={() => setShowScheduleModal(false)}>×</button>
+              <h2 id="schedule-title">Schedule Interview & Send Invite</h2>
+              <button type="button" className="close-btn" aria-label="Close" onClick={() => setShowScheduleModal(false)}>×</button>
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label>Interview Date & Time *</label>
-                <input 
-                  type="datetime-local" 
-                  value={interviewDate}
-                  onChange={(e) => handleDateChange(e.target.value)}
-                  required
-                  style={{ color: "#fff" }}
-                />
+                <label htmlFor="interview-date">Interview date and time *</label>
+                <input id="interview-date" type="datetime-local" value={interviewDate}
+                  onChange={(e) => handleDateChange(e.target.value)} required />
               </div>
-
-              <div className="form-group" style={{ marginTop: "16px" }}>
-                <label>Invitation Letter Preview (Editable)</label>
-                <textarea 
-                  rows="10" 
-                  value={invitationLetter}
-                  onChange={(e) => setInvitationLetter(e.target.value)}
-                  style={{ 
-                    fontFamily: "inherit", 
-                    fontSize: "0.85rem", 
-                    lineHeight: "1.5", 
-                    backgroundColor: "rgba(0,0,0,0.2)", 
-                    color: "#fff",
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "8px",
-                    padding: "12px",
-                    resize: "vertical"
-                  }}
-                />
+              <div className="form-group">
+                <label htmlFor="invitation-letter">Invitation letter (you can edit it)</label>
+                <textarea id="invitation-letter" rows="10" className="letter-editor" value={invitationLetter}
+                  onChange={(e) => setInvitationLetter(e.target.value)} />
               </div>
             </div>
             <div className="modal-footer">
-              <button className="secondary-btn" onClick={() => setShowScheduleModal(false)} disabled={scheduling}>
+              <button type="button" className="secondary-btn" onClick={() => setShowScheduleModal(false)} disabled={scheduling}>
                 Cancel
               </button>
-              <button className="primary-btn" onClick={handleConfirmSchedule} disabled={scheduling}>
-                {scheduling ? "Sending Invite..." : "Confirm & Send Invitation"}
+              <button type="button" className="primary-btn" onClick={handleConfirmSchedule} disabled={scheduling}>
+                {scheduling ? "Sending invite…" : "Confirm & Send Invitation"}
               </button>
             </div>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+const CRITERIA = [
+  { key: "techSkills", title: "Technical skills", description: "Languages, frameworks and problem solving" },
+  { key: "experience", title: "Professional experience", description: "Relevance of past roles and projects" },
+  { key: "communication", title: "Communication", description: "Clarity, responsiveness, explaining problems" },
+  { key: "culturalFit", title: "Team fit", description: "Fit with your team and ways of working" },
+];
+
+const CHECKS = [
+  { key: "hasDegree", label: "Has the required degree" },
+  { key: "passedTest", label: "Passed the technical test" },
+  { key: "availableNow", label: "Available immediately" },
+];
+
+/** 1–5 stars as a radio group: arrow keys, Tab and screen readers work. */
+function StarRating({ label, description, value, onChange }) {
+  const name = label.toLowerCase().replace(/\W+/g, "-");
+  return (
+    <fieldset className="rating-row plain-fieldset">
+      <div className="rating-criteria">
+        <legend className="criteria-title">{label}</legend>
+        <span className="criteria-desc">{description}</span>
+      </div>
+      <div className="rating-stars">
+        {[1, 2, 3, 4, 5].map((stars) => (
+          <label key={stars} className={`star-input ${stars <= value ? "active" : ""}`}>
+            <input type="radio" className="visually-hidden" name={name} value={stars} checked={value === stars}
+              onChange={() => onChange(stars)} />
+            <span aria-hidden="true">★</span>
+            <span className="visually-hidden">{stars} out of 5</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }

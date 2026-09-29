@@ -32,7 +32,7 @@ export default function CandidateLayout() {
 
   if (!user) {
     return (
-      <div className="loading-container" style={{ minHeight: "100vh", backgroundColor: "#0a1324" }}>
+      <div className="loading-container full-screen-loading">
         <div>Loading candidate context...</div>
       </div>
     );
