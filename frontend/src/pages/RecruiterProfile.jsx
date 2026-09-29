@@ -4,6 +4,17 @@ import recruiterService from "../services/recruiterService";
 import aiService from "../services/aiService";
 import AlertModal from "../components/AlertModal";
 
+const COMPANY_FIELDS = [
+  "companyName", "website", "logo", "description", "foundedYear", "industry", "mission", "vision",
+  "companyValues", "googleMapsUrl", "headquarters", "offices", "companySize", "companyType",
+  "technologies", "phone", "linkedin", "facebook", "instagram", "twitter"
+];
+
+const toCompanyForm = (profile) =>
+  Object.fromEntries(COMPANY_FIELDS.map((f) => [f, profile[f] ?? ""]));
+
+const IMPORT_POLL_MS = 3000;
+
 export default function RecruiterProfile() {
   const { user, setUser } = useOutletContext();
 
@@ -41,6 +52,36 @@ export default function RecruiterProfile() {
     twitter: ""
   });
 
+  // Company details imported from the website (at signup or on request).
+  const [importStatus, setImportStatus] = useState("NOT_REQUESTED");
+  const [importMessage, setImportMessage] = useState("");
+  const [autoFilled, setAutoFilled] = useState(() => new Set());
+  const [startingImport, setStartingImport] = useState(false);
+
+  const applyImportState = (profile) => {
+    setImportStatus(profile.companyImportStatus || "NOT_REQUESTED");
+    setImportMessage(profile.companyImportMessage || "");
+    setAutoFilled(new Set(profile.autoFilledFields || []));
+  };
+
+  const setField = (name) => (e) => {
+    const value = e.target.value;
+    setCompanyForm((prev) => ({ ...prev, [name]: value }));
+    setAutoFilled((prev) => {
+      if (!prev.has(name)) return prev;
+      const next = new Set(prev);
+      next.delete(name);
+      return next;
+    });
+  };
+
+  const fromWebsite = (name) =>
+    autoFilled.has(name) && (
+      <span className="autofill-tag" title="Filled automatically from your website. Please check it.">
+        From your website
+      </span>
+    );
+
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [showAiPitchModal, setShowAiPitchModal] = useState(false);
   const [generatingPitch, setGeneratingPitch] = useState(false);
@@ -53,6 +94,7 @@ export default function RecruiterProfile() {
     try {
       const uploadRes = await recruiterService.uploadFile(file);
       setCompanyForm(prev => ({ ...prev, logo: uploadRes.url }));
+      setAutoFilled(prev => { const next = new Set(prev); next.delete("logo"); return next; });
     } catch (err) {
       console.error(err);
       setErrorMsg("Failed to upload company logo.");
@@ -70,28 +112,8 @@ export default function RecruiterProfile() {
       try {
         const profile = await recruiterService.getProfile();
         if (active) {
-          setCompanyForm({
-            companyName: profile.companyName || "",
-            website: profile.website || "",
-            logo: profile.logo || "",
-            description: profile.description || "",
-            foundedYear: profile.foundedYear || "",
-            industry: profile.industry || "",
-            mission: profile.mission || "",
-            vision: profile.vision || "",
-            companyValues: profile.companyValues || "",
-            googleMapsUrl: profile.googleMapsUrl || "",
-            headquarters: profile.headquarters || "",
-            offices: profile.offices || "",
-            companySize: profile.companySize || "",
-            companyType: profile.companyType || "",
-            technologies: profile.technologies || "",
-            phone: profile.phone || "",
-            linkedin: profile.linkedin || "",
-            facebook: profile.facebook || "",
-            instagram: profile.instagram || "",
-            twitter: profile.twitter || ""
-          });
+          setCompanyForm(toCompanyForm(profile));
+          applyImportState(profile);
 
           setBasicForm({
             firstName: profile.firstName || "",
@@ -118,6 +140,43 @@ export default function RecruiterProfile() {
     fetchProfile();
     return () => { active = false; };
   }, [setUser]);
+
+  useEffect(() => {
+    if (importStatus !== "IN_PROGRESS") return undefined;
+    const timer = setInterval(async () => {
+      try {
+        const profile = await recruiterService.getProfile();
+        if (profile.companyImportStatus === "IN_PROGRESS") return;
+        // Don't overwrite anything typed while the import was running.
+        setCompanyForm((prev) => {
+          const next = { ...prev };
+          for (const field of profile.autoFilledFields || []) {
+            if (next[field] === "" || next[field] == null) next[field] = profile[field] ?? "";
+          }
+          return next;
+        });
+        applyImportState(profile);
+      } catch (err) {
+        console.error("Failed to refresh the company import status:", err);
+      }
+    }, IMPORT_POLL_MS);
+    return () => clearInterval(timer);
+  }, [importStatus]);
+
+  const handleImportFromWebsite = async () => {
+    setStartingImport(true);
+    try {
+      const profile = await recruiterService.importCompanyFromWebsite(companyForm.website);
+      applyImportState(profile);
+      setCompanyForm((prev) => ({ ...prev, website: profile.website || prev.website }));
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(err.response?.data?.message || "We couldn't start the import. Please try again.");
+      setShowAlert(true);
+    } finally {
+      setStartingImport(false);
+    }
+  };
 
   // Company Completeness Score
   const calculateCompanyCompleteness = () => {
@@ -210,6 +269,7 @@ export default function RecruiterProfile() {
         twitter: formattedTwitter
       });
 
+      applyImportState(updatedProfile);
       setUser(prev => ({
         ...prev,
         firstName: updatedUser.firstName,
@@ -313,7 +373,10 @@ export default function RecruiterProfile() {
             <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", fontSize: "0.92rem", color: "var(--text-secondary)", marginTop: "8px" }}>
               <span>📍 {companyForm.headquarters || "Headquarters not set"}</span>
               {companyForm.industry && <span>🏢 {companyForm.industry}</span>}
-              {companyForm.companySize && <span>👥 {companyForm.companySize} employees</span>}
+              {companyForm.companySize && (
+                <span>👥 {companyForm.companySize}
+                  {/employ|collaborat|salari/i.test(companyForm.companySize) ? "" : " employees"}</span>
+              )}
             </div>
 
             {/* Tech Stack Pills Preview */}
@@ -377,6 +440,36 @@ export default function RecruiterProfile() {
       </div>
 
 
+      {importStatus === "IN_PROGRESS" && (
+        <div className="import-banner import-banner--progress" role="status">
+          <span className="import-spinner" aria-hidden="true" />
+          <div>
+            <strong>We're building your company profile from your website…</strong>
+            <p>This usually takes a few seconds. You can keep editing: only empty fields will be filled.</p>
+          </div>
+        </div>
+      )}
+      {importStatus === "COMPLETED" && importMessage && (
+        <div className="import-banner" role="status">
+          <div>
+            <strong>{importMessage}</strong>
+            {autoFilled.size > 0 && <p>Imported fields are marked “From your website” until you edit them.</p>}
+          </div>
+        </div>
+      )}
+      {importStatus === "FAILED" && (
+        <div className="import-banner import-banner--failed" role="alert">
+          <div>
+            <strong>{importMessage || "We couldn't import your company details."}</strong>
+          </div>
+          {companyForm.website && (
+            <button type="button" className="secondary-btn" onClick={handleImportFromWebsite} disabled={startingImport}>
+              {startingImport ? "Starting…" : "Try again"}
+            </button>
+          )}
+        </div>
+      )}
+
       <form onSubmit={handleSaveProfile}>
         
         {/* Representative Section */}
@@ -414,28 +507,34 @@ export default function RecruiterProfile() {
           </h3>
           <div className="form-grid">
             <div className="form-group">
-              <label>Company Name *</label>
+              <label>Company Name *{fromWebsite("companyName")}</label>
               <input 
                 type="text" 
                 value={companyForm.companyName}
-                onChange={(e) => setCompanyForm({ ...companyForm, companyName: e.target.value })}
+                onChange={setField("companyName")}
                 required
               />
             </div>
 
             <div className="form-group">
-              <label>Company Website (URL) *</label>
+              <label>Company Website (URL) *{fromWebsite("website")}</label>
               <input 
                 type="url" 
                 placeholder="e.g. https://company.com" 
                 value={companyForm.website}
-                onChange={(e) => setCompanyForm({ ...companyForm, website: e.target.value })}
+                onChange={setField("website")}
                 required
               />
+              {importStatus !== "IN_PROGRESS" && importStatus !== "FAILED" && companyForm.website.trim() && (
+                <button type="button" className="link-btn" onClick={handleImportFromWebsite} disabled={startingImport}
+                  title="Fills the empty fields below with what your website says">
+                  {startingImport ? "Starting…" : "Fill empty fields from this website"}
+                </button>
+              )}
             </div>
 
             <div className="form-group form-full-width">
-              <label>Company Logo</label>
+              <label>Company Logo{fromWebsite("logo")}</label>
               <input 
                 type="file" 
                 accept="image/*"
@@ -446,11 +545,11 @@ export default function RecruiterProfile() {
             </div>
 
             <div className="form-group form-full-width">
-              <label>Company Description</label>
+              <label>Company Description{fromWebsite("description")}</label>
               <textarea 
                 placeholder="Describe your company, its story, and main lines of work..." 
                 value={companyForm.description}
-                onChange={(e) => setCompanyForm({ ...companyForm, description: e.target.value })}
+                onChange={setField("description")}
               />
             </div>
           </div>
@@ -463,42 +562,42 @@ export default function RecruiterProfile() {
           </h3>
           <div className="form-grid">
             <div className="form-group">
-              <label>Founded Year</label>
+              <label>Founded Year{fromWebsite("foundedYear")}</label>
               <input 
                 type="number" 
                 placeholder="e.g. 2006" 
                 value={companyForm.foundedYear}
-                onChange={(e) => setCompanyForm({ ...companyForm, foundedYear: e.target.value })}
+                onChange={setField("foundedYear")}
               />
             </div>
 
             <div className="form-group">
-              <label>Industry</label>
+              <label>Industry{fromWebsite("industry")}</label>
               <input 
                 type="text" 
                 placeholder="e.g. IT - FinTech" 
                 value={companyForm.industry}
-                onChange={(e) => setCompanyForm({ ...companyForm, industry: e.target.value })}
+                onChange={setField("industry")}
               />
             </div>
 
             <div className="form-group">
-              <label>Company Type</label>
+              <label>Company Type{fromWebsite("companyType")}</label>
               <input 
                 type="text" 
                 placeholder="e.g. Software Company" 
                 value={companyForm.companyType}
-                onChange={(e) => setCompanyForm({ ...companyForm, companyType: e.target.value })}
+                onChange={setField("companyType")}
               />
             </div>
 
             <div className="form-group">
-              <label>Company Size (Employees)</label>
+              <label>Company Size (Employees){fromWebsite("companySize")}</label>
               <input 
                 type="text" 
                 placeholder="e.g. 200+, 51-200" 
                 value={companyForm.companySize}
-                onChange={(e) => setCompanyForm({ ...companyForm, companySize: e.target.value })}
+                onChange={setField("companySize")}
               />
             </div>
           </div>
@@ -511,31 +610,31 @@ export default function RecruiterProfile() {
           </h3>
           <div className="form-grid">
             <div className="form-group">
-              <label>Headquarters</label>
+              <label>Headquarters{fromWebsite("headquarters")}</label>
               <input 
                 type="text" 
                 placeholder="e.g. Sousse, Tunisia" 
                 value={companyForm.headquarters}
-                onChange={(e) => setCompanyForm({ ...companyForm, headquarters: e.target.value })}
+                onChange={setField("headquarters")}
               />
             </div>
 
             <div className="form-group">
-              <label>Google Maps URL</label>
+              <label>Google Maps URL{fromWebsite("googleMapsUrl")}</label>
               <input 
                 type="url" 
                 placeholder="e.g. https://maps.google.com/?q=Sousse" 
                 value={companyForm.googleMapsUrl}
-                onChange={(e) => setCompanyForm({ ...companyForm, googleMapsUrl: e.target.value })}
+                onChange={setField("googleMapsUrl")}
               />
             </div>
 
             <div className="form-group form-full-width">
-              <label>Offices</label>
+              <label>Offices{fromWebsite("offices")}</label>
               <textarea 
                 placeholder="List office locations (e.g. Sousse, Paris, Dubai)" 
                 value={companyForm.offices}
-                onChange={(e) => setCompanyForm({ ...companyForm, offices: e.target.value })}
+                onChange={setField("offices")}
                 style={{ minHeight: "80px" }}
               />
             </div>
@@ -549,31 +648,31 @@ export default function RecruiterProfile() {
           </h3>
           <div className="form-grid">
             <div className="form-group form-full-width">
-              <label>Mission</label>
+              <label>Mission{fromWebsite("mission")}</label>
               <textarea 
                 placeholder="What is your company's core mission?" 
                 value={companyForm.mission}
-                onChange={(e) => setCompanyForm({ ...companyForm, mission: e.target.value })}
+                onChange={setField("mission")}
                 style={{ minHeight: "80px" }}
               />
             </div>
 
             <div className="form-group form-full-width">
-              <label>Vision</label>
+              <label>Vision{fromWebsite("vision")}</label>
               <textarea 
                 placeholder="What is your company's long-term vision?" 
                 value={companyForm.vision}
-                onChange={(e) => setCompanyForm({ ...companyForm, vision: e.target.value })}
+                onChange={setField("vision")}
                 style={{ minHeight: "80px" }}
               />
             </div>
 
             <div className="form-group form-full-width">
-              <label>Company Values</label>
+              <label>Company Values{fromWebsite("companyValues")}</label>
               <textarea 
                 placeholder="List your company's core values (e.g. Innovation, Agility, Commitment)" 
                 value={companyForm.companyValues}
-                onChange={(e) => setCompanyForm({ ...companyForm, companyValues: e.target.value })}
+                onChange={setField("companyValues")}
                 style={{ minHeight: "80px" }}
               />
             </div>
@@ -587,12 +686,12 @@ export default function RecruiterProfile() {
           </h3>
           <div className="form-grid">
             <div className="form-group form-full-width">
-              <label>Technologies Used</label>
+              <label>Technologies Used{fromWebsite("technologies")}</label>
               <input 
                 type="text" 
                 placeholder="e.g. Java, Spring, React, Cloud, AI" 
                 value={companyForm.technologies}
-                onChange={(e) => setCompanyForm({ ...companyForm, technologies: e.target.value })}
+                onChange={setField("technologies")}
               />
             </div>
           </div>
@@ -605,42 +704,42 @@ export default function RecruiterProfile() {
           </h3>
           <div className="form-grid">
             <div className="form-group">
-              <label>LinkedIn Profile URL</label>
+              <label>LinkedIn Profile URL{fromWebsite("linkedin")}</label>
               <input 
                 type="url" 
                 placeholder="https://linkedin.com/company/..." 
                 value={companyForm.linkedin}
-                onChange={(e) => setCompanyForm({ ...companyForm, linkedin: e.target.value })}
+                onChange={setField("linkedin")}
               />
             </div>
 
             <div className="form-group">
-              <label>Facebook Page URL</label>
+              <label>Facebook Page URL{fromWebsite("facebook")}</label>
               <input 
                 type="url" 
                 placeholder="https://facebook.com/..." 
                 value={companyForm.facebook}
-                onChange={(e) => setCompanyForm({ ...companyForm, facebook: e.target.value })}
+                onChange={setField("facebook")}
               />
             </div>
 
             <div className="form-group">
-              <label>Instagram Handle URL</label>
+              <label>Instagram Handle URL{fromWebsite("instagram")}</label>
               <input 
                 type="url" 
                 placeholder="https://instagram.com/..." 
                 value={companyForm.instagram}
-                onChange={(e) => setCompanyForm({ ...companyForm, instagram: e.target.value })}
+                onChange={setField("instagram")}
               />
             </div>
 
             <div className="form-group">
-              <label>Twitter/X Profile URL</label>
+              <label>Twitter/X Profile URL{fromWebsite("twitter")}</label>
               <input 
                 type="url" 
                 placeholder="https://twitter.com/..." 
                 value={companyForm.twitter}
-                onChange={(e) => setCompanyForm({ ...companyForm, twitter: e.target.value })}
+                onChange={setField("twitter")}
               />
             </div>
           </div>
@@ -653,12 +752,12 @@ export default function RecruiterProfile() {
           </h3>
           <div className="form-grid">
             <div className="form-group form-full-width">
-              <label>Phone Number</label>
+              <label>Phone Number{fromWebsite("phone")}</label>
               <input 
                 type="text" 
                 placeholder="e.g. +216 73 123 456" 
                 value={companyForm.phone}
-                onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })}
+                onChange={setField("phone")}
               />
             </div>
           </div>

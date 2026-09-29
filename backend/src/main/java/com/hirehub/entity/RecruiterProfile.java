@@ -3,6 +3,9 @@ package com.hirehub.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "recruiter_profiles")
@@ -65,4 +68,20 @@ public class RecruiterProfile {
     private String instagram;
 
     private String twitter;
+
+    /** Import of the company details from the website given at signup. */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @ColumnDefault("'NOT_REQUESTED'")
+    @Builder.Default
+    private CompanyImportStatus companyImportStatus = CompanyImportStatus.NOT_REQUESTED;
+
+    @Column(length = 500)
+    private String companyImportMessage;
+
+    private LocalDateTime companyImportUpdatedAt;
+
+    /** Comma-separated names of the fields filled from the website and not edited since. */
+    @Column(length = 500)
+    private String autoFilledFields;
 }

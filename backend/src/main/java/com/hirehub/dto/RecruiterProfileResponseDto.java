@@ -1,6 +1,9 @@
 package com.hirehub.dto;
 
+import com.hirehub.entity.CompanyImportStatus;
 import lombok.*;
+
+import java.util.List;
 
 @Getter
 @Setter
@@ -56,4 +59,11 @@ public class RecruiterProfileResponseDto {
     private String instagram;
 
     private String twitter;
+
+    private CompanyImportStatus companyImportStatus;
+
+    private String companyImportMessage;
+
+    /** Profile fields filled from the company website that the recruiter hasn't changed. */
+    private List<String> autoFilledFields;
 }

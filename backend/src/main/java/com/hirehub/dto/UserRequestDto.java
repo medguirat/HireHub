@@ -30,4 +30,12 @@ public class UserRequestDto {
 
     @NotNull(message = "Role is required")
     private Role role;
+
+    /** Recruiters only, optional. */
+    @Size(max = 255, message = "Company name must be at most 255 characters")
+    private String companyName;
+
+    /** Recruiters only, optional: the company details are imported from this site. */
+    @Size(max = 2048, message = "Website address is too long")
+    private String companyWebsite;
 }

@@ -6,8 +6,7 @@ Recruitment platform with two roles, recruiters and candidates.
 |---|---|---|
 | `frontend/` | React + Vite | 5173 |
 | `backend/` | Spring Boot (Java 17+), MySQL | 8081 |
-| `ai-service/` | Python FastAPI: CV text extraction and CV/offer matching | 8000 |
-| `scraping/` | Company website scraper | - |
+| `ai-service/` | Python FastAPI: CV text extraction, CV/offer matching, company website import | 8000 |
 
 ## Run everything
 
@@ -98,3 +97,14 @@ The LLM only writes the suggestions. The score never depends on it, and if the L
 | `CV_STORAGE_DIR` | backend: private CV files, never served publicly | `cv-store` |
 | `VITE_API_URL` | frontend | `http://localhost:8081/api` |
 | `EMBEDDING_MODEL` | ai-service | `paraphrase-multilingual-MiniLM-L12-v2` (French, English, Arabic and 50+ other languages) |
+
+## Company profile import
+
+A recruiter can give their company website at signup. The account is created immediately; the import runs in the background and fills the company profile with what the website states. The profile page shows "We're building your company profile from your website…" while it runs.
+
+- Only public pages are read: the homepage and up to 4 same-site "about" / "contact" pages. Sources are structured data (schema.org), meta tags, links (social networks, Google Maps, phone) and sections titled Mission, Vision, Values (English and French).
+- A field the website doesn't state stays empty. Industry and company type are never guessed.
+- Only empty fields are filled; nothing the recruiter typed is overwritten. Imported fields are marked "From your website" until the recruiter edits them.
+- If the import fails (site unreachable, not a web page, ai-service down...), the signup still succeeds, the profile page explains why and offers "Try again".
+- Safety limits: http(s) only, no private or local network addresses (checked on every redirect), 5 redirects, 2 MB per page, 5 s connect / 10 s read timeouts, 25 s in total.
+

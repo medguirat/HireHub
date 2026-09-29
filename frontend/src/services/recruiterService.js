@@ -63,6 +63,12 @@ const recruiterService = {
     return response.data;
   },
 
+  // Fills the empty company fields from the website, in the background.
+  importCompanyFromWebsite: async (website) => {
+    const response = await api.post("/recruiters/profile/import", website ? { website } : {});
+    return response.data;
+  },
+
   updateBasicInfo: async (basicInfo) => {
     const response = await api.put("/users/me", basicInfo);
     return response.data;

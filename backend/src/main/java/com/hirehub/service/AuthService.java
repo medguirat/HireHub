@@ -1,5 +1,6 @@
 package com.hirehub.service;
 
+import com.hirehub.company.CompanyProfileImporter;
 import com.hirehub.dto.LoginRequestDto;
 import com.hirehub.dto.LoginResponseDto;
 import com.hirehub.dto.UserRequestDto;
@@ -29,12 +30,14 @@ public class AuthService {
     private final CandidateProfileRepository candidateProfileRepository;
     private final RecruiterProfileRepository recruiterProfileRepository;
     private final EmailService emailService;
+    private final CompanyProfileImporter companyProfileImporter;
 
     public AuthService(AuthenticationManager authenticationManager, JwtService jwtService,
                        UserRepository userRepository, PasswordEncoder passwordEncoder,
                        CandidateProfileRepository candidateProfileRepository,
                        RecruiterProfileRepository recruiterProfileRepository,
-                       EmailService emailService) {
+                       EmailService emailService,
+                       CompanyProfileImporter companyProfileImporter) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.userRepository = userRepository;
@@ -42,6 +45,7 @@ public class AuthService {
         this.candidateProfileRepository = candidateProfileRepository;
         this.recruiterProfileRepository = recruiterProfileRepository;
         this.emailService = emailService;
+        this.companyProfileImporter = companyProfileImporter;
     }
 
     public LoginResponseDto login(LoginRequestDto request) {
@@ -80,10 +84,15 @@ public class AuthService {
                     .build();
             candidateProfileRepository.save(profile);
         } else if (savedUser.getRole() == Role.RECRUITER) {
-            RecruiterProfile profile = RecruiterProfile.builder()
+            String companyName = request.getCompanyName() == null ? null : request.getCompanyName().trim();
+            RecruiterProfile profile = recruiterProfileRepository.save(RecruiterProfile.builder()
                     .user(savedUser)
-                    .build();
-            recruiterProfileRepository.save(profile);
+                    .companyName(companyName == null || companyName.isEmpty() ? null : companyName)
+                    .build());
+            if (request.getCompanyWebsite() != null && !request.getCompanyWebsite().isBlank()) {
+                // Runs in the background after commit; a failure never affects the signup.
+                companyProfileImporter.requestImport(profile, request.getCompanyWebsite());
+            }
         }
 
         emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getFirstName(), savedUser.getRole().name());

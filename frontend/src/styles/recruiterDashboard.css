@@ -851,3 +851,75 @@
 .offer-card--closed {
   opacity: 0.7;
 }
+
+/* Company details imported from the recruiter's website */
+.autofill-tag {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-cyan);
+  background: rgba(85, 189, 232, 0.1);
+  border: 1px solid rgba(85, 189, 232, 0.3);
+  vertical-align: middle;
+}
+
+.import-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(85, 189, 232, 0.35);
+  background: rgba(85, 189, 232, 0.08);
+  color: var(--text-primary, #fff);
+  font-size: 0.9rem;
+}
+
+.import-banner > div {
+  flex: 1;
+}
+
+.import-banner p {
+  margin: 4px 0 0;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.84rem;
+}
+
+.import-banner--failed {
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.import-spinner {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(85, 189, 232, 0.3);
+  border-top-color: var(--color-cyan);
+  animation: import-spin 0.8s linear infinite;
+}
+
+@keyframes import-spin {
+  to { transform: rotate(360deg); }
+}
+
+.link-btn {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-cyan);
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.link-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

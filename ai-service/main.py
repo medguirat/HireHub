@@ -1,4 +1,4 @@
-"""HireHub AI service: CV text extraction and CV/offer matching.
+"""HireHub AI service: CV text extraction, CV/offer matching and company profile import.
 
 Run: uvicorn main:app --port 8000
 Called by the Spring Boot backend (matching) and by the profile pages (bio).
@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from company.scraper import ScrapeError, scrape_company
 from matching import ALGORITHM_VERSION
 from matching.extraction import ExtractionError, extract_text
 from matching.parsing import extract_skills
@@ -77,6 +78,19 @@ class MatchRequest(BaseModel):
 def match(req: MatchRequest):
     return compute_match(req.cv_text, req.offer.title, req.offer.description,
                          semantic_scorer, recommendation_provider)
+
+
+class CompanyRequest(BaseModel):
+    url: str = Field(min_length=1, max_length=2048)
+
+
+@app.post("/company/profile")
+def company_profile(req: CompanyRequest):
+    """Fields stated on the company's website; anything not found is simply absent."""
+    try:
+        return scrape_company(req.url)
+    except ScrapeError as exc:
+        raise HTTPException(status_code=422, detail={"code": exc.code, "message": str(exc)}) from exc
 
 
 # ---------------------------------------------------------------------------

@@ -193,3 +193,13 @@
     font-size: 1.5rem;
   }
 }
+
+.auth-flow-card .auth-flow-hint {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+}
+
+.auth-flow-optional {
+  font-weight: 400;
+  color: #667085;
+}

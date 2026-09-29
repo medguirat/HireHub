@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import authService from "../services/authService";
 import AlertModal from "../components/AlertModal";
@@ -7,6 +7,7 @@ import jobOfferLogin from "../images/JobOfferLogin.png";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -18,6 +19,9 @@ export default function Login() {
     setEmail("");
     setPassword("");
     setErrorMsg("");
+    if (location.state?.notice) {
+      setSessionNotice(location.state.notice);
+    }
     if (sessionStorage.getItem("hirehub.sessionExpired")) {
       sessionStorage.removeItem("hirehub.sessionExpired");
       setSessionNotice("Your session has expired. Please log in again.");

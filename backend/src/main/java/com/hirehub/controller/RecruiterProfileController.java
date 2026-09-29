@@ -11,6 +11,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/recruiters")
 public class RecruiterProfileController {
@@ -37,5 +39,13 @@ public class RecruiterProfileController {
     ) {
         User recruiter = currentUserProvider.requireRole(userDetails, Role.RECRUITER);
         return recruiterProfileService.updateMyProfile(recruiter, dto);
+    }
+
+    /** Starts an import of the company details from {"website": "..."} (or the saved website). */
+    @PostMapping("/profile/import")
+    public RecruiterProfileResponseDto importFromWebsite(@AuthenticationPrincipal UserDetails userDetails,
+                                                         @RequestBody(required = false) Map<String, String> body) {
+        User recruiter = currentUserProvider.requireRole(userDetails, Role.RECRUITER);
+        return recruiterProfileService.importFromWebsite(recruiter, body == null ? null : body.get("website"));
     }
 }

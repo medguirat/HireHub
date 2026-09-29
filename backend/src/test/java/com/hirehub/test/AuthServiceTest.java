@@ -1,5 +1,6 @@
 package com.hirehub.test;
 
+import com.hirehub.company.CompanyProfileImporter;
 import com.hirehub.service.AuthService;
 import com.hirehub.service.EmailService;
 
@@ -29,6 +30,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,6 +44,7 @@ class AuthServiceTest {
     @Mock private CandidateProfileRepository candidateProfileRepository;
     @Mock private RecruiterProfileRepository recruiterProfileRepository;
     @Mock private EmailService emailService;
+    @Mock private CompanyProfileImporter companyProfileImporter;
 
     @InjectMocks private AuthService authService;
 
@@ -120,5 +124,23 @@ class AuthServiceTest {
         verify(recruiterProfileRepository).save(any(RecruiterProfile.class));
         verify(candidateProfileRepository, never()).save(any());
         verify(emailService).sendWelcomeEmail("rec@test.com", "Rec", "RECRUITER");
+        verify(companyProfileImporter, never()).requestImport(any(), any());
+    }
+
+    @Test
+    void register_startsTheCompanyImportWhenARecruiterGivesAWebsite() {
+        UserRequestDto request = UserRequestDto.builder()
+                .firstName("Rec").lastName("Ru").email("rec@test.com").password("plainPwd")
+                .role(Role.RECRUITER).companyName("  Acme  ").companyWebsite("acme.example.com").build();
+        User savedUser = User.builder().id(2L).firstName("Rec").email("rec@test.com").role(Role.RECRUITER).build();
+        when(userRepository.existsByEmail("rec@test.com")).thenReturn(false);
+        when(passwordEncoder.encode(anyString())).thenReturn("encodedPwd");
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        when(recruiterProfileRepository.save(any(RecruiterProfile.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        authService.register(request);
+
+        verify(recruiterProfileRepository).save(argThat(p -> "Acme".equals(p.getCompanyName())));
+        verify(companyProfileImporter).requestImport(any(RecruiterProfile.class), eq("acme.example.com"));
     }
 }
