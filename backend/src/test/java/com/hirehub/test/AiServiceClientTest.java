@@ -1,0 +1,127 @@
+package com.hirehub.test;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.hirehub.exception.ApiException;
+import com.hirehub.matching.AiServiceClient;
+import com.hirehub.matching.AiServiceUnavailableException;
+import com.sun.net.httpserver.HttpServer;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+/**
+ * The real HTTP client against a stub server: checks what is actually sent
+ * over the wire and how each ai-service answer is mapped.
+ */
+class AiServiceClientTest {
+
+    private HttpServer server;
+    private AiServiceClient client;
+    private final AtomicReference<String> lastBody = new AtomicReference<>();
+    private final AtomicReference<String> lastContentType = new AtomicReference<>();
+    private final AtomicReference<String> lastUpgradeHeader = new AtomicReference<>();
+    private volatile int status = 200;
+    private volatile String response = "{}";
+
+    @BeforeEach
+    void start() throws IOException {
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", exchange -> {
+            lastContentType.set(exchange.getRequestHeaders().getFirst("Content-Type"));
+            lastUpgradeHeader.set(exchange.getRequestHeaders().getFirst("Upgrade"));
+            lastBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.ISO_8859_1));
+            byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(status, bytes.length);
+            exchange.getResponseBody().write(bytes);
+            exchange.close();
+        });
+        server.start();
+        client = new AiServiceClient("http://127.0.0.1:" + server.getAddress().getPort(), 5);
+    }
+
+    @AfterEach
+    void stop() {
+        server.stop(0);
+    }
+
+    @Test
+    void extractSendsTheFileAsAMultipartFilePartWithItsName() {
+        response = "{\"text\":\"Java developer\",\"format\":\"pdf\"}";
+
+        AiServiceClient.ExtractedText result = client.extractText("%PDF-1.4 data".getBytes(), "CV-Amine.pdf");
+
+        assertThat(result.text()).isEqualTo("Java developer");
+        assertThat(lastContentType.get()).startsWith("multipart/form-data");
+        assertThat(lastBody.get()).contains("name=\"file\"").contains("filename=\"CV-Amine.pdf\"").contains("%PDF-1.4 data");
+        // uvicorn mishandles the body of h2c upgrade requests, so the client must stay on HTTP/1.1.
+        assertThat(lastUpgradeHeader.get()).isNull();
+    }
+
+    @Test
+    void anUnexpectedValidationErrorIsTreatedAsAServiceFaultNotAsTheUsersFile() {
+        status = 422;
+        response = "{\"detail\":[{\"type\":\"missing\",\"loc\":[\"body\",\"file\"]}]}";
+
+        assertThrows(AiServiceUnavailableException.class, () -> client.extractText(new byte[]{1}, "cv.pdf"));
+    }
+
+    @Test
+    void unreadableCvMapsTo422WithTheServiceMessage() {
+        status = 422;
+        response = "{\"detail\":{\"code\":\"no_text\",\"message\":\"We couldn't find any text in this file.\"}}";
+
+        ApiException error = assertThrows(ApiException.class, () -> client.extractText(new byte[]{1}, "scan.pdf"));
+
+        assertThat(error.getStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(error.getMessage()).isEqualTo("We couldn't find any text in this file.");
+    }
+
+    @Test
+    void unsupportedFormatMapsTo415() {
+        status = 415;
+        response = "{\"detail\":{\"code\":\"unsupported_format\",\"message\":\"Please upload your CV as a PDF or DOCX file.\"}}";
+
+        ApiException error = assertThrows(ApiException.class, () -> client.extractText(new byte[]{1}, "cv.png"));
+
+        assertThat(error.getStatus()).isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+    }
+
+    @Test
+    void matchSendsTheCvAndOfferAsJson() {
+        response = "{\"overall_score\":81,\"algorithm_version\":\"v\"}";
+
+        JsonNode result = client.match("Java dev", "Backend Developer", "Java and Spring");
+
+        assertThat(result.path("overall_score").asInt()).isEqualTo(81);
+        assertThat(lastContentType.get()).startsWith("application/json");
+        assertThat(lastBody.get()).contains("\"cv_text\":\"Java dev\"").contains("\"title\":\"Backend Developer\"");
+    }
+
+    @Test
+    void serverErrorsAndDownServiceAreUnavailable() {
+        status = 500;
+        assertThrows(AiServiceUnavailableException.class, () -> client.match("a", "b", "c"));
+
+        server.stop(0);
+        assertThrows(AiServiceUnavailableException.class, () -> client.match("a", "b", "c"));
+        assertThat(client.health().ready()).isFalse();
+    }
+
+    @Test
+    void healthReportsReadinessAndAlgorithmVersion() {
+        response = "{\"status\":\"ok\",\"algorithm_version\":\"2026.09-1\"}";
+        AiServiceClient.Health health = client.health();
+        assertThat(health.ready()).isTrue();
+        assertThat(health.algorithmVersion()).isEqualTo("2026.09-1");
+    }
+}

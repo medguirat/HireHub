@@ -32,6 +32,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<Map<String, String>> handleApiException(ApiException ex) {
+        Map<String, String> body = new HashMap<>();
+        body.put("message", ex.getMessage());
+        body.put("code", ex.getCode());
+        if (ex.getStatus().is5xxServerError()) {
+            String correlationId = UUID.randomUUID().toString();
+            log.warn("[{}] {}: {}", correlationId, ex.getCode(), ex.getMessage());
+            body.put("correlationId", correlationId);
+        }
+        return ResponseEntity.status(ex.getStatus()).body(body);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();

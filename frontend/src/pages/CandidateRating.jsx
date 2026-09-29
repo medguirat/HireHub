@@ -35,6 +35,8 @@ export default function CandidateRating() {
   const [finalScore, setFinalScore] = useState(10);
   const [interviewType, setInterviewType] = useState("REMOTE");
   const [isAccepted, setIsAccepted] = useState(false);
+  const [savedAt, setSavedAt] = useState(null);
+  const [savingEvaluation, setSavingEvaluation] = useState(false);
 
   useEffect(() => {
     loadCandidateDetails();
@@ -47,13 +49,20 @@ export default function CandidateRating() {
       setApp(data);
       setIsAccepted(data.status === "ACCEPTED");
 
-      const savedEval = localStorage.getItem(`evaluation_app_${id}`);
-      if (savedEval) {
-        const parsed = JSON.parse(savedEval);
-        setRatings(parsed.ratings || { techSkills: 3, experience: 3, communication: 3, culturalFit: 3 });
-        setChecks(parsed.checks || { hasDegree: false, passedTest: false, availableNow: false });
-        setNotes(parsed.notes || "");
-        setInterviewType(parsed.interviewType || "REMOTE");
+      try {
+        const saved = await recruiterService.getEvaluation(id);
+        setRatings({
+          techSkills: saved.technicalSkills,
+          experience: saved.experience,
+          communication: saved.communication,
+          culturalFit: saved.culturalFit
+        });
+        setChecks({ hasDegree: saved.hasDegree, passedTest: saved.passedTest, availableNow: saved.availableNow });
+        setNotes(saved.notes || "");
+        setInterviewType(saved.interviewType || "REMOTE");
+        setSavedAt(saved.updatedAt);
+      } catch (evalErr) {
+        if (evalErr.response?.status !== 404) throw evalErr; // 404: not evaluated yet, keep defaults
       }
     } catch (err) {
       console.error(err);
@@ -79,16 +88,30 @@ export default function CandidateRating() {
     });
   };
 
-  const handleSaveEvaluation = () => {
-    const evaluation = {
-      ratings,
-      checks,
-      notes,
-      finalScore,
-      interviewType
-    };
-    localStorage.setItem(`evaluation_app_${id}`, JSON.stringify(evaluation));
-    setShowSuccess(true);
+  const handleSaveEvaluation = async () => {
+    setSavingEvaluation(true);
+    try {
+      const saved = await recruiterService.saveEvaluation(id, {
+        technicalSkills: ratings.techSkills,
+        experience: ratings.experience,
+        communication: ratings.communication,
+        culturalFit: ratings.culturalFit,
+        ...checks,
+        notes,
+        interviewType
+      });
+      setFinalScore(saved.score);
+      setSavedAt(saved.updatedAt);
+      setSuccessMsg("Your evaluation has been saved.");
+      setShowSuccess(true);
+    } catch (err) {
+      const data = err.response?.data;
+      setErrorMsg(data?.message || (data && typeof data === "object" ? Object.values(data)[0] : data) ||
+        "Your evaluation couldn't be saved. Please try again.");
+      setShowAlert(true);
+    } finally {
+      setSavingEvaluation(false);
+    }
   };
 
   const handlePrintPDF = () => {
@@ -208,11 +231,12 @@ export default function CandidateRating() {
     }
   };
 
+  // Describes the recruiter's own ratings; it is not an automatic recommendation.
   const getEvaluationStatus = () => {
-    if (finalScore >= 16) return { text: "Outstanding Candidate - Highly Recommended", color: "#10b981" };
-    if (finalScore >= 12) return { text: "Strong Candidate - Recommended for Interview", color: "#3b82f6" };
-    if (finalScore >= 8) return { text: "Average Candidate - Review Pending", color: "#f59e0b" };
-    return { text: "Weak Candidate - Rejection Advised", color: "#ef4444" };
+    if (finalScore >= 16) return { text: "Your ratings: outstanding", color: "#10b981" };
+    if (finalScore >= 12) return { text: "Your ratings: strong", color: "#3b82f6" };
+    if (finalScore >= 8) return { text: "Your ratings: average", color: "#f59e0b" };
+    return { text: "Your ratings: weak", color: "#ef4444" };
   };
 
   const evalStatus = getEvaluationStatus();
@@ -253,9 +277,10 @@ export default function CandidateRating() {
         <>
           {/* Rating workspace panel */}
           <div className="dashboard-panel no-print">
-            <h2>Candidate Screening: {app.candidateName} {app.candidateLastName}</h2>
+            <h2>Your evaluation of {app.candidateName} {app.candidateLastName}</h2>
             <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-              Evaluate the candidate based on resume details, skills, and screening calls to calculate their suitability.
+              Your own assessment after reviewing the CV and interviewing the candidate. It is saved to your
+              account and is separate from the automatic CV match score.
             </p>
 
             <div className="rating-section">
@@ -399,15 +424,18 @@ export default function CandidateRating() {
               {/* Results & Saving */}
               <div className="rating-score-box">
                 <div className="score-display">
-                  <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", textTransform: "uppercase" }}>Overall Suitability</span>
+                  <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", textTransform: "uppercase" }}>Your evaluation score</span>
                   <span className="score-number">{finalScore} / 20</span>
                   <span style={{ color: evalStatus.color, fontWeight: 700, fontSize: "0.95rem" }}>
                     {evalStatus.text}
                   </span>
+                  <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+                    {savedAt ? `Last saved ${new Date(savedAt).toLocaleString()}` : "Not saved yet"}
+                  </span>
                 </div>
                 <div style={{ display: "flex", gap: "12px" }}>
-                  <button className="secondary-btn" onClick={handleSaveEvaluation}>
-                    Save Rating
+                  <button className="secondary-btn" onClick={handleSaveEvaluation} disabled={savingEvaluation}>
+                    {savingEvaluation ? "Saving…" : "Save evaluation"}
                   </button>
                   {isAccepted && (
                     <button className="primary-btn" onClick={handlePrintPDF}>

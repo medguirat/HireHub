@@ -1,5 +1,7 @@
 fastapi
 uvicorn[standard]
-spacy
-sentence-transformers
+python-multipart
 pydantic
+sentence-transformers
+pypdf
+python-docx

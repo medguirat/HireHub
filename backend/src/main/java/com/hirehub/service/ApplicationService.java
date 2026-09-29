@@ -47,6 +47,7 @@ public class ApplicationService {
         return ApplicationResponseDto.builder()
                 .id(application.getId())
                 .status(application.getStatus())
+                .applicationDate(application.getApplicationDate())
                 .cv(application.getCv())
                 .coverLetter(application.getCoverLetter())
                 .candidateName(application.getCandidate().getFirstName())

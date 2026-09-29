@@ -1,0 +1,13 @@
+{
+  "name": "hirehub",
+  "private": true,
+  "description": "Runs the whole HireHub stack from the repository root.",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "seed": "node scripts/seed-demo-data.mjs",
+    "test": "node scripts/test-all.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

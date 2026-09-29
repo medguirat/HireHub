@@ -66,6 +66,28 @@ const candidateService = {
     return response.data;
   },
 
+  // The CV used for matching (one per candidate; uploading replaces it).
+  getMyCv: async () => {
+    const response = await api.get("/candidates/me/cv");
+    return response.data;
+  },
+
+  uploadMyCv: async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await api.put("/candidates/me/cv", formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return response.data;
+  },
+
+  // Real CV/offer match computed by the backend + ai-service. Never faked:
+  // if the service is down this rejects with a 503.
+  getOfferMatch: async (offerId) => {
+    const response = await api.get(`/candidates/offers/${offerId}/match`);
+    return response.data;
+  },
+
   getNotifications: async () => {
     const response = await api.get("/notifications");
     return response.data;

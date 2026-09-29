@@ -14,13 +14,25 @@ export default function RecruiterStats() {
     fetchData();
   }, []);
 
+  // Statistics must cover everything, not just the first page.
+  const fetchAllPages = async (fetchPage) => {
+    const items = [];
+    for (let page = 0; ; page++) {
+      const data = await fetchPage(page, 100);
+      items.push(...(data.content || []));
+      if (page + 1 >= (data.totalPages || 0)) return items;
+    }
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
-      const offersData = await recruiterService.getOffers(0, 50);
-      const appsData = await recruiterService.getApplications(0, 100);
-      setOffers(offersData.content || []);
-      setApplications(appsData.content || []);
+      const [allOffers, allApplications] = await Promise.all([
+        fetchAllPages(recruiterService.getOffers),
+        fetchAllPages(recruiterService.getApplications)
+      ]);
+      setOffers(allOffers);
+      setApplications(allApplications);
     } catch (err) {
       console.error(err);
       setErrorMsg("Failed to load recruitment analytics data.");
@@ -55,18 +67,33 @@ export default function RecruiterStats() {
   const pendingPct = totalApplications ? Math.round((pendingApps / totalApplications) * 100) : 0;
   const rejectedPct = totalApplications ? Math.round((rejectedApps / totalApplications) * 100) : 0;
 
-  // Wave Chart Data points
-  const wavePoints = [
-    { month: "Jan", apps: 12, views: 45 },
-    { month: "Feb", apps: 19, views: 72 },
-    { month: "Mar", apps: 15, views: 68 },
-    { month: "Apr", apps: 28, views: 110 },
-    { month: "May", apps: 24, views: 95 },
-    { month: "Jun", apps: 38, views: 150 },
-    { month: "Jul", apps: 45, views: 185 },
-    { month: "Aug", apps: 32, views: 140 },
-    { month: "Sep", apps: totalApplications || 50, views: (totalApplications || 50) * 4 }
-  ];
+  // Applications received per month over the selected period, from real application dates.
+  const monthsInTimeframe = { "3M": 3, "6M": 6, "1Y": 12 }[timeframe];
+  const now = new Date();
+  const wavePoints = Array.from({ length: monthsInTimeframe }, (_, i) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (monthsInTimeframe - 1 - i), 1);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    return {
+      month: date.toLocaleString("en", { month: "short" }),
+      apps: applications.filter((a) => (a.applicationDate || "").startsWith(key)).length
+    };
+  });
+  const periodTotal = wavePoints.reduce((sum, p) => sum + p.apps, 0);
+
+  // Chart geometry: x spread over 800px, y from 220 (zero) up to 40 (period maximum).
+  const maxApps = Math.max(1, ...wavePoints.map((p) => p.apps));
+  const chartPoints = wavePoints.map((p, i) => ({
+    x: wavePoints.length === 1 ? 400 : (i * 800) / (wavePoints.length - 1),
+    y: 220 - (p.apps / maxApps) * 180,
+    apps: p.apps
+  }));
+  const linePath = chartPoints.reduce((path, pt, i) => {
+    if (i === 0) return `M ${pt.x} ${pt.y}`;
+    const prev = chartPoints[i - 1];
+    const midX = (prev.x + pt.x) / 2;
+    return `${path} C ${midX} ${prev.y}, ${midX} ${pt.y}, ${pt.x} ${pt.y}`;
+  }, "");
+  const areaPath = `${linePath} L ${chartPoints[chartPoints.length - 1].x} 220 L ${chartPoints[0].x} 220 Z`;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
@@ -245,15 +272,12 @@ export default function RecruiterStats() {
                     <div style={{ fontSize: "0.75rem", color: "#fbcfe8" }}>Independent Contractors</div>
                   </div>
                 </div>
-                <span style={{ fontSize: "0.75rem", padding: "3px 8px", borderRadius: "10px", background: "rgba(232, 27, 107, 0.3)", color: "#fce7f3", fontWeight: "600" }}>
-                  +18.5% 📈
-                </span>
               </div>
               <div style={{ fontSize: "2.2rem", fontWeight: "800", color: "#ffffff", letterSpacing: "-0.5px" }}>
                 {freelanceCount} <span style={{ fontSize: "0.9rem", fontWeight: "500", color: "#cbd5e1" }}>Offers</span>
               </div>
               <div style={{ width: "100%", height: "6px", background: "rgba(255, 255, 255, 0.1)", borderRadius: "3px", marginTop: "12px", overflow: "hidden" }}>
-                <div style={{ width: `${freelancePct || 25}%`, height: "100%", background: "linear-gradient(90deg, #E81B6B, #f472b6)", borderRadius: "3px" }} />
+                <div style={{ width: `${freelancePct}%`, height: "100%", background: "linear-gradient(90deg, #E81B6B, #f472b6)", borderRadius: "3px" }} />
               </div>
             </div>
 
@@ -280,18 +304,12 @@ export default function RecruiterStats() {
                     Recruitment Heatmap & Candidate Inflow
                   </h3>
                   <p style={{ margin: "4px 0 0 0", fontSize: "0.84rem", color: "#8C8E90" }}>
-                    Monthly application volume vs profile views curve
+                    Applications received per month · {periodTotal} in this period
                   </p>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.82rem", color: "#E81B6B" }}>
-                    <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#E81B6B", display: "inline-block" }} />
-                    Applications
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.82rem", color: "#55BDE8" }}>
-                    <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#55BDE8", display: "inline-block" }} />
-                    Offer Views
-                  </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.82rem", color: "#E81B6B" }}>
+                  <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#E81B6B", display: "inline-block" }} />
+                  Applications
                 </div>
               </div>
 
@@ -303,10 +321,6 @@ export default function RecruiterStats() {
                       <stop offset="0%" stopColor="#E81B6B" stopOpacity="0.45" />
                       <stop offset="100%" stopColor="#E81B6B" stopOpacity="0.0" />
                     </linearGradient>
-                    <linearGradient id="waveGradientCyan" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#55BDE8" stopOpacity="0.35" />
-                      <stop offset="100%" stopColor="#55BDE8" stopOpacity="0.0" />
-                    </linearGradient>
                   </defs>
 
                   {/* Horizontal Grid lines */}
@@ -314,35 +328,24 @@ export default function RecruiterStats() {
                     <line key={idx} x1="0" y1={yVal} x2="800" y2={yVal} stroke="rgba(255, 255, 255, 0.05)" strokeDasharray="4 4" />
                   ))}
 
-                  {/* Wave Fill 1 (Cyan - Views) */}
-                  <path
-                    d="M 0 190 Q 100 130, 200 150 T 400 80 T 600 50 T 800 90 L 800 220 L 0 220 Z"
-                    fill="url(#waveGradientCyan)"
-                  />
-                  <path
-                    d="M 0 190 Q 100 130, 200 150 T 400 80 T 600 50 T 800 90"
-                    fill="none"
-                    stroke="#55BDE8"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                  />
-
-                  {/* Wave Fill 2 (Magenta - Applications) */}
-                  <path
-                    d="M 0 210 Q 100 170, 200 180 T 400 120 T 600 80 T 800 130 L 800 220 L 0 220 Z"
-                    fill="url(#waveGradientMagenta)"
-                  />
-                  <path
-                    d="M 0 210 Q 100 170, 200 180 T 400 120 T 600 80 T 800 130"
-                    fill="none"
-                    stroke="#E81B6B"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                  />
-
-                  {/* Pulsing Dots on Wave */}
-                  <circle cx="400" cy="120" r="6" fill="#E81B6B" stroke="#ffffff" strokeWidth="2" />
-                  <circle cx="600" cy="80" r="6" fill="#55BDE8" stroke="#ffffff" strokeWidth="2" />
+                  {/* Applications per month (real data) */}
+                  <path d={areaPath} fill="url(#waveGradientMagenta)" />
+                  <path d={linePath} fill="none" stroke="#E81B6B" strokeWidth="3.5" strokeLinecap="round" />
+                  {chartPoints.map((pt, i) => (
+                    <g key={i}>
+                      <circle cx={pt.x} cy={pt.y} r="5" fill="#E81B6B" stroke="#ffffff" strokeWidth="2" />
+                      {pt.apps > 0 && (
+                        <text x={pt.x} y={pt.y - 12} textAnchor="middle" fill="#ffffff" fontSize="13" fontWeight="700">
+                          {pt.apps}
+                        </text>
+                      )}
+                    </g>
+                  ))}
+                  {periodTotal === 0 && (
+                    <text x="400" y="130" textAnchor="middle" fill="#8C8E90" fontSize="15">
+                      No applications received in this period
+                    </text>
+                  )}
                 </svg>
 
                 {/* X-Axis Month labels */}
@@ -438,11 +441,6 @@ export default function RecruiterStats() {
                     <span style={{ fontSize: "0.9rem", color: "#E83A30", fontWeight: "700" }}>{rejectedApps} ({rejectedPct}%)</span>
                   </div>
                 </div>
-              </div>
-
-              <div style={{ marginTop: "20px", paddingTop: "14px", borderTop: "1px solid rgba(255, 255, 255, 0.06)", fontSize: "0.78rem", color: "#8C8E90", display: "flex", justifyContent: "space-between" }}>
-                <span>AI Matching Efficiency</span>
-                <strong style={{ color: "#E81B6B" }}>94.8% Score</strong>
               </div>
             </div>
 

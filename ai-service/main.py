@@ -1,87 +1,87 @@
-# =========================================================
-# main.py
-# But : assembler tous les modules IA et les exposer comme une API web,
-#       que ton backend Spring Boot pourra appeler en HTTP.
-#
-# Pour lancer ce fichier : uvicorn main:app --reload --port 8000
-# =========================================================
+"""HireHub AI service: CV text extraction and CV/offer matching.
 
-from fastapi import FastAPI
+Run: uvicorn main:app --port 8000
+Called by the Spring Boot backend (matching) and by the profile pages (bio).
+"""
+
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
-from skill_extractor import extract_skills
-from job_classifier import classify_job
-from experience_detector import detect_experience_level
-from cv_matcher import compute_compatibility, missing_skills, generate_roadmap
+from matching import ALGORITHM_VERSION
+from matching.extraction import ExtractionError, extract_text
+from matching.parsing import extract_skills
+from matching.recommendations import get_recommendation_provider
+from matching.scoring import compute_match
+from matching.semantic import SemanticScorer
+from matching.taxonomy import SKILLS
 
-app = FastAPI(title="HireHub AI Service")
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger("hirehub.ai")
 
-# Enable CORS for frontend clients
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-# -------------------------------------------------------
-# Endpoint 1 : analyser une offre d'emploi
-# -------------------------------------------------------
-
-class OfferAnalysisRequest(BaseModel):
-    title: str
-    description: str
+semantic_scorer = SemanticScorer()
+recommendation_provider = get_recommendation_provider()
 
 
-class OfferAnalysisResponse(BaseModel):
-    skills: list[str]
-    category: str
-    experience_level: str
+@asynccontextmanager
+async def lifespan(_app):
+    log.info("Loading embedding model %s ...", semantic_scorer.model_name)
+    semantic_scorer.load()
+    log.info("Model loaded. Recommendations: %s", recommendation_provider.name)
+    yield
 
 
-@app.post("/analyze/offer", response_model=OfferAnalysisResponse)
-def analyze_offer(req: OfferAnalysisRequest):
-    return OfferAnalysisResponse(
-        skills=extract_skills(req.description),
-        category=classify_job(req.title, req.description),
-        experience_level=detect_experience_level(req.description),
-    )
+app = FastAPI(title="HireHub AI Service", lifespan=lifespan)
+
+# The browser only calls /analyze/bio directly; matching goes through the backend.
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
-# -------------------------------------------------------
-# Endpoint 2 : comparer un CV à une offre
-# -------------------------------------------------------
+@app.get("/health")
+def health():
+    body = {
+        "status": "ok" if semantic_scorer.loaded else "loading",
+        "algorithm_version": ALGORITHM_VERSION,
+        "embedding_model": semantic_scorer.model_name,
+        "recommendations": recommendation_provider.name,
+    }
+    return JSONResponse(body, status_code=200 if semantic_scorer.loaded else 503)
+
+
+@app.post("/extract")
+async def extract(file: UploadFile = File(...)):
+    data = await file.read()
+    try:
+        text, fmt = extract_text(data, file.filename)
+    except ExtractionError as exc:
+        status = 415 if exc.code == "unsupported_format" else 422
+        raise HTTPException(status_code=status, detail={"code": exc.code, "message": str(exc)}) from exc
+    return {"text": text, "format": fmt, "characters": len(text)}
+
+
+class Offer(BaseModel):
+    title: str = Field(min_length=1)
+    description: str = ""
+
 
 class MatchRequest(BaseModel):
-    cv_text: str
-    offer_text: str
-    candidate_skills: list[str]
-    required_skills: list[str]
+    cv_text: str = Field(min_length=1)
+    offer: Offer
 
 
-class MatchResponse(BaseModel):
-    compatibility_score: float
-    missing_skills: list[str]
-    roadmap: list[dict]
+@app.post("/match")
+def match(req: MatchRequest):
+    return compute_match(req.cv_text, req.offer.title, req.offer.description,
+                         semantic_scorer, recommendation_provider)
 
 
-@app.post("/analyze/match", response_model=MatchResponse)
-def analyze_match(req: MatchRequest):
-    score = compute_compatibility(req.cv_text, req.offer_text)
-    missing = missing_skills(req.candidate_skills, req.required_skills)
-    return MatchResponse(
-        compatibility_score=score,
-        missing_skills=missing,
-        roadmap=generate_roadmap(missing),
-    )
-
-
-# -------------------------------------------------------
-# Endpoint 3 : Génération / Optimisation de Bio AI
-# -------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Profile bio helper (template based, used by the profile pages)
+# ---------------------------------------------------------------------------
 
 class BioRequest(BaseModel):
     title: str = ""
@@ -96,24 +96,13 @@ class BioResponse(BaseModel):
 
 @app.post("/analyze/bio", response_model=BioResponse)
 def generate_bio(req: BioRequest):
-    extracted = extract_skills(req.text) if req.text else []
-    all_skills = sorted(list(set(req.skills + extracted)))
+    extracted = [SKILLS[key].display for key in extract_skills(req.text)] if req.text else []
+    all_skills = sorted(set(req.skills + extracted))
     skills_str = ", ".join(all_skills) if all_skills else "software development, problem solving, modern tools"
-    role = req.title.strip() if req.title else "Passionate Professional"
-    
+    role = req.title.strip() or "Passionate Professional"
     bio = (
         f"Dynamic and results-oriented {role} skilled in {skills_str}. "
         f"Experienced in building high-performance solutions, collaborating with cross-functional teams, "
-        f"and continuously learning cutting-edge technologies to drive impactful recruitment and tech engineering results."
+        f"and continuously learning cutting-edge technologies to drive impactful results."
     )
     return BioResponse(generated_bio=bio, extracted_skills=all_skills)
-
-
-# -------------------------------------------------------
-# Endpoint de test simple, pour vérifier que le serveur tourne
-# -------------------------------------------------------
-
-@app.get("/")
-def health_check():
-    return {"status": "HireHub AI Service is running"}
-

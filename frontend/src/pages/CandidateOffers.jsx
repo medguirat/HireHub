@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import candidateService from "../services/candidateService";
-import aiService from "../services/aiService";
 import AlertModal from "../components/AlertModal";
+import CvMatchModal from "../components/CvMatchModal";
 
 // Keep in sync with the backend's spring.servlet.multipart.max-file-size.
 const MAX_FILE_SIZE_MB = 10;
@@ -52,16 +52,7 @@ export default function CandidateOffers() {
   const [successMsg, setSuccessMsg] = useState("");
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
 
-  // AI Matching Modal state
-  const [showAiModal, setShowAiModal] = useState(false);
-  const [analyzingAi, setAnalyzingAi] = useState(false);
-  const [aiResult, setAiResult] = useState(null);
-  const [candidateProfileData, setCandidateProfileData] = useState(null);
-  const [aiCvFile, setAiCvFile] = useState(null);
-  const [aiCvFileError, setAiCvFileError] = useState("");
-  const [aiCvText, setAiCvText] = useState("");
-  const [aiCvStep, setAiCvStep] = useState("upload"); // "upload" | "result"
-  const [aiCvFileName, setAiCvFileName] = useState("");
+  const [showMatchModal, setShowMatchModal] = useState(false);
 
   // Pagination state
   const [page, setPage] = useState(0);
@@ -69,123 +60,12 @@ export default function CandidateOffers() {
 
   useEffect(() => {
     fetchOffers();
-    fetchCandidateProfile();
   }, [page]);
 
-  const fetchCandidateProfile = async () => {
-    try {
-      const prof = await candidateService.getProfile();
-      setCandidateProfileData(prof);
-      if (prof?.bio && prof.bio.trim().length > 10) {
-        setAiCvText(prof.bio);
-      }
-    } catch (err) {
-      console.warn("Could not fetch candidate profile for AI match:", err);
-    }
-  };
-
-  const handleOpenAiModal = (offerToAnalyze) => {
-    const target = offerToAnalyze || selectedOffer;
-    if (!target) return;
-    setSelectedOffer(target);
-    setShowAiModal(true);
-    setAiCvStep("upload");
-    setAiResult(null);
-    setAiCvFileError("");
-  };
-
-  const extractTextFromFile = (file) => {
-    return new Promise((resolve) => {
-      if (!file) return resolve("");
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const buffer = e.target.result;
-        if (typeof buffer === "string") {
-          resolve(buffer);
-        } else {
-          const bytes = new Uint8Array(buffer);
-          let extractedStr = "";
-          for (let i = 0; i < bytes.length; i++) {
-            const charCode = bytes[i];
-            if ((charCode >= 32 && charCode <= 126) || charCode === 10 || charCode === 13) {
-              extractedStr += String.fromCharCode(charCode);
-            } else {
-              extractedStr += " ";
-            }
-          }
-          resolve(extractedStr);
-        }
-      };
-      reader.onerror = () => resolve("");
-      if (file.type === "text/plain" || file.name.endsWith(".txt")) {
-        reader.readAsText(file);
-      } else {
-        reader.readAsArrayBuffer(file);
-      }
-    });
-  };
-
-  const handleAnalyzeCvSubmit = async () => {
-    if (!aiCvFile && !aiCvText.trim()) {
-      setErrorMsg("Please upload your CV (PDF/DOC) or paste your CV text to perform AI matching.");
-      setShowAlert(true);
-      return;
-    }
-    if (aiCvFile) {
-      const fileError = validateFile(aiCvFile, [".pdf", ".doc", ".docx"]);
-      if (fileError) {
-        setErrorMsg(fileError);
-        setShowAlert(true);
-        return;
-      }
-    }
-
-    setAnalyzingAi(true);
-    try {
-      let fileExtractedText = "";
-
-      if (aiCvFile) {
-        setAiCvFileName(aiCvFile.name);
-        fileExtractedText = await extractTextFromFile(aiCvFile);
-        try {
-          await candidateService.uploadFile(aiCvFile);
-        } catch (uErr) {
-          console.warn("CV background upload notice:", uErr.message);
-        }
-      }
-
-      // Gather full candidate profile context (bio, headline, skills, past experience)
-      const profBio = candidateProfileData?.bio || "";
-      const profHeadline = candidateProfileData?.headline || "";
-      const profExps = (candidateProfileData?.experiences || []).map(e => `${e.title} ${e.company} ${e.description}`).join(" ");
-      const candSkills = candidateProfileData?.skills || [];
-
-      // Combine text sources for thorough matching
-      const fullCvTextContent = `${aiCvText} ${fileExtractedText} ${profBio} ${profHeadline} ${profExps} ${aiCvFileName || ""}`;
-
-      const extractedCvSkills = aiService.fallbackExtractSkills(fullCvTextContent);
-      const combinedCandidateSkills = Array.from(new Set([...candSkills, ...extractedCvSkills]));
-
-      // Extract required skills from selected offer description
-      const offerInfo = await aiService.extractOfferInfo(selectedOffer.title, selectedOffer.description);
-      const requiredSkills = offerInfo.skills.length > 0 ? offerInfo.skills : [selectedOffer.title];
-
-      const res = await aiService.analyzeMatch(
-        fullCvTextContent,
-        `${selectedOffer.title} ${selectedOffer.description}`,
-        combinedCandidateSkills,
-        requiredSkills
-      );
-
-      setAiResult(res);
-      setAiCvStep("result");
-    } catch (err) {
-      console.error("AI CV Match error:", err);
-      setErrorMsg("Failed to analyze CV and generate compatibility score.");
-      setShowAlert(true);
-    } finally {
-      setAnalyzingAi(false);
-    }
+  const handleOpenMatch = (offer) => {
+    if (!offer) return;
+    setSelectedOffer(offer);
+    setShowMatchModal(true);
   };
 
   const fetchOffers = async (resetPage = false) => {
@@ -376,7 +256,7 @@ export default function CandidateOffers() {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleOpenAiModal(offer);
+                    handleOpenMatch(offer);
                   }}
                   style={{
                     marginTop: "10px",
@@ -396,7 +276,7 @@ export default function CandidateOffers() {
                     transition: "all 0.2s ease"
                   }}
                 >
-                  ✨ Conformité IA & Score CV
+                  Check my CV match
                 </button>
               </div>
             ))}
@@ -459,11 +339,10 @@ export default function CandidateOffers() {
                     </button>
                   )}
 
-                  {/* AI Match Button */}
-                  <button 
+                  <button
                     type="button"
                     className="secondary-btn"
-                    onClick={() => handleOpenAiModal(selectedOffer)}
+                    onClick={() => handleOpenMatch(selectedOffer)}
                     style={{
                       background: "linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))",
                       border: "1px solid rgba(168, 85, 247, 0.5)",
@@ -474,7 +353,7 @@ export default function CandidateOffers() {
                       fontWeight: "600"
                     }}
                   >
-                    <span>✨ Analyser la Conformité IA & Score CV</span>
+                    <span>Check my CV match</span>
                   </button>
                 </div>
               </div>
@@ -605,277 +484,14 @@ export default function CandidateOffers() {
         </div>
       )}
 
-      {/* AI CV Compatibility & Roadmap Modal */}
-      {showAiModal && (
-        <div className="modal-overlay" style={{ backdropFilter: "blur(12px)", padding: "16px" }}>
-          <div className="modal-content" style={{
-            maxWidth: "600px",
-            width: "92%",
-            maxHeight: "85vh",
-            display: "flex",
-            flexDirection: "column",
-            borderRadius: "22px",
-            border: "1px solid rgba(168, 85, 247, 0.45)",
-            boxShadow: "0 25px 60px rgba(0,0,0,0.75)",
-            overflow: "hidden",
-            padding: 0
-          }}>
-            <div className="modal-header" style={{ flexShrink: 0, borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "18px 22px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ fontSize: "1.5rem" }}>📄</span>
-                <div>
-                  <h2 style={{ margin: 0, fontSize: "1.2rem", color: "#fff" }}>AI CV Match & Skill Roadmap</h2>
-                  <p style={{ margin: "2px 0 0 0", fontSize: "0.82rem", color: "#a78bfa" }}>
-                    Evaluating CV alignment for <strong>{selectedOffer?.title}</strong>
-                  </p>
-                </div>
-              </div>
-              <button className="close-btn" onClick={() => setShowAiModal(false)}>×</button>
-            </div>
-
-            <div className="modal-body" style={{ flex: 1, overflowY: "auto", padding: "20px 22px" }}>
-              {analyzingAi ? (
-                <div style={{ textAlign: "center", padding: "40px 20px", color: "#c084fc" }}>
-                  <div style={{ fontSize: "2.2rem", marginBottom: "12px", animation: "spin 2s linear infinite" }}>⚙️</div>
-                  <div style={{ fontWeight: "600", fontSize: "1.1rem" }}>Reading & Analyzing Your CV with AI...</div>
-                  <div style={{ color: "#94a3b8", fontSize: "0.85rem", marginTop: "6px" }}>Comparing your qualifications against job requirements</div>
-                </div>
-              ) : aiCvStep === "upload" ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                  <div style={{
-                    backgroundColor: "rgba(99, 102, 241, 0.1)",
-                    border: "1px solid rgba(99, 102, 241, 0.3)",
-                    padding: "16px",
-                    borderRadius: "12px"
-                  }}>
-                    <h4 style={{ margin: "0 0 6px 0", color: "#818cf8", fontSize: "1.05rem" }}>
-                      1. Upload or Provide Your CV
-                    </h4>
-                    <p style={{ margin: 0, fontSize: "0.86rem", color: "#cbd5e1", lineHeight: "1.4" }}>
-                      Our AI engine evaluates your genuine compatibility score, skill gaps, and learning roadmap by analyzing your actual CV file or resume text.
-                    </p>
-                  </div>
-
-                  <div className="form-group">
-                    <label style={{ color: "#fff", fontWeight: "600" }}>Upload CV File (PDF / DOC, max {MAX_FILE_SIZE_MB} MB)</label>
-                    <input
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      onChange={(e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          const fileError = validateFile(file, [".pdf", ".doc", ".docx"]);
-                          setAiCvFileError(fileError || "");
-                          if (fileError) {
-                            setAiCvFile(null);
-                            setAiCvFileName("");
-                            return;
-                          }
-                          setAiCvFile(file);
-                          setAiCvFileName(file.name);
-                        }
-                      }}
-                      style={{ color: "#fff", backgroundColor: "rgba(0,0,0,0.2)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)" }}
-                    />
-                    {aiCvFileError ? (
-                      <span style={{ fontSize: "0.8rem", color: "#f87171", marginTop: "4px", display: "block" }}>
-                        {aiCvFileError}
-                      </span>
-                    ) : aiCvFileName && (
-                      <span style={{ fontSize: "0.8rem", color: "#10b981", marginTop: "4px", display: "block" }}>
-                        Selected CV: 📄 <strong>{aiCvFileName}</strong>
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="form-group">
-                    <label style={{ color: "#fff", fontWeight: "600" }}>Or Paste CV Summary / Key Skills</label>
-                    <textarea 
-                      rows="4"
-                      placeholder="Paste text from your CV, past experiences, or technical skills..."
-                      value={aiCvText}
-                      onChange={(e) => setAiCvText(e.target.value)}
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    className="primary-btn"
-                    onClick={handleAnalyzeCvSubmit}
-                    disabled={!!aiCvFileError}
-                    style={{
-                      background: "linear-gradient(135deg, #6366f1, #a855f7)",
-                      padding: "14px",
-                      fontSize: "1rem",
-                      fontWeight: "600",
-                      marginTop: "10px"
-                    }}
-                  >
-                    ⚡ Analyze My CV for this Job Offer
-                  </button>
-                </div>
-              ) : aiResult ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                  {/* Selected CV indication */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "rgba(255,255,255,0.03)", padding: "10px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.08)" }}>
-                    <span style={{ fontSize: "0.84rem", color: "#94a3b8" }}>
-                      Analyzed CV: <strong style={{ color: "#fff" }}>{aiCvFileName || "Submitted CV Resume"}</strong>
-                    </span>
-                    <button 
-                      type="button"
-                      className="secondary-btn"
-                      onClick={() => setAiCvStep("upload")}
-                      style={{ padding: "4px 10px", fontSize: "0.78rem" }}
-                    >
-                      🔄 Change CV
-                    </button>
-                  </div>
-
-                  {/* Score Card */}
-                  <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "20px",
-                    background: "linear-gradient(135deg, rgba(30, 27, 75, 0.6), rgba(88, 28, 135, 0.4))",
-                    padding: "20px",
-                    borderRadius: "16px",
-                    border: "1px solid rgba(168, 85, 247, 0.3)"
-                  }}>
-                    <div style={{
-                      width: "84px",
-                      height: "84px",
-                      borderRadius: "50%",
-                      background: aiResult.compatibility_score >= 80 ? "radial-gradient(circle, #10b981, #047857)" : aiResult.compatibility_score >= 60 ? "radial-gradient(circle, #6366f1, #4338ca)" : "radial-gradient(circle, #f59e0b, #b45309)",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#fff",
-                      boxShadow: "0 0 20px rgba(168, 85, 247, 0.4)"
-                    }}>
-                      <span style={{ fontSize: "1.45rem", fontWeight: "800", lineHeight: 1 }}>{aiResult.compatibility_score}%</span>
-                      <span style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>Match</span>
-                    </div>
-
-                    <div style={{ flex: 1 }}>
-                      <h4 style={{ margin: "0 0 6px 0", color: "#fff", fontSize: "1.1rem" }}>
-                        {aiResult.compatibility_score >= 80 ? "🎯 High CV Compatibility!" : aiResult.compatibility_score >= 60 ? "👍 Good Fit with Potential" : "💡 Growth Opportunity"}
-                      </h4>
-                      <p style={{ margin: 0, fontSize: "0.86rem", color: "#cbd5e1", lineHeight: "1.4" }}>
-                        {aiResult.compatibility_score >= 80 
-                          ? "Your CV aligns extremely well with the requirements for this role. You are a top candidate!" 
-                          : aiResult.compatibility_score >= 60 
-                          ? "Your CV meets several core requirements. Closing a few skill gaps will make your application stand out even more." 
-                          : "This role requires specific competencies you can acquire using our AI recommended roadmap below."}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Missing Skills Gap */}
-                  <div>
-                    <h4 style={{ margin: "0 0 10px 0", fontSize: "0.95rem", color: "#a78bfa", display: "flex", alignItems: "center", gap: "6px" }}>
-                      🔍 Skill Gap Analysis
-                    </h4>
-                    {aiResult.missing_skills && aiResult.missing_skills.length > 0 ? (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                        {aiResult.missing_skills.map((skill, idx) => (
-                          <span key={idx} style={{
-                            backgroundColor: "rgba(239, 68, 68, 0.15)",
-                            border: "1px solid rgba(239, 68, 68, 0.4)",
-                            color: "#fca5a5",
-                            padding: "4px 10px",
-                            borderRadius: "20px",
-                            fontSize: "0.82rem",
-                            fontWeight: "500"
-                          }}>
-                            Missing: {skill}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{ color: "#10b981", fontSize: "0.88rem", display: "flex", alignItems: "center", gap: "6px" }}>
-                        ✅ Your CV contains all key technical skills requested in this offer!
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Recommendations / Conseils d'amélioration */}
-                  {aiResult.recommendations && aiResult.recommendations.length > 0 && (
-                    <div style={{
-                      backgroundColor: "rgba(59, 130, 246, 0.08)",
-                      border: "1px solid rgba(59, 130, 246, 0.25)",
-                      borderRadius: "12px",
-                      padding: "16px"
-                    }}>
-                      <h4 style={{ margin: "0 0 10px 0", fontSize: "0.95rem", color: "#60a5fa", display: "flex", alignItems: "center", gap: "6px" }}>
-                        💡 Conseils d'Amélioration du CV pour cette Offre
-                      </h4>
-                      <ul style={{ margin: 0, paddingLeft: "20px", color: "#cbd5e1", fontSize: "0.86rem", display: "flex", flexDirection: "column", gap: "6px" }}>
-                        {aiResult.recommendations.map((rec, i) => (
-                          <li key={i}>{rec}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Career Learning Roadmap */}
-                  {aiResult.roadmap && aiResult.roadmap.length > 0 && (
-                    <div>
-                      <h4 style={{ margin: "0 0 12px 0", fontSize: "0.95rem", color: "#a78bfa", display: "flex", alignItems: "center", gap: "6px" }}>
-                        🗺️ Personalized Learning Roadmap
-                      </h4>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                        {aiResult.roadmap.map((item, index) => (
-                          <div key={index} style={{
-                            backgroundColor: "rgba(255, 255, 255, 0.03)",
-                            border: "1px solid rgba(255, 255, 255, 0.08)",
-                            borderRadius: "10px",
-                            padding: "12px 14px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: "12px"
-                          }}>
-                            <div>
-                              <div style={{ fontWeight: "600", fontSize: "0.88rem", color: "#fff" }}>
-                                {index + 1}. {item.action}
-                              </div>
-                              <div style={{ fontSize: "0.78rem", color: "#94a3b8", marginTop: "2px" }}>
-                                Recommended Resource: <strong style={{ color: "#cbd5e1" }}>{item.ressource}</strong>
-                              </div>
-                            </div>
-                            <div style={{
-                              backgroundColor: "rgba(168, 85, 247, 0.15)",
-                              color: "#c084fc",
-                              padding: "4px 8px",
-                              borderRadius: "6px",
-                              fontSize: "0.75rem",
-                              fontWeight: "600",
-                              whiteSpace: "nowrap"
-                            }}>
-                              ⏱️ {item.duree_semaines} {typeof item.duree_semaines === 'number' ? 'weeks' : ''}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="modal-footer" style={{ flexShrink: 0, borderTop: "1px solid rgba(255,255,255,0.08)", padding: "16px 22px", display: "flex", justifyContent: "space-between" }}>
-              <button className="secondary-btn" onClick={() => setShowAiModal(false)}>
-                Close
-              </button>
-              {aiCvStep === "result" && !selectedOffer?.alreadyApplied && !selectedOffer?.expired && (
-                <button className="primary-btn" onClick={() => { setShowAiModal(false); handleApplyClick(); }}>
-                  Proceed to Apply Now
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+      {showMatchModal && selectedOffer && (
+        <CvMatchModal
+          key={selectedOffer.id}
+          offer={selectedOffer}
+          canApply={!selectedOffer.alreadyApplied && !selectedOffer.expired}
+          onClose={() => setShowMatchModal(false)}
+          onApply={() => { setShowMatchModal(false); handleApplyClick(); }}
+        />
       )}
 
       <AlertModal 

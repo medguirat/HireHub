@@ -14,6 +14,8 @@ public class ApplicationResponseDto {
 
     private ApplicationStatus status;
 
+    private java.time.LocalDate applicationDate;
+
     private String cv ;
 
     private String coverLetter;

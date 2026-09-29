@@ -36,6 +36,17 @@ const recruiterService = {
     return response.data;
   },
 
+  // The recruiter's own evaluation of an application; 404 until first saved.
+  getEvaluation: async (applicationId) => {
+    const response = await api.get(`/applications/${applicationId}/evaluation`);
+    return response.data;
+  },
+
+  saveEvaluation: async (applicationId, evaluation) => {
+    const response = await api.put(`/applications/${applicationId}/evaluation`, evaluation);
+    return response.data;
+  },
+
   updateApplicationStatus: async (id, statusData) => {
     const body = typeof statusData === "string" ? { status: statusData } : statusData;
     const response = await api.patch(`/applications/${id}/status`, body);
