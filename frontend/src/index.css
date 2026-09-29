@@ -144,6 +144,15 @@ body {
   border-color: rgba(232, 27, 107, 0.35) !important;
 }
 
+/* Without this, a disabled button looked exactly like an active one. */
+.btn-brand-3d:disabled, .primary-btn:disabled, .secondary-btn:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+  animation: none;
+}
+
 /* Keyframe Animations */
 @keyframes gradientShift {
   0% { background-position: 0% 50%; }

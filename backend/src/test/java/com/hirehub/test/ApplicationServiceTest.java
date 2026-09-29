@@ -10,6 +10,7 @@ import com.hirehub.exception.BadRequestException;
 import com.hirehub.exception.ResourceNotFoundException;
 import com.hirehub.repository.ApplicationRepository;
 import com.hirehub.repository.JobOfferRepository;
+import com.hirehub.repository.NotificationRepository;
 import com.hirehub.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +37,7 @@ class ApplicationServiceTest {
     @Mock private ApplicationRepository applicationRepository;
     @Mock private UserRepository userRepository;
     @Mock private JobOfferRepository jobOfferRepository;
+    @Mock private NotificationRepository notificationRepository;
 
     @InjectMocks private ApplicationService applicationService;
 
@@ -274,6 +276,7 @@ class ApplicationServiceTest {
 
         ApplicationStatusUpdateDto dto = new ApplicationStatusUpdateDto();
         dto.setStatus(ApplicationStatus.ACCEPTED);
+        dto.setInterviewDate(java.time.LocalDateTime.now().plusDays(3));
 
         when(applicationRepository.findById(50L)).thenReturn(Optional.of(app));
         when(applicationRepository.save(any(Application.class))).thenAnswer(inv -> inv.getArgument(0));

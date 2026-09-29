@@ -111,6 +111,16 @@
     font-size: 0.95rem;
 }
 
+.session-notice {
+    margin: -8px 0 18px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #9a3412;
+    font-size: 0.9rem;
+}
+
 .auth-form {
     display: flex;
     flex-direction: column;

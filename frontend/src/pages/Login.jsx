@@ -12,11 +12,16 @@ export default function Login() {
   const [errorMsg, setErrorMsg] = useState("");
   const [showAlert, setShowAlert] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [sessionNotice, setSessionNotice] = useState("");
 
   useEffect(() => {
     setEmail("");
     setPassword("");
     setErrorMsg("");
+    if (sessionStorage.getItem("hirehub.sessionExpired")) {
+      sessionStorage.removeItem("hirehub.sessionExpired");
+      setSessionNotice("Your session has expired. Please log in again.");
+    }
   }, []);
 
   const handleSubmit = async (e) => {
@@ -62,6 +67,10 @@ export default function Login() {
         <div className="login-card">
           <h2>Welcome Back</h2>
           <p>Sign in to continue using HireHub</p>
+
+          {sessionNotice && (
+            <div className="session-notice" role="status">{sessionNotice}</div>
+          )}
 
           <form onSubmit={handleSubmit} autoComplete="off">
             <label>Email</label>

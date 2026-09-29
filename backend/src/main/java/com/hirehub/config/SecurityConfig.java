@@ -2,6 +2,7 @@ package com.hirehub.config;
 
 import com.hirehub.security.CustomUserDetailsService;
 import com.hirehub.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -41,6 +42,19 @@ public class SecurityConfig {
 
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
+                // Without this, Spring Security answers unauthenticated requests
+                // (no token, or an expired/invalid one) with a bare 403. The
+                // frontend only treats 401 as "log in again", so expired
+                // sessions never redirected to the login page.
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write(
+                                    "{\"message\":\"Your session has expired or you are not signed in. Please log in again.\"}");
+                        })
                 )
 
                 .authorizeHttpRequests(auth -> auth

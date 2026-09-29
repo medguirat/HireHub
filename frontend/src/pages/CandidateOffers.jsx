@@ -3,6 +3,29 @@ import candidateService from "../services/candidateService";
 import aiService from "../services/aiService";
 import AlertModal from "../components/AlertModal";
 
+// Keep in sync with the backend's spring.servlet.multipart.max-file-size.
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+/**
+ * Client-side file check so a bad file never even reaches the network:
+ * wrong extension or over-size fails fast with a clear message instead of
+ * waiting on a round trip (and, before Phase 1's backend fix, a confusing
+ * generic 500).
+ */
+function validateFile(file, allowedExtensions) {
+  if (!file) return null;
+  const name = file.name.toLowerCase();
+  const hasAllowedExtension = allowedExtensions.some((ext) => name.endsWith(ext));
+  if (!hasAllowedExtension) {
+    return `Please choose a ${allowedExtensions.join(" or ")} file.`;
+  }
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    return `This file is ${(file.size / (1024 * 1024)).toFixed(1)} MB — please choose one under ${MAX_FILE_SIZE_MB} MB.`;
+  }
+  return null;
+}
+
 export default function CandidateOffers() {
   const [offers, setOffers] = useState([]);
   const [selectedOffer, setSelectedOffer] = useState(null);
@@ -20,9 +43,11 @@ export default function CandidateOffers() {
   // Application Modal state
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [cvFile, setCvFile] = useState(null);
+  const [cvFileError, setCvFileError] = useState("");
   const [coverLetterType, setCoverLetterType] = useState("text"); // "text" or "file"
   const [coverLetterText, setCoverLetterText] = useState("");
   const [coverLetterFile, setCoverLetterFile] = useState(null);
+  const [coverLetterFileError, setCoverLetterFileError] = useState("");
   const [applying, setApplying] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
@@ -33,6 +58,7 @@ export default function CandidateOffers() {
   const [aiResult, setAiResult] = useState(null);
   const [candidateProfileData, setCandidateProfileData] = useState(null);
   const [aiCvFile, setAiCvFile] = useState(null);
+  const [aiCvFileError, setAiCvFileError] = useState("");
   const [aiCvText, setAiCvText] = useState("");
   const [aiCvStep, setAiCvStep] = useState("upload"); // "upload" | "result"
   const [aiCvFileName, setAiCvFileName] = useState("");
@@ -65,6 +91,7 @@ export default function CandidateOffers() {
     setShowAiModal(true);
     setAiCvStep("upload");
     setAiResult(null);
+    setAiCvFileError("");
   };
 
   const extractTextFromFile = (file) => {
@@ -103,6 +130,14 @@ export default function CandidateOffers() {
       setErrorMsg("Please upload your CV (PDF/DOC) or paste your CV text to perform AI matching.");
       setShowAlert(true);
       return;
+    }
+    if (aiCvFile) {
+      const fileError = validateFile(aiCvFile, [".pdf", ".doc", ".docx"]);
+      if (fileError) {
+        setErrorMsg(fileError);
+        setShowAlert(true);
+        return;
+      }
     }
 
     setAnalyzingAi(true);
@@ -199,8 +234,10 @@ export default function CandidateOffers() {
   const handleApplyClick = () => {
     if (!selectedOffer) return;
     setCvFile(null);
+    setCvFileError("");
     setCoverLetterText("");
     setCoverLetterFile(null);
+    setCoverLetterFileError("");
     setCoverLetterType("text");
     setShowApplyModal(true);
   };
@@ -210,6 +247,22 @@ export default function CandidateOffers() {
       setErrorMsg("Please upload your CV in PDF format.");
       setShowAlert(true);
       return;
+    }
+    // Belt and braces: the input's onChange already blocks bad selections and
+    // disables this button, but never trust client state alone.
+    const cvError = validateFile(cvFile, [".pdf"]);
+    if (cvError) {
+      setErrorMsg(cvError);
+      setShowAlert(true);
+      return;
+    }
+    if (coverLetterType === "file" && coverLetterFile) {
+      const clError = validateFile(coverLetterFile, [".pdf"]);
+      if (clError) {
+        setErrorMsg(clError);
+        setShowAlert(true);
+        return;
+      }
     }
 
     setApplying(true);
@@ -462,17 +515,27 @@ export default function CandidateOffers() {
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label>CV / Resume (PDF Only) *</label>
-                <input 
-                  type="file" 
+                <label>CV / Resume (PDF Only, max {MAX_FILE_SIZE_MB} MB) *</label>
+                <input
+                  type="file"
                   accept=".pdf"
-                  onChange={(e) => setCvFile(e.target.files[0])}
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    setCvFile(file || null);
+                    setCvFileError(file ? validateFile(file, [".pdf"]) || "" : "");
+                  }}
                   required
                   style={{ color: "#fff" }}
                 />
-                <small style={{ color: "#94a3b8", fontSize: "0.78rem" }}>
-                  Upload a PDF version of your CV.
-                </small>
+                {cvFileError ? (
+                  <small style={{ color: "#f87171", fontSize: "0.78rem", display: "block" }}>
+                    {cvFileError}
+                  </small>
+                ) : (
+                  <small style={{ color: "#94a3b8", fontSize: "0.78rem" }}>
+                    Upload a PDF version of your CV.
+                  </small>
+                )}
               </div>
 
               <div className="form-group">
@@ -506,12 +569,23 @@ export default function CandidateOffers() {
                     onChange={(e) => setCoverLetterText(e.target.value)}
                   />
                 ) : (
-                  <input 
-                    type="file" 
-                    accept=".pdf"
-                    onChange={(e) => setCoverLetterFile(e.target.files[0])}
-                    style={{ color: "#fff" }}
-                  />
+                  <>
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        setCoverLetterFile(file || null);
+                        setCoverLetterFileError(file ? validateFile(file, [".pdf"]) || "" : "");
+                      }}
+                      style={{ color: "#fff" }}
+                    />
+                    {coverLetterFileError && (
+                      <small style={{ color: "#f87171", fontSize: "0.78rem", display: "block" }}>
+                        {coverLetterFileError}
+                      </small>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -519,7 +593,11 @@ export default function CandidateOffers() {
               <button className="secondary-btn" onClick={() => setShowApplyModal(false)} disabled={applying}>
                 Cancel
               </button>
-              <button className="primary-btn" onClick={submitApplication} disabled={applying}>
+              <button
+                className="primary-btn"
+                onClick={submitApplication}
+                disabled={applying || !!cvFileError || !!coverLetterFileError}
+              >
                 {applying ? "Submitting..." : "Submit Application"}
               </button>
             </div>
@@ -579,20 +657,31 @@ export default function CandidateOffers() {
                   </div>
 
                   <div className="form-group">
-                    <label style={{ color: "#fff", fontWeight: "600" }}>Upload CV File (PDF / DOC)</label>
-                    <input 
-                      type="file" 
+                    <label style={{ color: "#fff", fontWeight: "600" }}>Upload CV File (PDF / DOC, max {MAX_FILE_SIZE_MB} MB)</label>
+                    <input
+                      type="file"
                       accept=".pdf,.doc,.docx"
                       onChange={(e) => {
                         const file = e.target.files[0];
                         if (file) {
+                          const fileError = validateFile(file, [".pdf", ".doc", ".docx"]);
+                          setAiCvFileError(fileError || "");
+                          if (fileError) {
+                            setAiCvFile(null);
+                            setAiCvFileName("");
+                            return;
+                          }
                           setAiCvFile(file);
                           setAiCvFileName(file.name);
                         }
                       }}
                       style={{ color: "#fff", backgroundColor: "rgba(0,0,0,0.2)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)" }}
                     />
-                    {aiCvFileName && (
+                    {aiCvFileError ? (
+                      <span style={{ fontSize: "0.8rem", color: "#f87171", marginTop: "4px", display: "block" }}>
+                        {aiCvFileError}
+                      </span>
+                    ) : aiCvFileName && (
                       <span style={{ fontSize: "0.8rem", color: "#10b981", marginTop: "4px", display: "block" }}>
                         Selected CV: 📄 <strong>{aiCvFileName}</strong>
                       </span>
@@ -609,10 +698,11 @@ export default function CandidateOffers() {
                     />
                   </div>
 
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="primary-btn"
                     onClick={handleAnalyzeCvSubmit}
+                    disabled={!!aiCvFileError}
                     style={{
                       background: "linear-gradient(135deg, #6366f1, #a855f7)",
                       padding: "14px",

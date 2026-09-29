@@ -129,7 +129,11 @@ class UserControllerIT {
 
     @Test
     void getUserById_returns404WhenNotFound() throws Exception {
-        mockMvc.perform(get("/api/users/999999"))
+        User me = persistUser("lookup@test.com", Role.CANDIDATE);
+        String token = jwtService.generateToken(me.getEmail());
+
+        mockMvc.perform(get("/api/users/999999")
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isNotFound());
     }
 }

@@ -214,6 +214,7 @@ class ApplicationControllerIT {
 
         ApplicationStatusUpdateDto dto = new ApplicationStatusUpdateDto();
         dto.setStatus(ApplicationStatus.ACCEPTED);
+        dto.setInterviewDate(java.time.LocalDateTime.now().plusDays(3));
 
         mockMvc.perform(patch("/api/applications/" + app.getId() + "/status")
                         .header("Authorization", "Bearer " + recruiterToken)
