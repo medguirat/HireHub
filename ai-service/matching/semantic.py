@@ -12,14 +12,16 @@ import threading
 
 from .parsing import split_sentences
 
-DEFAULT_MODEL = "all-MiniLM-L6-v2"
+# Multilingual (50+ languages, incl. French and Arabic): CVs and offers are often
+# French, English or a mix, and are compared across languages.
+DEFAULT_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
 
-# With this model, the coverage of an unrelated CV sits around 0.19-0.25 and
-# that of a CV written for the role around 0.55-0.6 (measured on the test
-# fixtures). That range is mapped linearly onto 0-100 and clamped; the same
-# formula applies to every CV and offer.
-RAW_FLOOR = 0.20
-RAW_CEILING = 0.65
+# With this model, the coverage of an unrelated CV sits around 0.25-0.34 and
+# that of a CV written for the role around 0.58-0.66, in any EN/FR combination
+# (measured on the test fixtures). That range is mapped linearly onto 0-100 and
+# clamped; the same formula applies to every CV and offer.
+RAW_FLOOR = 0.30
+RAW_CEILING = 0.70
 
 MIN_WORDS = 4
 MAX_CV_PASSAGES = 150

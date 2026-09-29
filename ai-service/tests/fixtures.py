@@ -118,6 +118,67 @@ Languages
 Arabic (native), French (fluent), English (basic)
 """
 
+CV_FR_JAVA = """
+Nour Hammami
+Développeuse Java Senior
+
+Profil
+Développeuse backend avec 6 ans d'expérience dans la conception d'API REST et de microservices en Java et Spring Boot.
+
+Expérience professionnelle
+Développeuse Java Senior - BankTech, Tunis
+janv. 2021 – présent
+- Conception de microservices Java 17 / Spring Boot pour les paiements par carte
+- Optimisation des requêtes PostgreSQL, latence réduite de 35 %
+- Conteneurisation avec Docker et déploiement sur Kubernetes
+- Intégration continue avec GitLab CI, méthodes agiles (Scrum)
+
+Développeuse Java - SoftCom, Sfax
+sept. 2018 - déc. 2020
+- Développement d'API REST avec Spring MVC et JPA, tests unitaires avec JUnit
+
+Formation
+Ingénieur en informatique - ENIS, 2013 - 2018
+
+Compétences
+Java, Spring Boot, Hibernate, PostgreSQL, Docker, Kubernetes, Git
+
+Langues
+Français : courant, Anglais : bon niveau, Arabe : langue maternelle
+"""
+
+OFFER_FR_JAVA_TITLE = "Développeur Java Spring Boot (H/F)"
+OFFER_FR_JAVA = """
+Nous recrutons un développeur Java confirmé pour notre équipe paiements à Tunis.
+
+Missions :
+- Concevoir et développer des API REST et des microservices en Java / Spring Boot
+- Modéliser et optimiser les bases de données PostgreSQL
+- Conteneuriser les services avec Docker
+
+Profil recherché :
+- 3 ans d'expérience minimum en développement backend
+- Maîtrise de Java, Spring Boot et Hibernate / JPA
+- Diplôme Bac+5 (école d'ingénieur ou master)
+- Anglais courant
+
+Atouts :
+- Kubernetes
+- Kafka
+"""
+
+OFFER_FR_MARKETING_TITLE = "Chargé(e) de marketing digital"
+OFFER_FR_MARKETING = """
+Vous piloterez nos campagnes Google Ads et réseaux sociaux et améliorerez le référencement naturel (SEO) de notre
+boutique en ligne.
+
+Profil recherché :
+- 2 ans d'expérience en marketing digital
+- Rédaction web et maîtrise d'Excel
+- Licence en marketing ou commerce
+- Français courant
+"""
+
 CV_DATA_ANALYST = """
 Yasmine Gharbi
 Data Analyst

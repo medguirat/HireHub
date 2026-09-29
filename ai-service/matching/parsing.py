@@ -109,8 +109,8 @@ def related_skill(target, candidate_skills):
 _NICE_MARKERS = [_phrase_pattern(p) for p in [
     "nice to have", "nice-to-have", "a plus", "is a plus", "would be a plus", "bonus", "preferred",
     "is an advantage", "an asset", "appreciated", "desirable", "ideally", "optional", "familiarity with",
-    "un plus", "un atout", "atout", "apprécié", "appréciée", "appréciés", "souhaité", "souhaitée",
-    "souhaitable", "idéalement", "optionnel", "est un avantage",
+    "un plus", "un atout", "atout", "atouts", "apprécié", "appréciée", "appréciés", "appréciées", "souhaité",
+    "souhaitée", "souhaités", "souhaitées", "souhaitable", "idéalement", "optionnel", "est un avantage",
 ]]
 _REQUIRED_HEADER_MARKERS = [_phrase_pattern(p) for p in [
     "requirements", "required", "must have", "must-have", "qualifications", "what you bring", "your profile",
@@ -157,12 +157,12 @@ def classify_offer_skills(title, description):
 
 _MONTHS = {
     "jan": 1, "janv": 1, "january": 1, "janvier": 1,
-    "feb": 2, "fev": 2, "fév": 2, "february": 2, "fevrier": 2, "février": 2,
+    "feb": 2, "fev": 2, "fév": 2, "fevr": 2, "févr": 2, "february": 2, "fevrier": 2, "février": 2,
     "mar": 3, "march": 3, "mars": 3,
     "apr": 4, "avr": 4, "april": 4, "avril": 4,
     "may": 5, "mai": 5,
     "jun": 6, "june": 6, "juin": 6,
-    "jul": 7, "juil": 7, "july": 7, "juillet": 7,
+    "jul": 7, "juil": 7, "juill": 7, "july": 7, "juillet": 7,
     "aug": 8, "aout": 8, "août": 8, "august": 8,
     "sep": 9, "sept": 9, "september": 9, "septembre": 9,
     "oct": 10, "october": 10, "octobre": 10,
@@ -171,23 +171,32 @@ _MONTHS = {
 }
 _MONTH_RE = "|".join(sorted((re.escape(m) for m in _MONTHS), key=len, reverse=True))
 _DATE = (r"(?:(?P<{p}mon>" + _MONTH_RE + r")\.?\s+|(?P<{p}num>\d{{1,2}})\s*[/.-]\s*)?(?P<{p}year>(?:19|20)\d{{2}})")
-_PRESENT = r"(?P<present>present|current|now|today|aujourd'hui|actuel(?:lement)?|en cours|ce jour|présent)"
+_PRESENT = (r"(?P<present>present|current|now|today|aujourd'hui|actuel(?:lement)?|en cours|ce jour|présent"
+            r"|maintenant)")
 _RANGE_RE = re.compile(
     _DATE.format(p="s") + r"\s*(?:-|to|à|au|until|jusqu'à|jusqu'au)\s*(?:" + _DATE.format(p="e") + "|" + _PRESENT + ")"
 )
+# "Depuis mars 2022" / "since 2021": an ongoing role written without an end.
+_SINCE_RE = re.compile(r"(?:depuis|since)\s+" + _DATE.format(p="s"))
 _EXPLICIT_YEARS_RE = re.compile(
     r"(\d{1,2})\s*\+?\s*(?:years?|yrs?|ans?|années?)\s+(?:of\s+|d'\s*)?(?:professional\s+|solid\s+)?"
     r"(?:experience|expérience)"
+    # "expérience de 4 ans", "experience of 5 years"
+    r"|(?:experience|expérience)\s+(?:professionnelle\s+|professional\s+)?(?:de|of)\s+(\d{1,2})\s*\+?\s*"
+    r"(?:years?|yrs?|ans?|années?)"
 )
 
 _EXPERIENCE_HEADINGS = [_phrase_pattern(p) for p in [
     "experience", "experiences", "expérience", "expériences", "work history", "employment",
     "professional background", "parcours professionnel", "emplois", "career",
+    "internships", "internship", "stages", "stage",
+]]
+_EDUCATION_HEADINGS = [_phrase_pattern(p) for p in [
+    "education", "formation", "formations", "études", "diplômes", "academic", "cursus", "parcours académique",
 ]]
 _OTHER_HEADINGS = [_phrase_pattern(p) for p in [
-    "education", "formation", "formations", "études", "diplômes", "academic", "projects", "projets",
-    "certifications", "certificates", "skills", "compétences", "languages", "langues", "interests",
-    "centres d'intérêt", "summary", "profil", "profile", "contact", "references", "volunteer",
+    "projects", "projets", "certifications", "certificates", "skills", "compétences", "languages", "langues",
+    "interests", "centres d'intérêt", "summary", "profil", "profile", "contact", "references", "volunteer",
     "bénévolat", "awards", "hobbies", "loisirs", "publications",
 ]]
 _EDUCATION_CONTEXT = [_phrase_pattern(p) for p in [
@@ -198,7 +207,7 @@ _EDUCATION_CONTEXT = [_phrase_pattern(p) for p in [
 
 
 def _heading_kind(line):
-    """'experience', 'other' or None for lines that look like section headings.
+    """'experience', 'education', 'other' or None for lines that look like section headings.
 
     "Languages: Java, Python" inside a role is content, not a heading: a
     heading is short and has nothing after its colon.
@@ -209,7 +218,9 @@ def _heading_kind(line):
     stripped = head.strip(" #*=-")
     if not stripped or len(stripped.split()) > 4 or re.search(r"\d{4}", stripped):
         return None
-    if _contains_any(stripped, _EXPERIENCE_HEADINGS) and not _contains_any(stripped, _OTHER_HEADINGS[:1]):
+    if _contains_any(stripped, _EDUCATION_HEADINGS):
+        return "education"
+    if _contains_any(stripped, _EXPERIENCE_HEADINGS):
         return "experience"
     if _contains_any(stripped, _OTHER_HEADINGS):
         return "other"
@@ -242,6 +253,12 @@ def _ranges_in(line, today):
         if end < start:
             end = start + 5  # same year given twice ("2021 - 2021"): count about half a year
         ranges.append((start, end))
+    if not ranges:
+        for m in _SINCE_RE.finditer(line):
+            start = _month_index(m.group("smon"), m.group("snum"), m.group("syear"), False)
+            end = today.year * 12 + today.month
+            if 1970 * 12 <= start <= end:
+                ranges.append((start, end))
     return ranges
 
 
@@ -315,8 +332,9 @@ def candidate_experience(cv_text, today=None):
 
     statements = []
     for sentence in split_sentences(cv_text):
-        for n in _EXPLICIT_YEARS_RE.findall(sentence):
-            if int(n) <= 45:
+        for groups in _EXPLICIT_YEARS_RE.findall(sentence):
+            n = int(next(g for g in groups if g))
+            if n <= 45:
                 statements.append(ExperienceStatement(float(n), sentence))
     return CandidateExperience(roles, statements)
 
@@ -371,9 +389,22 @@ def education_levels(text):
     return {(level, label) for level, label, patterns in _EDUCATION_PATTERNS if _contains_any(norm, patterns)}
 
 
+# "Ingénieur" alone is both a degree and a job title ("Ingénieur logiciel"); it
+# only counts as a degree inside an Education / Formation section.
+_ENGINEER_DEGREE = [_phrase_pattern(p) for p in ["ingénieur", "ingenieur"]]
+_ENGINEER_DEGREE_LEVEL = next(e for e in EDUCATION_LEVELS if e[0] == 4)[:2]
+
+
 def candidate_education(cv_text):
     """Highest education level the CV mentions, as (level, label); (0, None) if none."""
     found = education_levels(cv_text)
+    section = None
+    for line in normalize(cv_text).splitlines():
+        kind = _heading_kind(line)
+        if kind:
+            section = kind
+        elif section == "education" and _contains_any(line, _ENGINEER_DEGREE):
+            found.add(_ENGINEER_DEGREE_LEVEL)
     return max(found) if found else (0, None)
 
 

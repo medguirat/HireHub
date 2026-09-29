@@ -5,4 +5,5 @@ experience, education, languages, semantic relevance). An optional LLM may
 rephrase recommendations, but never influences the score.
 """
 
-ALGORITHM_VERSION = "2026.09-1"
+# Bump on any change that can alter scores: cached results are recomputed.
+ALGORITHM_VERSION = "2026.09-2"

@@ -74,6 +74,32 @@ def test_recommendations_are_between_two_and_four_and_rule_based(java):
     assert any("Docker" in r for r in java["partial"]["recommendations"])
 
 
+@pytest.mark.parametrize("cv, title, offer, label", [
+    (f.CV_FR_JAVA, f.OFFER_JAVA_TITLE, f.OFFER_JAVA, "FR CV / EN offer"),
+    (f.CV_JAVA_SENIOR, f.OFFER_FR_JAVA_TITLE, f.OFFER_FR_JAVA, "EN CV / FR offer"),
+    (f.CV_FR_JAVA, f.OFFER_FR_JAVA_TITLE, f.OFFER_FR_JAVA, "FR CV / FR offer"),
+])
+def test_strong_match_across_languages(match, cv, title, offer, label):
+    result = match(cv, title, offer)
+    assert result["overall_score"] >= 80, label
+    assert result["skills"]["missing_required"] == [], label
+
+
+def test_french_cv_details_are_understood(match):
+    categories = match(f.CV_FR_JAVA, f.OFFER_FR_JAVA_TITLE, f.OFFER_FR_JAVA)["categories"]
+    assert categories["experience"]["candidate_years"] >= 7          # janv. 2021 – présent + sept. 2018 – déc. 2020
+    assert categories["education"]["candidate_level"] == "Master's / engineering degree"   # "Ingénieur" under Formation
+    assert categories["languages"]["languages"][0]["candidate_level"] == "professional"   # Anglais : bon niveau
+
+
+@pytest.mark.parametrize("cv, title, offer, label", [
+    (f.CV_FR_JAVA, f.OFFER_FR_MARKETING_TITLE, f.OFFER_FR_MARKETING, "FR Java CV / FR marketing offer"),
+    (f.CV_CHEF, f.OFFER_FR_JAVA_TITLE, f.OFFER_FR_JAVA, "EN chef CV / FR Java offer"),
+])
+def test_unrelated_pairs_stay_low_across_languages(match, cv, title, offer, label):
+    assert match(cv, title, offer)["overall_score"] <= 30, label
+
+
 def test_scoring_is_deterministic(match):
     first = match(f.CV_JAVA_JUNIOR, f.OFFER_JAVA_TITLE, f.OFFER_JAVA)
     second = match(f.CV_JAVA_JUNIOR, f.OFFER_JAVA_TITLE, f.OFFER_JAVA)

@@ -14,7 +14,7 @@ pip install -r requirements.txt
 uvicorn main:app --port 8000
 ```
 
-Au premier lancement, le modèle d'embeddings `all-MiniLM-L6-v2` (environ 90 Mo) est téléchargé une fois, puis mis en cache.
+Au premier lancement, le modèle d'embeddings multilingue `paraphrase-multilingual-MiniLM-L12-v2` (environ 470 Mo) est téléchargé une fois, puis mis en cache. Il compare les CV et les offres en français, en anglais ou mélangés.
 
 La documentation interactive de l'API est sur http://localhost:8000/docs.
 

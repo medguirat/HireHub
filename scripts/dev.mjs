@@ -23,7 +23,7 @@ const SERVICES = [
     command: `${PYTHON} -m uvicorn main:app --port 8000 --no-access-log`,
     health: "http://localhost:8000/health",
     port: 8000,
-    startupTimeoutMs: 180_000, // first start downloads the embedding model
+    startupTimeoutMs: 600_000, // first start downloads the multilingual embedding model (~470 MB)
   },
   {
     name: "backend",

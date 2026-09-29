@@ -46,7 +46,8 @@ SKILLS = {
     "scala": _s("Scala", ["scala"]),
     "r": _s("R", ["re:\\br programming\\b", "re:\\blangage r\\b", "rstudio"]),
     "matlab": _s("MATLAB", ["matlab"]),
-    "sql": _s("SQL", ["sql", "t-sql", "pl/sql", "plsql"]),
+    "sql": _s("SQL", ["sql", "t-sql", "pl/sql", "plsql", "bases de données relationnelles",
+                      "base de données relationnelle", "sgbdr"]),
     "bash": _s("Bash / Shell", ["bash", "shell scripting", "shell script"]),
     "html": _s("HTML", ["html", "html5"]),
     "css": _s("CSS", ["css", "css3", "scss", "sass"]),
@@ -67,7 +68,7 @@ SKILLS = {
     "laravel": _s("Laravel", ["laravel"], implies=["php"], related=["symfony"]),
     "symfony": _s("Symfony", ["symfony"], implies=["php"], related=["laravel"]),
     "rest api": _s("REST APIs", ["rest api", "rest apis", "restful", "rest services", "api rest", "apis rest",
-                                 "web services"]),
+                                 "web services", "webservices", "services web", "service web"]),
     "graphql": _s("GraphQL", ["graphql"]),
     "microservices": _s("Microservices", ["microservices", "microservice", "micro-services", "microservice architecture"]),
     "kafka": _s("Kafka", ["kafka", "apache kafka"], related=["rabbitmq"]),
@@ -107,7 +108,8 @@ SKILLS = {
     "azure": _s("Azure", ["azure", "microsoft azure"], related=["aws", "gcp"]),
     "gcp": _s("Google Cloud", ["gcp", "google cloud", "google cloud platform"], related=["aws", "azure"]),
     "ci/cd": _s("CI/CD", ["ci/cd", "ci cd", "continuous integration", "continuous delivery", "continuous deployment",
-                          "github actions", "gitlab ci", "azure devops"]),
+                          "github actions", "gitlab ci", "azure devops", "intégration continue",
+                          "déploiement continu", "livraison continue"]),
     "jenkins": _s("Jenkins", ["jenkins"], implies=["ci/cd"]),
     "terraform": _s("Terraform", ["terraform"]),
     "ansible": _s("Ansible", ["ansible"]),
@@ -116,19 +118,23 @@ SKILLS = {
     "nginx": _s("Nginx", ["nginx"]),
 
     # ---- Testing / QA -----------------------------------------------------
-    "unit testing": _s("Unit testing", ["unit testing", "unit tests", "tdd", "test-driven"]),
+    "unit testing": _s("Unit testing", ["unit testing", "unit tests", "tdd", "test-driven", "tests unitaires",
+                                        "test unitaire"]),
     "junit": _s("JUnit", ["junit", "mockito"], implies=["unit testing"]),
     "jest": _s("Jest", ["jest", "react testing library", "vitest"], implies=["unit testing"]),
-    "selenium": _s("Selenium", ["selenium", "webdriver"], related=["cypress", "playwright"]),
-    "cypress": _s("Cypress", ["cypress"], related=["selenium", "playwright"]),
-    "playwright": _s("Playwright", ["playwright"], related=["selenium", "cypress"]),
+    "test automation": _s("Test automation", ["test automation", "automated testing", "automated tests",
+                                              "tests automatisés", "test automatisé", "automatisation des tests"]),
+    "selenium": _s("Selenium", ["selenium", "webdriver"], implies=["test automation"], related=["cypress", "playwright"]),
+    "cypress": _s("Cypress", ["cypress"], implies=["test automation"], related=["selenium", "playwright"]),
+    "playwright": _s("Playwright", ["playwright"], implies=["test automation"], related=["selenium", "cypress"]),
     "manual testing": _s("Manual testing", ["manual testing", "test cases", "test plans", "functional testing",
                                             "regression testing", "tests fonctionnels"]),
     "istqb": _s("ISTQB", ["istqb"]),
     "postman": _s("Postman", ["postman"]),
 
     # ---- Data / AI --------------------------------------------------------
-    "machine learning": _s("Machine learning", ["machine learning", "apprentissage automatique", "ml models"]),
+    "machine learning": _s("Machine learning", ["machine learning", "apprentissage automatique", "ml models",
+                                                "intelligence artificielle"]),
     "deep learning": _s("Deep learning", ["deep learning", "neural networks", "réseaux de neurones"],
                         implies=["machine learning"]),
     "nlp": _s("NLP", ["nlp", "natural language processing", "traitement du langage"], implies=["machine learning"]),
@@ -158,16 +164,20 @@ SKILLS = {
                                  "wireframing", "prototyping", "maquettage"]),
 
     # ---- Methodologies / management ---------------------------------------
-    "agile": _s("Agile", ["agile", "agilité"], related=["scrum"]),
+    "agile": _s("Agile", ["agile", "agiles", "agilité", "méthodes agiles", "méthodologie agile"], related=["scrum"]),
     "scrum": _s("Scrum", ["scrum", "sprint planning", "scrum master"], implies=["agile"]),
     "jira": _s("Jira", ["jira", "confluence"]),
-    "project management": _s("Project management", ["project management", "gestion de projet", "pmp", "prince2"]),
+    "project management": _s("Project management", ["project management", "gestion de projet", "gestion de projets",
+                                                    "pmp", "prince2"]),
+    "team management": _s("Team management", ["team management", "people management", "team leadership",
+                                              "gestion d'équipe", "management d'équipe", "encadrement d'équipe"]),
     "uml": _s("UML", ["uml"]),
 
     # ---- Business functions -----------------------------------------------
     "seo": _s("SEO", ["seo", "search engine optimization", "référencement naturel"]),
     "digital marketing": _s("Digital marketing", ["digital marketing", "marketing digital", "social media marketing",
-                                                  "google ads", "facebook ads", "sem"]),
+                                                  "google ads", "facebook ads", "sem", "réseaux sociaux",
+                                                  "community management", "marketing numérique"]),
     "content writing": _s("Content writing", ["content writing", "copywriting", "rédaction web", "content creation"]),
     "crm": _s("CRM", ["crm", "salesforce", "hubspot"]),
     "accounting": _s("Accounting", ["accounting", "comptabilité", "bookkeeping", "ifrs"]),
@@ -177,7 +187,8 @@ SKILLS = {
     "recruitment": _s("Recruitment", ["recruitment", "recrutement", "talent acquisition", "sourcing"]),
     "payroll": _s("Payroll", ["payroll", "paie"]),
     "customer support": _s("Customer support", ["customer support", "customer service", "service client",
-                                                "support client", "helpdesk"]),
+                                                "support client", "helpdesk", "relation client",
+                                                "relation clientèle", "service après-vente"]),
     "sales": _s("Sales", ["b2b sales", "b2c sales", "business development", "prospection", "account management"]),
 }
 
@@ -185,7 +196,7 @@ SKILLS = {
 # Spoken languages. Aliases cover English and French spellings.
 LANGUAGES = {
     "english": ("English", ["english", "anglais"]),
-    "french": ("French", ["french", "français", "francais"]),
+    "french": ("French", ["french", "français", "francais", "française"]),
     "arabic": ("Arabic", ["arabic", "arabe"]),
     "german": ("German", ["german", "allemand", "deutsch"]),
     "spanish": ("Spanish", ["spanish", "espagnol", "español"]),
@@ -202,10 +213,11 @@ LANGUAGES = {
 # longer phrases come before their substrings.
 LANGUAGE_LEVELS = [
     ("native", 1.0, ["native", "mother tongue", "langue maternelle", "natif", "native speaker", "maternelle"]),
-    ("fluent", 0.9, ["bilingual", "bilingue", "fluent", "fluently", "courant", "couramment", "c2", "c1",
-                     "full professional", "excellent"]),
+    ("fluent", 0.9, ["bilingual", "bilingue", "fluent", "fluently", "courant", "courante", "couramment", "c2", "c1",
+                     "full professional", "excellent", "excellente", "parfaite maîtrise", "parfaitement"]),
     ("professional", 0.75, ["b2", "upper-intermediate", "upper intermediate", "professional working", "professional",
-                            "good command", "good level", "bon niveau", "très bon", "very good", "good"]),
+                            "good command", "good level", "bon niveau", "très bon", "très bonne", "bonne maîtrise",
+                            "very good", "good", "bonne", "bon"]),
     ("intermediate", 0.55, ["b1", "intermediate", "intermédiaire", "conversational"]),
     ("basic", 0.3, ["a2", "a1", "basic", "notions", "elementary", "débutant", "beginner", "scolaire"]),
 ]

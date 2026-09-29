@@ -25,7 +25,7 @@ This single command:
 
 Open http://localhost:5173. Press Ctrl+C to stop everything.
 
-The first start downloads the embedding model (about 90 MB), so it needs internet once.
+The first start downloads the multilingual embedding model (about 470 MB), so it needs internet once.
 
 Health endpoints:
 - `GET http://localhost:8081/api/health` reports the backend and the status of the ai-service.
@@ -70,7 +70,7 @@ The score (0-100) is deterministic and explainable. It is a weighted average of 
 |---|---|---|
 | Skills | 45% | Required and nice-to-have skills parsed from the offer, normalised with synonyms ("JS" = JavaScript, Spring Boot implies Spring) |
 | Experience | 20% | Years in roles that use the offer's skills |
-| Relevance | 15% | Semantic similarity (sentence-transformers) between the offer's statements and the CV |
+| Relevance | 15% | Semantic similarity (multilingual sentence-transformers) between the offer's statements and the CV, so French and English CVs and offers can be compared with each other |
 | Education | 10% | Degree level |
 | Languages | 10% | Languages and proficiency |
 
@@ -97,4 +97,4 @@ The LLM only writes the suggestions. The score never depends on it, and if the L
 | `AI_SERVICE_URL` | backend | `http://localhost:8000` |
 | `CV_STORAGE_DIR` | backend: private CV files, never served publicly | `cv-store` |
 | `VITE_API_URL` | frontend | `http://localhost:8081/api` |
-| `EMBEDDING_MODEL` | ai-service | `all-MiniLM-L6-v2` |
+| `EMBEDDING_MODEL` | ai-service | `paraphrase-multilingual-MiniLM-L12-v2` (French, English, Arabic and 50+ other languages) |

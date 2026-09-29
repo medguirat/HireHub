@@ -81,6 +81,27 @@ Nice to have:
 - Figma`,
       },
       {
+        title: "Développeur Java Spring Boot (H/F)",
+        location: "Tunis",
+        contractType: "CDI",
+        description: `Nous recrutons un développeur Java confirmé pour notre équipe paiements à Tunis.
+
+Missions :
+- Concevoir et développer des API REST et des microservices en Java / Spring Boot
+- Modéliser et optimiser les bases de données PostgreSQL
+- Conteneuriser les services avec Docker
+
+Profil recherché :
+- 3 ans d'expérience minimum en développement backend
+- Maîtrise de Java, Spring Boot et Hibernate / JPA
+- Diplôme Bac+5 (école d'ingénieur ou master)
+- Anglais courant
+
+Atouts :
+- Kubernetes
+- Kafka`,
+      },
+      {
         title: "DevOps Engineer",
         location: "Tunis",
         contractType: "CDI",
@@ -353,6 +374,43 @@ React, TypeScript, JavaScript, Next.js, HTML, CSS, Jest, Git, Figma
 
 Languages
 French (fluent), English (B2), Arabic (native)`,
+  },
+  {
+    user: { firstName: "Nour", lastName: "Hammami", email: `nour.hammami@${DOMAIN}` },
+    profile: {
+      bio: "Développeuse backend Java / Spring Boot, spécialisée dans les systèmes de paiement.",
+      skills: ["Java", "Spring Boot", "PostgreSQL", "Docker", "Kubernetes"],
+      experiences: [
+        { position: "Développeuse Java Senior", company: "BankTech", startDate: "2021-01-01", endDate: null },
+        { position: "Développeuse Java", company: "SoftCom", startDate: "2018-09-01", endDate: "2020-12-31" },
+      ],
+    },
+    cv: `Nour Hammami
+Développeuse Java Senior - Tunis, Tunisie
+
+Profil
+Développeuse backend avec 6 ans d'expérience dans la conception d'API REST et de microservices en Java et Spring Boot.
+
+Expérience professionnelle
+Développeuse Java Senior - BankTech, Tunis
+janv. 2021 - présent
+- Conception de microservices Java 17 / Spring Boot pour les paiements par carte
+- Optimisation des requêtes PostgreSQL, latence réduite de 35 %
+- Conteneurisation avec Docker et déploiement sur Kubernetes
+- Intégration continue avec GitLab CI, méthodes agiles (Scrum)
+
+Développeuse Java - SoftCom, Sfax
+sept. 2018 - déc. 2020
+- Développement d'API REST avec Spring MVC et JPA, tests unitaires avec JUnit
+
+Formation
+Ingénieur en informatique - ENIS, 2013 - 2018
+
+Compétences
+Java, Spring Boot, Hibernate, PostgreSQL, Docker, Kubernetes, Git
+
+Langues
+Français : courant, Anglais : bon niveau, Arabe : langue maternelle`,
   },
   {
     user: { firstName: "Ines", lastName: "Chaabane", email: `ines.chaabane@${DOMAIN}` },
