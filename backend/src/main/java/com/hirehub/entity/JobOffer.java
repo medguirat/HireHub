@@ -4,9 +4,10 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
+import org.hibernate.annotations.ColumnDefault;
+
 import java.time.LocalDate;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "job_offers")
@@ -35,7 +36,18 @@ public class JobOffer {
 
     private LocalDate publicationDate;
 
+    /** Exact publication time (null for offers created before it existed: use publicationDate). */
+    private LocalDateTime publishedAt;
+
     private LocalDate deadline;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @ColumnDefault("'OPEN'")
+    @Builder.Default
+    private OfferStatus status = OfferStatus.OPEN;
+
+    private LocalDateTime closedAt;
 
     @ManyToOne
     @JoinColumn(name = "recruiter_id", nullable = false)

@@ -29,4 +29,11 @@ public class JobOfferResponseDto {
     private String recruiterName ;
 
     private String recruiterLastName;
+
+    private com.hirehub.entity.OfferStatus status;
+
+    private java.time.LocalDateTime closedAt;
+
+    /** Filled for the recruiter's own offers (decides whether "delete" deletes or closes). */
+    private Long applicationCount;
 }

@@ -19,6 +19,8 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     long countByCandidateId(Long candidateId);
     long countByCandidateIdAndStatus(Long candidateId, ApplicationStatus status);
 
+    long countByJobOfferId(Long jobOfferId);
+
     List<Application> findByJobOffer_Recruiter_Id(Long recruiterId);
     Page<Application> findByJobOffer_Recruiter_Id(Long recruiterId, Pageable pageable);
 }

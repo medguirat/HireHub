@@ -109,6 +109,12 @@ export default function CandidateApplications() {
                         <span style={{ fontWeight: 500 }}>
                           {app.jobOfferTitle}
                         </span>
+                        {app.offerClosed && (
+                          <span className="status-chip status-chip--closed" style={{ marginLeft: 8 }}
+                            title="The recruiter closed this offer; your application is kept">
+                            Offer closed
+                          </span>
+                        )}
                       </td>
                       <td>{app.recruiterCompany || "Company"}</td>
                       <td>
@@ -189,6 +195,11 @@ export default function CandidateApplications() {
               <strong style={{ display: "block", color: "#fff", fontSize: "1.05rem", marginTop: "4px" }}>
                 {selectedApp.jobOfferTitle}
               </strong>
+              {selectedApp.offerClosed && (
+                <span style={{ display: "block", color: "#94a3b8", fontSize: "0.82rem", marginTop: "4px" }}>
+                  The recruiter has closed this offer. Your application is kept and its status may still change.
+                </span>
+              )}
             </div>
 
             <div>

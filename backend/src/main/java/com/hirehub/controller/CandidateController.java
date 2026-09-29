@@ -9,6 +9,7 @@ import com.hirehub.entity.User;
 import com.hirehub.security.CurrentUserProvider;
 import com.hirehub.service.CandidateService;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -33,7 +34,8 @@ public class CandidateController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String location,
             @RequestParam(required = false) ContractType contractType,
-            @PageableDefault(size = 10, sort = "id") Pageable pageable
+            // Newest first: a freshly published offer is at the top of the feed.
+            @PageableDefault(size = 10, sort = {"publicationDate", "id"}, direction = Sort.Direction.DESC) Pageable pageable
     ) {
         User candidate = currentUserProvider.requireRole(userDetails, Role.CANDIDATE);
         return PageResponseDto.from(

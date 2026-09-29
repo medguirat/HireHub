@@ -4,12 +4,15 @@ import com.hirehub.service.RecruiterService;
 
 import com.hirehub.dto.JobOfferRequestDto;
 import com.hirehub.dto.JobOfferResponseDto;
+import com.hirehub.dto.OfferDeletionResultDto;
 import com.hirehub.entity.ContractType;
 import com.hirehub.entity.JobOffer;
+import com.hirehub.entity.OfferStatus;
 import com.hirehub.entity.User;
 import com.hirehub.exception.BadRequestException;
 import com.hirehub.exception.ResourceNotFoundException;
 import com.hirehub.mapper.JobOfferMapper;
+import com.hirehub.repository.ApplicationRepository;
 import com.hirehub.repository.JobOfferRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +26,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,6 +35,7 @@ class RecruiterServiceTest {
 
     @Mock private JobOfferRepository jobOfferRepository;
     @Mock private JobOfferMapper jobOfferMapper;
+    @Mock private ApplicationRepository applicationRepository;
 
     @InjectMocks private RecruiterService recruiterService;
 
@@ -125,11 +131,30 @@ class RecruiterServiceTest {
     }
 
     @Test
-    void deleteOffer_succeedsForOwner() {
+    void deleteOffer_deletesAnOfferWithoutApplications() {
         JobOffer offer = JobOffer.builder().id(1L).recruiter(recruiter(1L)).build();
-
         when(jobOfferRepository.findById(1L)).thenReturn(Optional.of(offer));
+        when(applicationRepository.countByJobOfferId(1L)).thenReturn(0L);
 
-        recruiterService.deleteOffer(1L, 1L);
+        OfferDeletionResultDto result = recruiterService.deleteOffer(1L, 1L);
+
+        assertThat(result.outcome()).isEqualTo(OfferDeletionResultDto.Outcome.DELETED);
+        verify(jobOfferRepository).delete(offer);
+    }
+
+    @Test
+    void deleteOffer_closesInsteadOfDeletingWhenThereAreApplications() {
+        JobOffer offer = JobOffer.builder().id(1L).recruiter(recruiter(1L)).build();
+        when(jobOfferRepository.findById(1L)).thenReturn(Optional.of(offer));
+        when(applicationRepository.countByJobOfferId(1L)).thenReturn(3L);
+
+        OfferDeletionResultDto result = recruiterService.deleteOffer(1L, 1L);
+
+        assertThat(result.outcome()).isEqualTo(OfferDeletionResultDto.Outcome.CLOSED);
+        assertThat(result.message()).contains("3 applications");
+        assertThat(offer.getStatus()).isEqualTo(OfferStatus.CLOSED);
+        assertThat(offer.getClosedAt()).isNotNull();
+        verify(jobOfferRepository).save(offer);
+        verify(jobOfferRepository, never()).delete(any());
     }
 }

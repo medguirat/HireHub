@@ -823,3 +823,31 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Offer status chips (shared by recruiter and candidate pages) */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.status-chip--new {
+  color: var(--color-cyan);
+  background: rgba(85, 189, 232, 0.12);
+  border: 1px solid rgba(85, 189, 232, 0.4);
+}
+
+.status-chip--closed {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.offer-card--closed {
+  opacity: 0.7;
+}

@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Service
 public class CandidateService {
@@ -22,6 +23,15 @@ public class CandidateService {
                             ApplicationRepository applicationRepository) {
         this.jobOfferRepository = jobOfferRepository;
         this.applicationRepository = applicationRepository;
+    }
+
+    static final long NEW_OFFER_HOURS = 48;
+
+    /** Published in the last 48 hours; offers from before publishedAt existed only know their day. */
+    static boolean isNewlyPublished(JobOffer offer, LocalDateTime now) {
+        LocalDateTime published = offer.getPublishedAt() != null ? offer.getPublishedAt()
+                : offer.getPublicationDate() != null ? offer.getPublicationDate().atStartOfDay() : null;
+        return published != null && !published.isBefore(now.minusHours(NEW_OFFER_HOURS));
     }
 
     private JobOfferWithStatusDto toDto(JobOffer offer, Long candidateId) {
@@ -48,6 +58,7 @@ public class CandidateService {
                 .recruiterLastName(offer.getRecruiter().getLastName())
                 .alreadyApplied(applied)
                 .expired(expired)
+                .newlyPublished(isNewlyPublished(offer, LocalDateTime.now()))
                 .companyName(cName)
                 .companyWebsite(cWeb)
                 .companyLogo(cLogo)
@@ -59,15 +70,16 @@ public class CandidateService {
 
     public Page<JobOfferWithStatusDto> browseOffers(User candidate, String keyword, String location,
                                                     ContractType contractType, Pageable pageable) {
-        Page<JobOffer> offers = jobOfferRepository.search(
-                blankToNull(keyword), blankToNull(location), contractType, pageable);
+        Page<JobOffer> offers = jobOfferRepository.searchActive(
+                blankToNull(keyword), blankToNull(location), contractType, LocalDate.now(), pageable);
 
         return offers.map(offer -> toDto(offer, candidate.getId()));
     }
 
     public JobOfferWithStatusDto getOfferDetails(Long offerId, User candidate) {
         JobOffer offer = jobOfferRepository.findById(offerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Job offer not found"));
+                .filter(o -> o.getStatus() == OfferStatus.OPEN)
+                .orElseThrow(() -> new ResourceNotFoundException("This offer is no longer available."));
 
         return toDto(offer, candidate.getId());
     }

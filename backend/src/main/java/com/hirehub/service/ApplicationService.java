@@ -54,6 +54,7 @@ public class ApplicationService {
                 .candidateLastName(application.getCandidate().getLastName())
                 .jobOfferTitle(application.getJobOffer().getTitle())
                 .jobOfferId(application.getJobOffer().getId())
+                .offerClosed(application.getJobOffer().getStatus() == OfferStatus.CLOSED)
                 .recruiterCompany(companyName)
                 .interviewDate(application.getInterviewDate())
                 .interviewLetter(application.getInterviewLetter())
@@ -104,7 +105,11 @@ public class ApplicationService {
         JobOffer jobOffer = jobOfferRepository.findById(dto.getJobOfferId())
                 .orElseThrow(() -> new ResourceNotFoundException("Job offer not found."));
 
-        if (jobOffer.getDeadline().isBefore(LocalDate.now())) {
+        if (jobOffer.getStatus() == OfferStatus.CLOSED) {
+            throw new BadRequestException("This offer has been closed and no longer accepts applications.");
+        }
+
+        if (jobOffer.getDeadline() != null && jobOffer.getDeadline().isBefore(LocalDate.now())) {
             throw new BadRequestException("The application deadline has passed.");
         }
 

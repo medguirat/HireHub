@@ -4,6 +4,7 @@ import com.hirehub.dto.JobOfferResponseDto;
 import com.hirehub.dto.PageResponseDto;
 import com.hirehub.service.JobOfferService;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +20,7 @@ public class JobOfferController {
 
     @GetMapping
     public PageResponseDto<JobOfferResponseDto> getAllJobOffers(
-            @PageableDefault(size = 10, sort = "id") Pageable pageable
+            @PageableDefault(size = 10, sort = {"publicationDate", "id"}, direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return PageResponseDto.from(jobOfferService.getAllJobOffers(pageable));
     }

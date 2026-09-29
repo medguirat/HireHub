@@ -24,6 +24,8 @@ public class JobOfferWithStatusDto {
 
     private boolean alreadyApplied;
     private boolean expired;
+    /** Published in the last 48 hours. */
+    private boolean newlyPublished;
 
     private String companyName;
     private String companyWebsite;

@@ -2,6 +2,7 @@ package com.hirehub.controller;
 
 import com.hirehub.dto.JobOfferRequestDto;
 import com.hirehub.dto.JobOfferResponseDto;
+import com.hirehub.dto.OfferDeletionResultDto;
 import com.hirehub.dto.PageResponseDto;
 import com.hirehub.entity.Role;
 import com.hirehub.entity.User;
@@ -9,8 +10,8 @@ import com.hirehub.security.CurrentUserProvider;
 import com.hirehub.service.RecruiterService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -40,7 +41,7 @@ public class RecruiterController {
     @GetMapping("/offers")
     public PageResponseDto<JobOfferResponseDto> getMyOffers(
             @AuthenticationPrincipal UserDetails userDetails,
-            @PageableDefault(size = 10, sort = "id") Pageable pageable
+            @PageableDefault(size = 10, sort = {"publicationDate", "id"}, direction = Sort.Direction.DESC) Pageable pageable
     ) {
         User recruiter = currentUserProvider.requireRole(userDetails, Role.RECRUITER);
         return PageResponseDto.from(recruiterService.getRecruiterOffers(recruiter.getId(), pageable));
@@ -64,12 +65,11 @@ public class RecruiterController {
     }
 
     @DeleteMapping("/offers/{offerId}")
-    public ResponseEntity<String> deleteOffer(
+    public OfferDeletionResultDto deleteOffer(
             @PathVariable Long offerId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
         User recruiter = currentUserProvider.requireRole(userDetails, Role.RECRUITER);
-        recruiterService.deleteOffer(offerId, recruiter.getId());
-        return ResponseEntity.ok("Offer deleted successfully");
+        return recruiterService.deleteOffer(offerId, recruiter.getId());
     }
 }

@@ -9,6 +9,7 @@ export default function RecruiterOffers() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [showAlert, setShowAlert] = useState(false);
+  const [infoMsg, setInfoMsg] = useState("");
 
   useEffect(() => {
     loadOffers();
@@ -28,14 +29,22 @@ export default function RecruiterOffers() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this job offer?")) return;
+  // An offer with applications is closed (archived) instead of deleted, so
+  // nobody loses their application history; say which one will happen.
+  const handleDelete = async (offer) => {
+    const count = offer.applicationCount || 0;
+    const question = count > 0
+      ? `"${offer.title}" has ${count} application${count > 1 ? "s" : ""}, so it will be closed instead of deleted: ` +
+        "candidates will no longer see it, and you keep access to its applicants. Close it?"
+      : `Delete "${offer.title}"? This can't be undone.`;
+    if (!window.confirm(question)) return;
     try {
-      await recruiterService.deleteOffer(id);
+      const result = await recruiterService.deleteOffer(offer.id);
+      setInfoMsg(result.message);
       loadOffers();
     } catch (err) {
       console.error(err);
-      setErrorMsg("Failed to delete job offer. Make sure it has no active candidacies.");
+      setErrorMsg(err.response?.data?.message || err.response?.data || "The offer couldn't be deleted. Please try again.");
       setShowAlert(true);
     }
   };
@@ -51,17 +60,14 @@ export default function RecruiterOffers() {
   };
 
 
-//A9rab deadline
-  const sortedOffers = [...offers].sort((a, b) => {
-    if (!a.deadline) return 1;
-    if (!b.deadline) return -1;
-    return new Date(a.deadline) - new Date(b.deadline);
-  });
+  // Newest first (server order), open offers before closed ones.
+  const openOffers = offers.filter((o) => o.status !== "CLOSED");
+  const sortedOffers = [...openOffers, ...offers.filter((o) => o.status === "CLOSED")];
 
   return (
     <div>
       <div className="panel-header" style={{ marginBottom: "24px" }}>
-        <h2>Active Job Openings ({offers.length})</h2>
+        <h2>Job offers ({openOffers.length} open, {offers.length - openOffers.length} closed)</h2>
         <button className="primary-btn" onClick={() => navigate("/recruiter-dashboard/create-offer")}>
           Create New Offer
         </button>
@@ -78,7 +84,7 @@ export default function RecruiterOffers() {
       ) : (
         <div className="offers-grid">
           {sortedOffers.map((offer) => (
-            <div key={offer.id} className="offer-card">
+            <div key={offer.id} className={`offer-card ${offer.status === "CLOSED" ? "offer-card--closed" : ""}`}>
               <div className="offer-card-header">
                 <h3 
                   style={{ cursor: "pointer", color: "#60a5fa", transition: "color 0.2s" }}
@@ -92,6 +98,7 @@ export default function RecruiterOffers() {
                 <span className={`contract-badge badge-${(offer.contractType || 'cdi').toLowerCase()}`}>
                   {offer.contractType || "CDI"}
                 </span>
+                {offer.status === "CLOSED" && <span className="status-chip status-chip--closed">Closed</span>}
               </div>
               <p className="offer-desc">{offer.description}</p>
               <div className="offer-meta-info">
@@ -100,6 +107,9 @@ export default function RecruiterOffers() {
                 </div>
                 <div className="meta-item">
                   Deadline: {formatDate(offer.deadline)}
+                </div>
+                <div className="meta-item">
+                  Applications: {offer.applicationCount ?? 0}
                 </div>
               </div>
               <div className="offer-actions" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -110,32 +120,43 @@ export default function RecruiterOffers() {
                 >
                   Voir les candidatures
                 </button>
-                <button 
-                  className="btn-edit" 
-                  onClick={() => navigate(`/recruiter-dashboard/edit-offer/${offer.id}`)}
-                  style={{ flex: 1 }}
-                >
-                  Edit
-                </button>
-                <button 
-                  className="btn-delete" 
-                  onClick={() => handleDelete(offer.id)}
-                  style={{ flex: 1 }}
-                >
-                  Delete
-                </button>
+                {offer.status !== "CLOSED" && (
+                  <>
+                    <button
+                      className="btn-edit"
+                      onClick={() => navigate(`/recruiter-dashboard/edit-offer/${offer.id}`)}
+                      style={{ flex: 1 }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="btn-delete"
+                      onClick={() => handleDelete(offer)}
+                      style={{ flex: 1 }}
+                    >
+                      {offer.applicationCount > 0 ? "Close offer" : "Delete"}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}
         </div>
       )}
 
-      <AlertModal 
+      <AlertModal
         isOpen={showAlert}
         type="error"
         title="Operation Failed"
         message={errorMsg}
         onClose={() => setShowAlert(false)}
+      />
+      <AlertModal
+        isOpen={!!infoMsg}
+        type="success"
+        title="Done"
+        message={infoMsg}
+        onClose={() => setInfoMsg("")}
       />
     </div>
   );

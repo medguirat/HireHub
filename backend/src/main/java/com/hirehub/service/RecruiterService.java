@@ -2,8 +2,11 @@ package com.hirehub.service;
 
 import com.hirehub.dto.JobOfferRequestDto;
 import com.hirehub.dto.JobOfferResponseDto;
+import com.hirehub.dto.OfferDeletionResultDto;
 import com.hirehub.entity.JobOffer;
+import com.hirehub.entity.OfferStatus;
 import com.hirehub.entity.User;
+import com.hirehub.repository.ApplicationRepository;
 import com.hirehub.exception.BadRequestException;
 import com.hirehub.exception.ResourceNotFoundException;
 import com.hirehub.mapper.JobOfferMapper;
@@ -13,22 +16,31 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Service
 public class RecruiterService {
 
     private final JobOfferRepository jobOfferRepository;
     private final JobOfferMapper jobOfferMapper;
+    private final ApplicationRepository applicationRepository;
 
     public RecruiterService(JobOfferRepository jobOfferRepository,
-                            JobOfferMapper jobOfferMapper) {
+                            JobOfferMapper jobOfferMapper,
+                            ApplicationRepository applicationRepository) {
         this.jobOfferRepository = jobOfferRepository;
         this.jobOfferMapper = jobOfferMapper;
+        this.applicationRepository = applicationRepository;
     }
 
+    /** The recruiter's offers, closed ones included, each with its number of applications. */
     public Page<JobOfferResponseDto> getRecruiterOffers(Long recruiterId, Pageable pageable) {
         return jobOfferRepository.findByRecruiterId(recruiterId, pageable)
-                .map(jobOfferMapper::toResponseDto);
+                .map(offer -> {
+                    JobOfferResponseDto dto = jobOfferMapper.toResponseDto(offer);
+                    dto.setApplicationCount(applicationRepository.countByJobOfferId(offer.getId()));
+                    return dto;
+                });
     }
 
     public JobOfferResponseDto getRecruiterOfferById(Long offerId, Long recruiterId) {
@@ -51,6 +63,8 @@ public class RecruiterService {
         JobOffer jobOffer = jobOfferMapper.toEntity(dto);
         jobOffer.setRecruiter(recruiter);
         jobOffer.setPublicationDate(LocalDate.now());
+        jobOffer.setPublishedAt(LocalDateTime.now());
+        jobOffer.setStatus(OfferStatus.OPEN);
 
         JobOffer savedJobOffer = jobOfferRepository.save(jobOffer);
         return jobOfferMapper.toResponseDto(savedJobOffer);
@@ -78,7 +92,12 @@ public class RecruiterService {
         return jobOfferMapper.toResponseDto(updated);
     }
 
-    public void deleteOffer(Long offerId, Long recruiterId) {
+    /**
+     * Deletes an offer nobody applied to. An offer with applications is closed
+     * instead: it leaves the candidate feed, but the recruiter keeps it and its
+     * applicants, and candidates still see it in their applications.
+     */
+    public OfferDeletionResultDto deleteOffer(Long offerId, Long recruiterId) {
         JobOffer offer = jobOfferRepository.findById(offerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Offer not found"));
 
@@ -86,6 +105,20 @@ public class RecruiterService {
             throw new BadRequestException("You cannot delete this offer");
         }
 
+        long applications = applicationRepository.countByJobOfferId(offerId);
+        if (applications > 0) {
+            if (offer.getStatus() != OfferStatus.CLOSED) {
+                offer.setStatus(OfferStatus.CLOSED);
+                offer.setClosedAt(LocalDateTime.now());
+                jobOfferRepository.save(offer);
+            }
+            return new OfferDeletionResultDto(OfferDeletionResultDto.Outcome.CLOSED,
+                    "This offer has " + applications + (applications == 1 ? " application" : " applications")
+                            + ", so it was closed instead of deleted. It no longer appears to candidates, "
+                            + "and you can still review its applicants.");
+        }
+
         jobOfferRepository.delete(offer);
+        return new OfferDeletionResultDto(OfferDeletionResultDto.Outcome.DELETED, "The offer has been deleted.");
     }
 }

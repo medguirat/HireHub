@@ -51,7 +51,7 @@ class CandidateServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<JobOffer> page = new PageImpl<>(List.of(offer));
 
-        when(jobOfferRepository.search(isNull(), isNull(), isNull(), eq(pageable))).thenReturn(page);
+        when(jobOfferRepository.searchActive(isNull(), isNull(), isNull(), any(LocalDate.class), eq(pageable))).thenReturn(page);
         when(applicationRepository.existsByCandidateIdAndJobOfferId(1L, 10L)).thenReturn(true);
 
         Page<JobOfferWithStatusDto> result = candidateService.browseOffers(candidate, null, null, null, pageable);
@@ -67,7 +67,7 @@ class CandidateServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<JobOffer> page = new PageImpl<>(List.of(offer));
 
-        when(jobOfferRepository.search(any(), any(), any(), eq(pageable))).thenReturn(page);
+        when(jobOfferRepository.searchActive(any(), any(), any(), any(LocalDate.class), eq(pageable))).thenReturn(page);
         when(applicationRepository.existsByCandidateIdAndJobOfferId(1L, 10L)).thenReturn(false);
 
         Page<JobOfferWithStatusDto> result = candidateService.browseOffers(candidate, null, null, null, pageable);
@@ -82,7 +82,7 @@ class CandidateServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<JobOffer> page = new PageImpl<>(List.of(offer));
 
-        when(jobOfferRepository.search(any(), any(), any(), eq(pageable))).thenReturn(page);
+        when(jobOfferRepository.searchActive(any(), any(), any(), any(LocalDate.class), eq(pageable))).thenReturn(page);
         when(applicationRepository.existsByCandidateIdAndJobOfferId(anyLong(), anyLong())).thenReturn(false);
 
         Page<JobOfferWithStatusDto> result = candidateService.browseOffers(candidate, null, null, null, pageable);
@@ -95,12 +95,12 @@ class CandidateServiceTest {
         User candidate = candidate(1L);
         Pageable pageable = PageRequest.of(0, 10);
 
-        when(jobOfferRepository.search(isNull(), isNull(), isNull(), eq(pageable)))
+        when(jobOfferRepository.searchActive(isNull(), isNull(), isNull(), any(LocalDate.class), eq(pageable)))
                 .thenReturn(Page.empty(pageable));
 
         candidateService.browseOffers(candidate, "  ", "", null, pageable);
 
-        verify(jobOfferRepository).search(isNull(), isNull(), isNull(), eq(pageable));
+        verify(jobOfferRepository).searchActive(isNull(), isNull(), isNull(), any(LocalDate.class), eq(pageable));
     }
 
     @Test
@@ -108,12 +108,12 @@ class CandidateServiceTest {
         User candidate = candidate(1L);
         Pageable pageable = PageRequest.of(0, 10);
 
-        when(jobOfferRepository.search(eq("java"), eq("sfax"), eq(ContractType.CDI), eq(pageable)))
+        when(jobOfferRepository.searchActive(eq("java"), eq("sfax"), eq(ContractType.CDI), any(LocalDate.class), eq(pageable)))
                 .thenReturn(Page.empty(pageable));
 
         candidateService.browseOffers(candidate, "java", "sfax", ContractType.CDI, pageable);
 
-        verify(jobOfferRepository).search("java", "sfax", ContractType.CDI, pageable);
+        verify(jobOfferRepository).searchActive(eq("java"), eq("sfax"), eq(ContractType.CDI), any(LocalDate.class), eq(pageable));
     }
 
     @Test

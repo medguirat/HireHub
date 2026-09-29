@@ -28,6 +28,9 @@ public class ApplicationResponseDto {
 
     private Long jobOfferId;
 
+    /** The offer was closed by the recruiter (archived, no longer in the feed). */
+    private boolean offerClosed;
+
     private String recruiterCompany;
 
     private java.time.LocalDateTime interviewDate;

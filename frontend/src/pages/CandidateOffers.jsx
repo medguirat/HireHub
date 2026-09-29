@@ -238,7 +238,14 @@ export default function CandidateOffers() {
                 className={`offer-card ${selectedOffer?.id === offer.id ? "active" : ""}`}
                 onClick={() => setSelectedOffer(offer)}
               >
-                <h3>{offer.title}</h3>
+                <h3>
+                  {offer.title}
+                  {offer.newlyPublished && (
+                    <span className="status-chip status-chip--new" style={{ marginLeft: 8 }} title="Published in the last 48 hours">
+                      New
+                    </span>
+                  )}
+                </h3>
                 <div className="offer-company">
                   {offer.companyName}
                 </div>
