@@ -1,57 +1,67 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import aiService from "../services/aiService";
 import AlertModal from "../components/AlertModal";
+import Avatar from "../components/Avatar";
+import { SkeletonCards } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
+import {
+  DraftNote, Missing, ProfileCompleteness, SectionCard, focusField, isValidUrl, normalizeUrl
+} from "../components/ProfileParts";
+import "../styles/profile.css";
 
 const COMPANY_FIELDS = [
   "companyName", "website", "logo", "description", "foundedYear", "industry", "mission", "vision",
   "companyValues", "googleMapsUrl", "headquarters", "offices", "companySize", "companyType",
   "technologies", "phone", "linkedin", "facebook", "instagram", "twitter"
 ];
+const URL_FIELDS = ["website", "googleMapsUrl", "linkedin", "facebook", "instagram", "twitter"];
+const SOCIALS = [
+  { key: "linkedin", label: "LinkedIn" },
+  { key: "facebook", label: "Facebook" },
+  { key: "instagram", label: "Instagram" },
+  { key: "twitter", label: "X / Twitter" },
+];
+const IMPORT_POLL_MS = 3000;
+const DESCRIPTION_MAX = 5000;
 
 const toCompanyForm = (profile) =>
   Object.fromEntries(COMPANY_FIELDS.map((f) => [f, profile[f] ?? ""]));
 
-const IMPORT_POLL_MS = 3000;
+const splitList = (value) => (value || "").split(",").map((s) => s.trim()).filter(Boolean);
+
+function validate(form, basic) {
+  const errors = {};
+  if (!basic.firstName.trim()) errors.firstName = "Your first name is required.";
+  if (!basic.lastName.trim()) errors.lastName = "Your last name is required.";
+  if (!form.companyName.trim()) errors.companyName = "The company name is required.";
+  if (!form.website.trim()) errors.website = "The company website is required.";
+  URL_FIELDS.forEach((key) => {
+    if (!errors[key] && !isValidUrl(form[key])) errors[key] = "This doesn't look like a web address.";
+  });
+  if (form.description.length > DESCRIPTION_MAX) errors.description = `At most ${DESCRIPTION_MAX} characters.`;
+  const year = String(form.foundedYear).trim();
+  if (year && (!/^\d{4}$/.test(year) || Number(year) < 1800 || Number(year) > new Date().getFullYear())) {
+    errors.foundedYear = "Enter a year like 2006.";
+  }
+  return errors;
+}
 
 export default function RecruiterProfile() {
-  const { user, setUser } = useOutletContext();
-
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [showAlert, setShowAlert] = useState(false);
+  const { setUser } = useOutletContext();
   const toast = useToast();
 
-  // States for forms
-  const [basicForm, setBasicForm] = useState({
-    firstName: "",
-    lastName: ""
-  });
-
-  const [companyForm, setCompanyForm] = useState({
-    companyName: "",
-    website: "",
-    logo: "",
-    description: "",
-    foundedYear: "",
-    industry: "",
-    mission: "",
-    vision: "",
-    companyValues: "",
-    googleMapsUrl: "",
-    headquarters: "",
-    offices: "",
-    companySize: "",
-    companyType: "",
-    technologies: "",
-    phone: "",
-    linkedin: "",
-    facebook: "",
-    instagram: "",
-    twitter: ""
-  });
+  const [profile, setProfile] = useState(null);
+  const [form, setForm] = useState(null);
+  const [basic, setBasic] = useState({ firstName: "", lastName: "" });
+  const [editing, setEditing] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [drafting, setDrafting] = useState(false);
+  const [draft, setDraft] = useState(null);
+  const [errorMsg, setErrorMsg] = useState("");
 
   // Company details imported from the website (at signup or on request).
   const [importStatus, setImportStatus] = useState("NOT_REQUESTED");
@@ -59,86 +69,32 @@ export default function RecruiterProfile() {
   const [autoFilled, setAutoFilled] = useState(() => new Set());
   const [startingImport, setStartingImport] = useState(false);
 
-  const applyImportState = (profile) => {
-    setImportStatus(profile.companyImportStatus || "NOT_REQUESTED");
-    setImportMessage(profile.companyImportMessage || "");
-    setAutoFilled(new Set(profile.autoFilledFields || []));
+  const applyImportState = (p) => {
+    setImportStatus(p.companyImportStatus || "NOT_REQUESTED");
+    setImportMessage(p.companyImportMessage || "");
+    setAutoFilled(new Set(p.autoFilledFields || []));
   };
 
-  const setField = (name) => (e) => {
-    const value = e.target.value;
-    setCompanyForm((prev) => ({ ...prev, [name]: value }));
-    setAutoFilled((prev) => {
-      if (!prev.has(name)) return prev;
-      const next = new Set(prev);
-      next.delete(name);
-      return next;
-    });
+  const applyProfile = (p) => {
+    setProfile(p);
+    setForm(toCompanyForm(p));
+    setBasic({ firstName: p.firstName || "", lastName: p.lastName || "" });
+    applyImportState(p);
   };
 
-  const fromWebsite = (name) =>
-    autoFilled.has(name) && (
-      <span className="autofill-tag" title="Filled automatically from your website. Please check it.">
-        From your website
-      </span>
-    );
-
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [showAiPitchModal, setShowAiPitchModal] = useState(false);
-  const [generatingPitch, setGeneratingPitch] = useState(false);
-
-  const handleLogoFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setUploadingLogo(true);
-    try {
-      const uploadRes = await recruiterService.uploadFile(file);
-      setCompanyForm(prev => ({ ...prev, logo: uploadRes.url }));
-      setAutoFilled(prev => { const next = new Set(prev); next.delete("logo"); return next; });
-    } catch (err) {
-      console.error(err);
-      setErrorMsg("Failed to upload company logo.");
-      setShowAlert(true);
-    } finally {
-      setUploadingLogo(false);
-    }
-  };
-
-  // Load profile from the backend on mount
   useEffect(() => {
     let active = true;
-    const fetchProfile = async () => {
-      setLoading(true);
+    (async () => {
       try {
-        const profile = await recruiterService.getProfile();
-        if (active) {
-          setCompanyForm(toCompanyForm(profile));
-          applyImportState(profile);
-
-          setBasicForm({
-            firstName: profile.firstName || "",
-            lastName: profile.lastName || ""
-          });
-
-          // Sync with layout context
-          setUser(prev => ({
-            ...prev,
-            firstName: profile.firstName || prev?.firstName,
-            lastName: profile.lastName || prev?.lastName,
-            recruiterProfile: profile
-          }));
-        }
+        const p = await recruiterService.getProfile();
+        if (!active) return;
+        applyProfile(p);
+        setUser((prev) => ({ ...prev, recruiterProfile: p }));
       } catch (err) {
-        console.error("Failed to load recruiter profile:", err);
-        setErrorMsg("Failed to load recruiter profile information.");
-        setShowAlert(true);
-      } finally {
-        if (active) setLoading(false);
+        console.error(err);
+        setErrorMsg("Your company profile couldn't be loaded. Please refresh the page.");
       }
-    };
-
-    fetchProfile();
+    })();
     return () => { active = false; };
   }, [setUser]);
 
@@ -146,17 +102,18 @@ export default function RecruiterProfile() {
     if (importStatus !== "IN_PROGRESS") return undefined;
     const timer = setInterval(async () => {
       try {
-        const profile = await recruiterService.getProfile();
-        if (profile.companyImportStatus === "IN_PROGRESS") return;
+        const p = await recruiterService.getProfile();
+        if (p.companyImportStatus === "IN_PROGRESS") return;
+        setProfile(p);
         // Don't overwrite anything typed while the import was running.
-        setCompanyForm((prev) => {
+        setForm((prev) => {
           const next = { ...prev };
-          for (const field of profile.autoFilledFields || []) {
-            if (next[field] === "" || next[field] == null) next[field] = profile[field] ?? "";
+          for (const field of p.autoFilledFields || []) {
+            if (next[field] === "" || next[field] == null) next[field] = p[field] ?? "";
           }
           return next;
         });
-        applyImportState(profile);
+        applyImportState(p);
       } catch (err) {
         console.error("Failed to refresh the company import status:", err);
       }
@@ -164,283 +121,183 @@ export default function RecruiterProfile() {
     return () => clearInterval(timer);
   }, [importStatus]);
 
+  if (!profile || !form) {
+    return (
+      <div className="profile-page">
+        {errorMsg ? <p className="text-muted">{errorMsg}</p> : <SkeletonCards count={3} />}
+      </div>
+    );
+  }
+
+  const errors = validate(form, basic);
+  const showError = (key) => submitted && errors[key];
+
+  const unmark = (name) => setAutoFilled((prev) => {
+    if (!prev.has(name)) return prev;
+    const next = new Set(prev);
+    next.delete(name);
+    return next;
+  });
+
+  const setField = (name) => (e) => {
+    const value = e.target.value;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    unmark(name);
+  };
+
+  const fromWebsite = (name) =>
+    autoFilled.has(name) && (
+      <span className="autofill-tag" title="Filled automatically from your website. Please check it.">From your website</span>
+    );
+
+  const field = (name, label, { type = "text", textarea = false, placeholder, rows = 3, full = false, required = false, hint } = {}) => (
+    <div className={`form-group ${full ? "form-full-width" : ""}`}>
+      <label htmlFor={`company-${name}`}>{label}{required && " *"}{fromWebsite(name)}</label>
+      {textarea ? (
+        <textarea id={`company-${name}`} rows={rows} value={form[name]} onChange={setField(name)}
+          placeholder={placeholder} aria-invalid={!!showError(name)} />
+      ) : (
+        <input id={`company-${name}`} type={type} value={form[name]} onChange={setField(name)}
+          placeholder={placeholder} aria-invalid={!!showError(name)}
+          inputMode={URL_FIELDS.includes(name) ? "url" : undefined} />
+      )}
+      {hint && <span className="field-hint">{hint}</span>}
+      {showError(name) && <span className="field-error">{errors[name]}</span>}
+    </div>
+  );
+
+  const startEditing = () => {
+    setForm(toCompanyForm(profile));
+    setBasic({ firstName: profile.firstName || "", lastName: profile.lastName || "" });
+    setAutoFilled(new Set(profile.autoFilledFields || []));
+    setSubmitted(false);
+    setDraft(null);
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setForm(toCompanyForm(profile));
+    setAutoFilled(new Set(profile.autoFilledFields || []));
+    setDraft(null);
+    setEditing(false);
+  };
+
   const handleImportFromWebsite = async () => {
     setStartingImport(true);
     try {
-      const profile = await recruiterService.importCompanyFromWebsite(companyForm.website);
-      applyImportState(profile);
-      setCompanyForm((prev) => ({ ...prev, website: profile.website || prev.website }));
+      const p = await recruiterService.importCompanyFromWebsite(normalizeUrl(form.website) || profile.website);
+      applyImportState(p);
+      setForm((prev) => ({ ...prev, website: p.website || prev.website }));
     } catch (err) {
       console.error(err);
       setErrorMsg(err.response?.data?.message || "We couldn't start the import. Please try again.");
-      setShowAlert(true);
     } finally {
       setStartingImport(false);
     }
   };
 
-  // Company Completeness Score
-  const calculateCompanyCompleteness = () => {
-    let score = 0;
-    if (companyForm.companyName) score += 15;
-    if (companyForm.website) score += 10;
-    if (companyForm.logo) score += 10;
-    if (companyForm.description && companyForm.description.length > 20) score += 15;
-    if (companyForm.industry) score += 10;
-    if (companyForm.headquarters) score += 10;
-    if (companyForm.technologies) score += 10;
-    if (companyForm.mission || companyForm.vision) score += 10;
-    if (companyForm.linkedin || companyForm.phone) score += 10;
-    return Math.min(100, score);
-  };
-
-  const completenessScore = calculateCompanyCompleteness();
-
-  const handleGenerateAiPitch = async () => {
-    setGeneratingPitch(true);
-    try {
-      const promptText = `Company: ${companyForm.companyName || "Innovate Corp"}, Industry: ${companyForm.industry || "Software & Tech"}, Technologies: ${companyForm.technologies || "Cloud, Web, Mobile"}`;
-      const res = await aiService.generateBio(
-        `${companyForm.companyName || "Our Tech Team"}`,
-        companyForm.technologies ? companyForm.technologies.split(",").map(t => t.trim()) : ["Engineering", "Innovation"],
-        promptText
-      );
-      if (res?.generated_bio) {
-        setCompanyForm(prev => ({
-          ...prev,
-          description: `At ${companyForm.companyName || "our company"}, we are pioneering the future of technology. ${res.generated_bio} We empower top talent with autonomy and growth opportunities.`
-        }));
-        toast("A description draft was added. Review it before saving.");
-      }
-    } catch (err) {
-      console.error("AI Pitch Error:", err);
-      setErrorMsg("Failed to generate company description.");
-      setShowAlert(true);
-    } finally {
-      setGeneratingPitch(false);
+  const handleLogo = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setErrorMsg("Please choose an image (PNG, JPG or SVG).");
+      return;
     }
-  };
-
-  const handleSaveProfile = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMsg("");
-
+    setUploadingLogo(true);
     try {
-      const formatUrl = (urlStr) => {
-        if (!urlStr) return "";
-        const trimmed = urlStr.trim();
-        if (!trimmed) return "";
-        if (/^https?:\/\//i.test(trimmed)) return trimmed;
-        return `https://${trimmed}`;
-      };
-
-      const formattedWebsite = formatUrl(companyForm.website);
-      const formattedGoogleMaps = formatUrl(companyForm.googleMapsUrl);
-      const formattedLinkedin = formatUrl(companyForm.linkedin);
-      const formattedFacebook = formatUrl(companyForm.facebook);
-      const formattedInstagram = formatUrl(companyForm.instagram);
-      const formattedTwitter = formatUrl(companyForm.twitter);
-
-      const updatedUser = await recruiterService.updateBasicInfo({
-        firstName: basicForm.firstName,
-        lastName: basicForm.lastName
-      });
-
-      const updatedProfile = await recruiterService.updateProfile({
-        companyName: companyForm.companyName,
-        website: formattedWebsite,
-        logo: companyForm.logo,
-        description: companyForm.description,
-        foundedYear: companyForm.foundedYear ? parseInt(companyForm.foundedYear) : null,
-        industry: companyForm.industry,
-        mission: companyForm.mission,
-        vision: companyForm.vision,
-        companyValues: companyForm.companyValues,
-        googleMapsUrl: formattedGoogleMaps,
-        headquarters: companyForm.headquarters,
-        offices: companyForm.offices,
-        companySize: companyForm.companySize,
-        companyType: companyForm.companyType,
-        technologies: companyForm.technologies,
-        phone: companyForm.phone,
-        linkedin: formattedLinkedin,
-        facebook: formattedFacebook,
-        instagram: formattedInstagram,
-        twitter: formattedTwitter
-      });
-
-      applyImportState(updatedProfile);
-      setUser(prev => ({
-        ...prev,
-        firstName: updatedUser.firstName,
-        lastName: updatedUser.lastName,
-        recruiterProfile: updatedProfile
-      }));
-
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        const parsed = JSON.parse(storedUser);
-        const updatedStored = {
-          ...parsed,
-          firstName: updatedUser.firstName,
-          lastName: updatedUser.lastName,
-          recruiterProfile: {
-            companyName: updatedProfile.companyName,
-            logo: updatedProfile.logo,
-            headquarters: updatedProfile.headquarters
-          }
-        };
-        localStorage.setItem("user", JSON.stringify(updatedStored));
-      }
-
-      toast("Your company profile is saved.");
+      const { url } = await recruiterService.uploadFile(file);
+      setForm((prev) => ({ ...prev, logo: url }));
+      unmark("logo");
     } catch (err) {
       console.error(err);
-      setErrorMsg(
-        err.response?.data?.message || 
-        err.response?.data || 
-        "Failed to update profile. Please verify that all input fields are correct."
-      );
-      setShowAlert(true);
+      setErrorMsg("The logo couldn't be uploaded. Please try again.");
     } finally {
-      setLoading(false);
+      setUploadingLogo(false);
     }
   };
 
-  const defaultLogo = "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3";
+  const handleDraftDescription = async () => {
+    setDrafting(true);
+    try {
+      const fields = ["companyName", "companyType", "industry", "headquarters", "offices", "foundedYear",
+        "companySize", "mission", "vision", "companyValues", "technologies"];
+      const result = await aiService.draftCompanyDescription({
+        ...Object.fromEntries(fields.map((f) => [f, String(form[f] ?? "")])),
+        // The website's own words, only while they are still the imported text.
+        websiteDescription: autoFilled.has("description") ? form.description : "",
+      });
+      setForm((prev) => ({ ...prev, description: result.text }));
+      unmark("description");
+      setDraft(result);
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setDrafting(false);
+    }
+  };
 
-  return (
-    <div 
-      style={{ 
-        maxWidth: "960px", 
-        margin: "0 auto", 
-        textAlign: "left"
-      }}
-    >
-      {/* Top Header Summary Card & Live Candidate Preview */}
-      <div 
-        className="dashboard-panel" 
-        style={{ 
-          marginBottom: "32px",
-          padding: "28px",
-          position: "relative",
-          background: "linear-gradient(135deg, rgba(var(--bg-rgb), 0.95), rgba(var(--surface-raised-rgb), 0.95))",
-          border: "1px solid rgba(var(--cyan-rgb), 0.3)",
-          boxShadow: "0 12px 32px rgba(var(--black-rgb), 0.3)"
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "24px", flexWrap: "wrap", marginBottom: "20px" }}>
-          <div style={{ position: "relative" }}>
-            <img 
-              src={companyForm.logo || defaultLogo} 
-              alt="Company Logo Preview" 
-              style={{
-                width: "100px",
-                height: "100px",
-                borderRadius: "16px",
-                objectFit: "cover",
-                backgroundColor: "rgba(var(--white-rgb), 0.05)",
-                border: "3px solid var(--cyan)",
-                padding: "3px",
-                boxShadow: "0 8px 24px rgba(var(--cyan-rgb), 0.25)"
-              }}
-              onError={(e) => { e.target.src = defaultLogo; }}
-            />
-          </div>
-          <div style={{ flex: 1, minWidth: "220px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-              <h2 style={{ margin: 0, fontSize: "1.75rem", fontWeight: "700", color: "var(--white)" }}>
-                {companyForm.companyName || "Your Company Profile"}
-              </h2>
-              {completenessScore >= 80 && (
-                <span style={{
-                  backgroundColor: "rgba(var(--green-rgb), 0.15)",
-                  color: "var(--green)",
-                  border: "1px solid rgba(var(--green-rgb), 0.4)",
-                  padding: "4px 10px",
-                  borderRadius: "16px",
-                  fontSize: "0.78rem",
-                  fontWeight: "600",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px"
-                }}>
-                  ✔ Verified Top Employer
-                </span>
-              )}
-            </div>
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSubmitted(true);
+    if (Object.keys(errors).length > 0) {
+      document.querySelector("[aria-invalid='true']")?.focus();
+      return;
+    }
+    setSaving(true);
+    try {
+      const updatedUser = await recruiterService.updateBasicInfo({
+        firstName: basic.firstName.trim(), lastName: basic.lastName.trim(),
+      });
+      const payload = { ...form, foundedYear: String(form.foundedYear).trim() ? parseInt(form.foundedYear, 10) : null };
+      URL_FIELDS.forEach((key) => { payload[key] = normalizeUrl(form[key]); });
+      const updated = await recruiterService.updateProfile(payload);
+      applyProfile(updated);
+      setEditing(false);
+      setDraft(null);
+      setUser((prev) => ({ ...prev, firstName: updatedUser.firstName, lastName: updatedUser.lastName, recruiterProfile: updated }));
+      try {
+        const stored = JSON.parse(localStorage.getItem("user") || "null");
+        if (stored) {
+          localStorage.setItem("user", JSON.stringify({
+            ...stored, firstName: updatedUser.firstName, lastName: updatedUser.lastName,
+            recruiterProfile: { companyName: updated.companyName, logo: updated.logo, headquarters: updated.headquarters },
+          }));
+        }
+      } catch { /* the layout copy is a convenience only */ }
+      toast("Your company profile is saved.");
+    } catch (err) {
+      const data = err.response?.data;
+      setErrorMsg(data?.message || (data && typeof data === "object" ? Object.values(data).join(" ") : "") ||
+        "Your company profile couldn't be saved. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", fontSize: "0.92rem", color: "var(--text-secondary)", marginTop: "8px" }}>
-              <span>📍 {companyForm.headquarters || "Headquarters not set"}</span>
-              {companyForm.industry && <span>🏢 {companyForm.industry}</span>}
-              {companyForm.companySize && (
-                <span>👥 {companyForm.companySize}
-                  {/employ|collaborat|salari/i.test(companyForm.companySize) ? "" : " employees"}</span>
-              )}
-            </div>
+  const p = profile;
+  const edit = (id) => () => focusField(setEditing, id);
+  const completeness = [
+    { key: "logo", weight: 10, done: !!p.logo, suggestion: "Add your company logo", onFix: edit("company-logo") },
+    { key: "description", weight: 20, done: (p.description || "").trim().length >= 80, suggestion: "Describe your company", onFix: edit("company-description") },
+    { key: "industry", weight: 10, done: !!p.industry, suggestion: "Add your industry", onFix: edit("company-industry") },
+    { key: "headquarters", weight: 10, done: !!p.headquarters, suggestion: "Add your headquarters", onFix: edit("company-headquarters") },
+    { key: "size", weight: 5, done: !!p.companySize, suggestion: "Add your company size", onFix: edit("company-companySize") },
+    { key: "founded", weight: 5, done: !!p.foundedYear, suggestion: "Add the year you were founded", onFix: edit("company-foundedYear") },
+    { key: "culture", weight: 15, done: !!(p.mission || p.vision || p.companyValues), suggestion: "Share your mission, vision or values", onFix: edit("company-mission") },
+    { key: "tech", weight: 10, done: !!p.technologies, suggestion: "List the technologies you use", onFix: edit("company-technologies") },
+    { key: "contact", weight: 10, done: !!(p.phone || SOCIALS.some(({ key }) => p[key])), suggestion: "Add a phone number or social link", onFix: edit("company-phone") },
+    { key: "type", weight: 5, done: !!p.companyType, suggestion: "Add your company type", onFix: edit("company-companyType") },
+  ];
 
-            {/* Tech Stack Pills Preview */}
-            {companyForm.technologies && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "12px" }}>
-                {companyForm.technologies.split(",").map((tech, idx) => (
-                  <span key={idx} style={{
-                    backgroundColor: "rgba(var(--cyan-rgb), 0.15)",
-                    border: "1px solid rgba(var(--cyan-rgb), 0.3)",
-                    color: "var(--cyan-soft)",
-                    padding: "2px 8px",
-                    borderRadius: "12px",
-                    fontSize: "0.75rem",
-                    fontWeight: "500"
-                  }}>
-                    {tech.trim()}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+  const tagline = [p.industry, p.headquarters].filter(Boolean).join(" · ");
+  const facts = [
+    ["Industry", p.industry], ["Company type", p.companyType], ["Founded", p.foundedYear],
+    ["Size", p.companySize], ["Headquarters", p.headquarters], ["Other offices", p.offices],
+  ].filter(([, v]) => v);
 
-          <div>
-            <button 
-              type="button"
-              className="primary-btn"
-              onClick={handleGenerateAiPitch}
-              disabled={generatingPitch}
-              style={{
-                background: "linear-gradient(135deg, var(--cyan), var(--violet))",
-                boxShadow: "0 4px 15px rgba(var(--cyan-rgb), 0.3)",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                fontWeight: "600",
-                fontSize: "0.88rem",
-                padding: "10px 16px"
-              }}
-            >
-              <span>{generatingPitch ? "Generating Pitch..." : "✨ AI Company Description Generator"}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Company Profile Completeness Meter */}
-        <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid rgba(var(--white-rgb), 0.08)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: "8px" }}>
-            <span style={{ color: "var(--text-muted)", fontWeight: "500" }}>Company Profile Completeness</span>
-            <span style={{ color: completenessScore >= 80 ? "var(--green)" : "var(--cyan)", fontWeight: "700" }}>{completenessScore}% Complete</span>
-          </div>
-          <div style={{ height: "8px", width: "100%", backgroundColor: "rgba(var(--white-rgb), 0.1)", borderRadius: "4px", overflow: "hidden" }}>
-            <div style={{
-              height: "100%",
-              width: `${completenessScore}%`,
-              background: "linear-gradient(90deg, var(--cyan), var(--green))",
-              borderRadius: "4px",
-              transition: "width 0.6s ease-in-out"
-            }} />
-          </div>
-        </div>
-      </div>
-
-
+  const importBanner = (
+    <>
       {importStatus === "IN_PROGRESS" && (
         <div className="import-banner import-banner--progress" role="status">
           <span className="import-spinner" aria-hidden="true" />
@@ -460,331 +317,195 @@ export default function RecruiterProfile() {
       )}
       {importStatus === "FAILED" && (
         <div className="import-banner import-banner--failed" role="alert">
-          <div>
-            <strong>{importMessage || "We couldn't import your company details."}</strong>
-          </div>
-          {companyForm.website && (
+          <div><strong>{importMessage || "We couldn't import your company details."}</strong></div>
+          {(form.website || p.website) && (
             <button type="button" className="secondary-btn" onClick={handleImportFromWebsite} disabled={startingImport}>
               {startingImport ? "Starting…" : "Try again"}
             </button>
           )}
         </div>
       )}
+    </>
+  );
 
-      <form onSubmit={handleSaveProfile}>
-        
-        {/* Representative Section */}
-        <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)", display: "flex", alignItems: "center", gap: "8px" }}>
-            Corporate Representative
-          </h3>
-          <div className="form-grid">
-            <div className="form-group">
-              <label>First Name *</label>
-              <input 
-                type="text" 
-                value={basicForm.firstName}
-                onChange={(e) => setBasicForm({ ...basicForm, firstName: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Last Name *</label>
-              <input 
-                type="text" 
-                value={basicForm.lastName}
-                onChange={(e) => setBasicForm({ ...basicForm, lastName: e.target.value })}
-                required
-              />
-            </div>
+  return (
+    <div className="profile-page page-stack">
+      <header className="profile-hero">
+        <Avatar src={editing ? form.logo : p.logo} name={p.companyName || "Company"} size="lg" shape="rounded" />
+        <div className="profile-hero__main">
+          <h2 className="profile-hero__name">{p.companyName || "Your company"}</h2>
+          {tagline
+            ? <p className="profile-hero__tagline">{tagline}</p>
+            : <p className="profile-hero__tagline profile-hero__tagline--empty">Industry and location not set</p>}
+          <div className="profile-hero__meta">
+            <span>Recruiter: {`${p.firstName || ""} ${p.lastName || ""}`.trim()}</span>
+            {p.website && <a className="link-chip" href={p.website} target="_blank" rel="noreferrer">{p.website.replace(/^https?:\/\//, "")} ↗</a>}
           </div>
         </div>
+        {!editing && (
+          <div className="profile-hero__actions">
+            <button type="button" className="primary-btn" onClick={startEditing}>Edit profile</button>
+          </div>
+        )}
+      </header>
 
-        {/* Section 1: Company Information */}
-        <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)", display: "flex", alignItems: "center", gap: "8px" }}>
-            Company Information
-          </h3>
-          <div className="form-grid">
-            <div className="form-group">
-              <label>Company Name *{fromWebsite("companyName")}</label>
-              <input 
-                type="text" 
-                value={companyForm.companyName}
-                onChange={setField("companyName")}
-                required
-              />
-            </div>
+      {importBanner}
 
-            <div className="form-group">
-              <label>Company Website (URL) *{fromWebsite("website")}</label>
-              <input 
-                type="url" 
-                placeholder="e.g. https://company.com" 
-                value={companyForm.website}
-                onChange={setField("website")}
-                required
-              />
-              {importStatus !== "IN_PROGRESS" && importStatus !== "FAILED" && companyForm.website.trim() && (
-                <button type="button" className="link-btn" onClick={handleImportFromWebsite} disabled={startingImport}
-                  title="Fills the empty fields below with what your website says">
-                  {startingImport ? "Starting…" : "Fill empty fields from this website"}
-                </button>
+      {!editing ? (
+        <div className="profile-layout">
+          <div className="profile-column">
+            <SectionCard id="about" title={`About ${p.companyName || "the company"}`}>
+              {p.description ? <p className="profile-text">{p.description}</p> : <Missing>No description yet. Candidates see this on your offers.</Missing>}
+            </SectionCard>
+
+            <SectionCard id="culture" title="Mission, vision and values">
+              {!(p.mission || p.vision || p.companyValues) ? <Missing>Not shared yet.</Missing> : (
+                <div>
+                  {[["Mission", p.mission], ["Vision", p.vision], ["Values", p.companyValues]].filter(([, v]) => v).map(([label, value]) => (
+                    <div key={label} className="labelled-block">
+                      <h3>{label}</h3>
+                      <p className="profile-text">{value}</p>
+                    </div>
+                  ))}
+                </div>
               )}
-            </div>
+            </SectionCard>
 
-            <div className="form-group form-full-width">
-              <label>Company Logo{fromWebsite("logo")}</label>
-              <input 
-                type="file" 
-                accept="image/*"
-                onChange={handleLogoFileChange}
-                style={{ color: "var(--white)" }}
-              />
-              {uploadingLogo && <span style={{ fontSize: "0.8rem", color: "var(--cyan)", marginTop: "4px" }}>Uploading logo...</span>}
-            </div>
-
-            <div className="form-group form-full-width">
-              <label>Company Description{fromWebsite("description")}</label>
-              <textarea 
-                placeholder="Describe your company, its story, and main lines of work..." 
-                value={companyForm.description}
-                onChange={setField("description")}
-              />
-            </div>
+            <SectionCard id="tech" title="Technologies">
+              {splitList(p.technologies).length === 0 ? <Missing>No technologies listed yet.</Missing> : (
+                <ul className="tag-list">
+                  {splitList(p.technologies).map((t) => <li key={t} className="tag">{t}</li>)}
+                </ul>
+              )}
+            </SectionCard>
           </div>
+
+          <aside className="profile-column profile-column--aside">
+            <ProfileCompleteness items={completeness} title="Company profile completeness" />
+
+            <SectionCard id="facts" title="Company facts">
+              {facts.length === 0 ? <Missing>No details yet.</Missing> : (
+                <dl className="detail-list">
+                  {facts.map(([label, value]) => (
+                    <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+                  ))}
+                </dl>
+              )}
+            </SectionCard>
+
+            <SectionCard id="contact" title="Contact">
+              {!(p.phone || p.googleMapsUrl || SOCIALS.some(({ key }) => p[key])) ? <Missing>No contact details yet.</Missing> : (
+                <div className="stack">
+                  {p.phone && <a className="cv-link" href={`tel:${p.phone.replace(/\s+/g, "")}`}>{p.phone}</a>}
+                  {p.googleMapsUrl && <a className="cv-link" href={p.googleMapsUrl} target="_blank" rel="noreferrer">See on Google Maps ↗</a>}
+                  <div className="row">
+                    {SOCIALS.filter(({ key }) => p[key]).map(({ key, label }) => (
+                      <a key={key} className="link-chip" href={p[key]} target="_blank" rel="noreferrer">{label} ↗</a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </SectionCard>
+          </aside>
         </div>
-
-        {/* Section 2: Company Details */}
-        <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)", display: "flex", alignItems: "center", gap: "8px" }}>
-            Company Details
-          </h3>
-          <div className="form-grid">
-            <div className="form-group">
-              <label>Founded Year{fromWebsite("foundedYear")}</label>
-              <input 
-                type="number" 
-                placeholder="e.g. 2006" 
-                value={companyForm.foundedYear}
-                onChange={setField("foundedYear")}
-              />
+      ) : (
+        <form className="page-stack" onSubmit={handleSave} noValidate>
+          <SectionCard id="edit-rep" title="You">
+            <div className="form-grid">
+              <div className="form-group">
+                <label htmlFor="rep-firstName">First name *</label>
+                <input id="rep-firstName" value={basic.firstName} aria-invalid={!!showError("firstName")}
+                  onChange={(e) => setBasic((b) => ({ ...b, firstName: e.target.value }))} />
+                {showError("firstName") && <span className="field-error">{errors.firstName}</span>}
+              </div>
+              <div className="form-group">
+                <label htmlFor="rep-lastName">Last name *</label>
+                <input id="rep-lastName" value={basic.lastName} aria-invalid={!!showError("lastName")}
+                  onChange={(e) => setBasic((b) => ({ ...b, lastName: e.target.value }))} />
+                {showError("lastName") && <span className="field-error">{errors.lastName}</span>}
+              </div>
             </div>
+          </SectionCard>
 
-            <div className="form-group">
-              <label>Industry{fromWebsite("industry")}</label>
-              <input 
-                type="text" 
-                placeholder="e.g. IT - FinTech" 
-                value={companyForm.industry}
-                onChange={setField("industry")}
-              />
+          <SectionCard id="edit-company" title="Company">
+            <div className="form-grid">
+              {field("companyName", "Company name", { required: true })}
+              <div className="form-group">
+                <label htmlFor="company-website">Website *{fromWebsite("website")}</label>
+                <input id="company-website" inputMode="url" value={form.website} onChange={setField("website")}
+                  placeholder="www.yourcompany.com" aria-invalid={!!showError("website")} />
+                {showError("website") && <span className="field-error">{errors.website}</span>}
+                {importStatus !== "IN_PROGRESS" && importStatus !== "FAILED" && form.website.trim() && (
+                  <button type="button" className="link-btn" onClick={handleImportFromWebsite} disabled={startingImport}
+                    title="Fills the empty fields below with what your website says">
+                    {startingImport ? "Starting…" : "Fill empty fields from this website"}
+                  </button>
+                )}
+              </div>
+              <div className="form-group form-full-width">
+                <label htmlFor="company-logo">Logo{fromWebsite("logo")}</label>
+                <input id="company-logo" type="file" accept="image/*" className="file-input" onChange={handleLogo} />
+                {uploadingLogo && <span className="field-hint">Uploading…</span>}
+              </div>
+              <div className="form-group form-full-width">
+                <label htmlFor="company-description">
+                  Description{fromWebsite("description")}
+                  <span className="char-count">{form.description.length}/{DESCRIPTION_MAX}</span>
+                </label>
+                <textarea id="company-description" rows="7" value={form.description} onChange={setField("description")}
+                  placeholder="What your company does, for whom, and what it's like to work there."
+                  aria-invalid={!!showError("description")} />
+                {showError("description") && <span className="field-error">{errors.description}</span>}
+                <div className="row">
+                  <button type="button" className="accent-btn accent-violet btn-compact" onClick={handleDraftDescription} disabled={drafting}>
+                    {drafting ? "Drafting…" : "Draft a description"}
+                  </button>
+                  <span className="field-hint">Uses only the details on this page{autoFilled.has("description") ? " and the text imported from your website" : ""}.</span>
+                </div>
+                <DraftNote draft={draft} />
+              </div>
             </div>
+          </SectionCard>
 
-            <div className="form-group">
-              <label>Company Type{fromWebsite("companyType")}</label>
-              <input 
-                type="text" 
-                placeholder="e.g. Software Company" 
-                value={companyForm.companyType}
-                onChange={setField("companyType")}
-              />
+          <SectionCard id="edit-details" title="Details">
+            <div className="form-grid">
+              {field("industry", "Industry", { placeholder: "e.g. Banking software" })}
+              {field("companyType", "Company type", { placeholder: "e.g. Software publisher, startup, agency" })}
+              {field("foundedYear", "Founded", { placeholder: "e.g. 2006", hint: "A year like 2006." })}
+              {field("companySize", "Company size", { placeholder: "e.g. 51-200 employees" })}
+              {field("headquarters", "Headquarters", { placeholder: "e.g. Sousse, Tunisia" })}
+              {field("googleMapsUrl", "Google Maps link", { placeholder: "maps.google.com/…" })}
+              {field("offices", "Other offices", { textarea: true, full: true, placeholder: "e.g. Paris, Dubai" })}
             </div>
+          </SectionCard>
 
-            <div className="form-group">
-              <label>Company Size (Employees){fromWebsite("companySize")}</label>
-              <input 
-                type="text" 
-                placeholder="e.g. 200+, 51-200" 
-                value={companyForm.companySize}
-                onChange={setField("companySize")}
-              />
+          <SectionCard id="edit-culture" title="Mission, vision and values">
+            <div className="form-grid">
+              {field("mission", "Mission", { textarea: true, full: true })}
+              {field("vision", "Vision", { textarea: true, full: true })}
+              {field("companyValues", "Values", { textarea: true, full: true, placeholder: "e.g. Commitment, transparency, teamwork" })}
             </div>
+          </SectionCard>
+
+          <SectionCard id="edit-tech" title="Technologies">
+            {field("technologies", "Technologies you use", { placeholder: "Comma-separated, e.g. Java, React, AWS", hint: "Shown as tags on your profile." })}
+          </SectionCard>
+
+          <SectionCard id="edit-contact" title="Contact and social">
+            <div className="form-grid">
+              {field("phone", "Phone", { placeholder: "e.g. +216 73 000 000" })}
+              {SOCIALS.map(({ key, label }) => <div key={key} className="contents">{field(key, label, { placeholder: `${label.split(" ")[0].toLowerCase()}.com/…` })}</div>)}
+            </div>
+          </SectionCard>
+
+          <div className="edit-actions">
+            <button type="button" className="secondary-btn" onClick={cancelEditing} disabled={saving}>Cancel</button>
+            <button type="submit" className="primary-btn" disabled={saving}>{saving ? "Saving…" : "Save profile"}</button>
           </div>
-        </div>
+        </form>
+      )}
 
-        {/* Section 3: Locations */}
-        <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)", display: "flex", alignItems: "center", gap: "8px" }}>
-            Locations
-          </h3>
-          <div className="form-grid">
-            <div className="form-group">
-              <label>Headquarters{fromWebsite("headquarters")}</label>
-              <input 
-                type="text" 
-                placeholder="e.g. Sousse, Tunisia" 
-                value={companyForm.headquarters}
-                onChange={setField("headquarters")}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Google Maps URL{fromWebsite("googleMapsUrl")}</label>
-              <input 
-                type="url" 
-                placeholder="e.g. https://maps.google.com/?q=Sousse" 
-                value={companyForm.googleMapsUrl}
-                onChange={setField("googleMapsUrl")}
-              />
-            </div>
-
-            <div className="form-group form-full-width">
-              <label>Offices{fromWebsite("offices")}</label>
-              <textarea 
-                placeholder="List office locations (e.g. Sousse, Paris, Dubai)" 
-                value={companyForm.offices}
-                onChange={setField("offices")}
-                style={{ minHeight: "80px" }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Section 4: Mission & Vision */}
-        <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)", display: "flex", alignItems: "center", gap: "8px" }}>
-            Mission & Vision
-          </h3>
-          <div className="form-grid">
-            <div className="form-group form-full-width">
-              <label>Mission{fromWebsite("mission")}</label>
-              <textarea 
-                placeholder="What is your company's core mission?" 
-                value={companyForm.mission}
-                onChange={setField("mission")}
-                style={{ minHeight: "80px" }}
-              />
-            </div>
-
-            <div className="form-group form-full-width">
-              <label>Vision{fromWebsite("vision")}</label>
-              <textarea 
-                placeholder="What is your company's long-term vision?" 
-                value={companyForm.vision}
-                onChange={setField("vision")}
-                style={{ minHeight: "80px" }}
-              />
-            </div>
-
-            <div className="form-group form-full-width">
-              <label>Company Values{fromWebsite("companyValues")}</label>
-              <textarea 
-                placeholder="List your company's core values (e.g. Innovation, Agility, Commitment)" 
-                value={companyForm.companyValues}
-                onChange={setField("companyValues")}
-                style={{ minHeight: "80px" }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Section 5: Technologies */}
-        <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)", display: "flex", alignItems: "center", gap: "8px" }}>
-            Technologies
-          </h3>
-          <div className="form-grid">
-            <div className="form-group form-full-width">
-              <label>Technologies Used{fromWebsite("technologies")}</label>
-              <input 
-                type="text" 
-                placeholder="e.g. Java, Spring, React, Cloud, AI" 
-                value={companyForm.technologies}
-                onChange={setField("technologies")}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Section 6: Social Media */}
-        <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)", display: "flex", alignItems: "center", gap: "8px" }}>
-            Social Media
-          </h3>
-          <div className="form-grid">
-            <div className="form-group">
-              <label>LinkedIn Profile URL{fromWebsite("linkedin")}</label>
-              <input 
-                type="url" 
-                placeholder="https://linkedin.com/company/..." 
-                value={companyForm.linkedin}
-                onChange={setField("linkedin")}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Facebook Page URL{fromWebsite("facebook")}</label>
-              <input 
-                type="url" 
-                placeholder="https://facebook.com/..." 
-                value={companyForm.facebook}
-                onChange={setField("facebook")}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Instagram Handle URL{fromWebsite("instagram")}</label>
-              <input 
-                type="url" 
-                placeholder="https://instagram.com/..." 
-                value={companyForm.instagram}
-                onChange={setField("instagram")}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Twitter/X Profile URL{fromWebsite("twitter")}</label>
-              <input 
-                type="url" 
-                placeholder="https://twitter.com/..." 
-                value={companyForm.twitter}
-                onChange={setField("twitter")}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Section 7: Contact */}
-        <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "32px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)", display: "flex", alignItems: "center", gap: "8px" }}>
-            Contact
-          </h3>
-          <div className="form-grid">
-            <div className="form-group form-full-width">
-              <label>Phone Number{fromWebsite("phone")}</label>
-              <input 
-                type="text" 
-                placeholder="e.g. +216 73 123 456" 
-                value={companyForm.phone}
-                onChange={setField("phone")}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Form Actions */}
-        <div className="form-actions" style={{ marginBottom: "50px" }}>
-          <button 
-            type="submit" 
-            className="primary-btn" 
-            style={{ minWidth: "200px", padding: "14px 28px", fontSize: "1rem" }} 
-            disabled={loading}
-          >
-            {loading ? "Saving Profile..." : "Save Profile Details"}
-          </button>
-        </div>
-      </form>
-
-      <AlertModal 
-        isOpen={showAlert}
-        type="error"
-        title="Update Failed"
-        message={errorMsg}
-        onClose={() => setShowAlert(false)}
-      />
-
+      <AlertModal isOpen={!!errorMsg} type="error" title="Something went wrong" message={errorMsg} onClose={() => setErrorMsg("")} />
     </div>
   );
 }

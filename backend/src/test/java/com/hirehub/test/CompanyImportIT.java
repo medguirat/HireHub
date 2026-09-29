@@ -135,6 +135,19 @@ class CompanyImportIT {
     }
 
     @Test
+    void importedTextIsNeverCutAndOverlongValuesAreLeftOut() throws Exception {
+        String longDescription = "We build banking software for banks across Africa. ".repeat(20).trim(); // ~1,000 chars
+        when(scraperClient.scrape(anyString())).thenReturn(scraped(
+                "{\"description\": \"" + longDescription + "\", \"headquarters\": \"" + "x".repeat(300) + "\"}"));
+
+        signUp("import-long@test.com", "Acme", "acme.example.com");
+        RecruiterProfile profile = awaitImport("import-long@test.com");
+
+        assertThat(profile.getDescription()).isEqualTo(longDescription); // whole, not cut at 255
+        assertThat(profile.getHeadquarters()).isNull(); // longer than its column: left for the recruiter
+    }
+
+    @Test
     void editingAnImportedFieldRemovesItsMarker() throws Exception {
         when(scraperClient.scrape(anyString())).thenReturn(scraped(
                 "{\"description\": \"Banking software.\", \"foundedYear\": 2006}"));

@@ -26,7 +26,7 @@ La documentation interactive de l'API est sur http://localhost:8000/docs.
 | POST | `/extract` | Fichier (PDF ou DOCX) → texte. Renvoie 415 si le format n'est pas supporté, 422 si le fichier n'a pas de texte (PDF scanné) |
 | POST | `/match` | `{cv_text, offer: {title, description}}` → score détaillé |
 | POST | `/company/profile` | `{url}` → champs du profil entreprise trouvés sur le site (un champ absent du site n'est pas renvoyé). 422 avec `{code, message}` si le site est invalide, privé, injoignable ou n'est pas une page web |
-| POST | `/analyze/bio` | Génère une bio de profil à partir d'un modèle de texte |
+| POST | `/draft/company`, `/draft/bio` | Brouillon de description d'entreprise / de bio construit **uniquement** à partir des champs du profil. Si un LLM compatible OpenAI est configuré (`LLM_BASE_URL`, `LLM_MODEL`), il peut reformuler, sous contrôle : un nombre, un lien ou un superlatif absent des données fait revenir au modèle de texte. `ai_assisted` vaut `true` seulement si le texte du LLM est renvoyé. 422 `not_enough_data` si le profil est vide |
 
 ## Organisation
 

@@ -41,6 +41,8 @@ public class CandidateProfileService {
                 .urlLinkedin(profile.getUrlLinkedin())
                 .urlGithub(profile.getUrlGithub())
                 .urlPortfolio(profile.getUrlPortfolio())
+                .headline(profile.getHeadline())
+                .education(profile.getEducation())
                 .bio(profile.getBio())
                 .picture(profile.getPicture())
                 .skills(profile.getSkills())
@@ -64,6 +66,8 @@ public class CandidateProfileService {
         profile.setUrlLinkedin(dto.getUrlLinkedin());
         profile.setUrlGithub(dto.getUrlGithub());
         profile.setUrlPortfolio(dto.getUrlPortfolio());
+        profile.setHeadline(blankToNull(dto.getHeadline()));
+        profile.setEducation(blankToNull(dto.getEducation()));
         profile.setBio(dto.getBio());
         profile.setPicture(dto.getPicture());
 
@@ -88,5 +92,9 @@ public class CandidateProfileService {
 
         CandidateProfile saved = candidateProfileRepository.save(profile);
         return toDto(saved);
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

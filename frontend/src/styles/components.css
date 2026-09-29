@@ -274,7 +274,7 @@ summary:focus-visible,
 .chart__value { fill: var(--white); font-size: 13px; font-weight: var(--fw-bold); text-anchor: middle; }
 .chart__empty { fill: var(--text-muted); font-size: 15px; text-anchor: middle; }
 .chart__axis { display: flex; justify-content: space-between; margin-top: 10px; color: var(--text-muted); font-size: var(--fs-sm); }
-.chart__axis .is-current { color: var(--magenta); font-weight: var(--fw-bold); }
+.chart__axis .is-current { color: var(--magenta-soft); font-weight: var(--fw-bold); }
 
 .donut { width: 60px; height: 60px; flex-shrink: 0; transform: rotate(-90deg); }
 .donut circle { fill: none; stroke-width: 8; }
@@ -580,3 +580,6 @@ button.notice:hover { background: var(--glass-hover); }
 .link-reset { padding: 0; border: none; background: none; font: inherit; text-align: left; }
 
 .action-btn-small:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* Magenta is 4.3:1 on glass panels: text uses its light tint to meet WCAG AA (4.5:1). */
+.accent-magenta .text-accent, .text-accent.accent-magenta, .accent-magenta.text-accent { color: var(--magenta-soft); }

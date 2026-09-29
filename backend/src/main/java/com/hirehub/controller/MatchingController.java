@@ -7,10 +7,17 @@ import com.hirehub.entity.User;
 import com.hirehub.matching.CandidateCvService;
 import com.hirehub.matching.MatchingService;
 import com.hirehub.security.CurrentUserProvider;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api/candidates")
@@ -31,6 +38,26 @@ public class MatchingController {
     public CvMetadataDto getMyCv(@AuthenticationPrincipal UserDetails userDetails) {
         User candidate = currentUserProvider.requireRole(userDetails, Role.CANDIDATE);
         return cvService.getMyCv(candidate);
+    }
+
+    /**
+     * The candidate's own CV file, shown inline (PDF preview). Only PDF and DOCX
+     * are ever stored, so the type comes from the stored name, not the upload.
+     */
+    @GetMapping("/me/cv/file")
+    public ResponseEntity<byte[]> getMyCvFile(@AuthenticationPrincipal UserDetails userDetails) {
+        User candidate = currentUserProvider.requireRole(userDetails, Role.CANDIDATE);
+        CandidateCvService.CvFile file = cvService.readMyCvFile(candidate);
+        MediaType type = file.isPdf() ? MediaType.APPLICATION_PDF
+                : MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        ContentDisposition disposition = (file.isPdf() ? ContentDisposition.inline() : ContentDisposition.attachment())
+                .filename(file.fileName(), StandardCharsets.UTF_8).build();
+        return ResponseEntity.ok()
+                .contentType(type)
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .header("X-Content-Type-Options", "nosniff")
+                .cacheControl(CacheControl.noStore().cachePrivate())
+                .body(file.data());
     }
 
     @PutMapping(value = "/me/cv", consumes = "multipart/form-data")

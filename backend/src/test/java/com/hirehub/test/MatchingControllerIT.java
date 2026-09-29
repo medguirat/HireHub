@@ -87,6 +87,33 @@ class MatchingControllerIT {
     }
 
     @Test
+    void candidateCanPreviewTheirOwnCvFile() throws Exception {
+        User candidate = persistUser("cv-file@test.com", Role.CANDIDATE);
+        when(aiService.extractText(any(), any())).thenReturn(new AiServiceClient.ExtractedText("Java dev", "pdf"));
+        byte[] pdf = "%PDF-1.4 my cv".getBytes();
+        mockMvc.perform(uploadCv(candidate, "Mon CV.pdf", pdf)).andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/candidates/me/cv/file").header("Authorization", token(candidate)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/pdf"))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.startsWith("inline;")))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")))
+                .andExpect(content().bytes(pdf));
+    }
+
+    @Test
+    void cvFileIs404WithoutACvAndRefusedToRecruiters() throws Exception {
+        User candidate = persistUser("cv-file-none@test.com", Role.CANDIDATE);
+        User recruiter = persistUser("cv-file-rec@test.com", Role.RECRUITER);
+        mockMvc.perform(get("/api/candidates/me/cv/file").header("Authorization", token(candidate)))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/candidates/me/cv/file").header("Authorization", token(recruiter)))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/candidates/me/cv/file")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void noCvYetIs404() throws Exception {
         User candidate = persistUser("cv2@test.com", Role.CANDIDATE);
         mockMvc.perform(get("/api/candidates/me/cv").header("Authorization", token(candidate)))

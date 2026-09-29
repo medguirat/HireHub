@@ -201,7 +201,8 @@ public class CompanyProfileImporter {
             }
             case TEXT -> {
                 String text = node.asText("").trim();
-                yield text.isEmpty() ? null : CompanyFields.fit(text, field.maxLength());
+                // Never cut imported text: a value longer than its column is left out for the recruiter to write.
+                yield text.isEmpty() || text.length() > field.maxLength() ? null : text;
             }
         };
     }

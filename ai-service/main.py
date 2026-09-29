@@ -13,19 +13,19 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from company.scraper import ScrapeError, scrape_company
+from drafts import NotEnoughData, draft_bio, draft_company, get_rewriter
 from matching import ALGORITHM_VERSION
 from matching.extraction import ExtractionError, extract_text
-from matching.parsing import extract_skills
 from matching.recommendations import get_recommendation_provider
 from matching.scoring import compute_match
 from matching.semantic import SemanticScorer
-from matching.taxonomy import SKILLS
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("hirehub.ai")
 
 semantic_scorer = SemanticScorer()
 recommendation_provider = get_recommendation_provider()
+draft_rewriter = get_rewriter()
 
 
 @asynccontextmanager
@@ -38,7 +38,7 @@ async def lifespan(_app):
 
 app = FastAPI(title="HireHub AI Service", lifespan=lifespan)
 
-# The browser only calls /analyze/bio directly; matching goes through the backend.
+# The browser only calls /draft/* directly; matching and company import go through the backend.
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
@@ -49,6 +49,7 @@ def health():
         "algorithm_version": ALGORITHM_VERSION,
         "embedding_model": semantic_scorer.model_name,
         "recommendations": recommendation_provider.name,
+        "drafts": "llm" if draft_rewriter else "template",
     }
     return JSONResponse(body, status_code=200 if semantic_scorer.loaded else 503)
 
@@ -94,29 +95,50 @@ def company_profile(req: CompanyRequest):
 
 
 # ---------------------------------------------------------------------------
-# Profile bio helper (template based, used by the profile pages)
+# Profile drafts (company description, candidate bio): only from the user's own data
 # ---------------------------------------------------------------------------
 
-class BioRequest(BaseModel):
-    title: str = ""
+class CompanyDraftRequest(BaseModel):
+    companyName: str = ""
+    companyType: str = ""
+    industry: str = ""
+    headquarters: str = ""
+    offices: str = ""
+    foundedYear: int | str | None = None
+    companySize: str = ""
+    mission: str = ""
+    vision: str = ""
+    companyValues: str = ""
+    technologies: str = ""
+    websiteDescription: str = Field("", max_length=5000)
+
+
+class ExperienceIn(BaseModel):
+    position: str = ""
+    company: str = ""
+    startDate: str | None = None
+    endDate: str | None = None
+
+
+class BioDraftRequest(BaseModel):
+    headline: str = ""
     skills: list[str] = []
-    text: str = ""
+    experiences: list[ExperienceIn] = []
+    education: str = ""
 
 
-class BioResponse(BaseModel):
-    generated_bio: str
-    extracted_skills: list[str]
+def _draft(fn, payload):
+    try:
+        return fn(payload, draft_rewriter)
+    except NotEnoughData as exc:
+        raise HTTPException(status_code=422, detail={"code": "not_enough_data", "message": str(exc)}) from exc
 
 
-@app.post("/analyze/bio", response_model=BioResponse)
-def generate_bio(req: BioRequest):
-    extracted = [SKILLS[key].display for key in extract_skills(req.text)] if req.text else []
-    all_skills = sorted(set(req.skills + extracted))
-    skills_str = ", ".join(all_skills) if all_skills else "software development, problem solving, modern tools"
-    role = req.title.strip() or "Passionate Professional"
-    bio = (
-        f"Dynamic and results-oriented {role} skilled in {skills_str}. "
-        f"Experienced in building high-performance solutions, collaborating with cross-functional teams, "
-        f"and continuously learning cutting-edge technologies to drive impactful results."
-    )
-    return BioResponse(generated_bio=bio, extracted_skills=all_skills)
+@app.post("/draft/company")
+def draft_company_description(req: CompanyDraftRequest):
+    return _draft(draft_company, req.model_dump())
+
+
+@app.post("/draft/bio")
+def draft_candidate_bio(req: BioDraftRequest):
+    return _draft(draft_bio, req.model_dump())

@@ -1,697 +1,503 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import candidateService from "../services/candidateService";
 import aiService from "../services/aiService";
 import AlertModal from "../components/AlertModal";
+import Avatar from "../components/Avatar";
+import { SkeletonCards } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
+import { validateFile, MAX_FILE_SIZE_MB } from "../components/ApplyModal";
+import {
+  DraftNote, Missing, ProfileCompleteness, SectionCard, focusField, isValidUrl, normalizeUrl
+} from "../components/ProfileParts";
+import "../styles/profile.css";
+
+const EMPTY_EXPERIENCE = { position: "", company: "", startDate: "", endDate: "" };
+const LINKS = [
+  { key: "urlLinkedin", label: "LinkedIn" },
+  { key: "urlGithub", label: "GitHub" },
+  { key: "urlPortfolio", label: "Portfolio" },
+];
+
+const toForm = (p) => ({
+  firstName: p.firstName || "",
+  lastName: p.lastName || "",
+  headline: p.headline || "",
+  education: p.education || "",
+  bio: p.bio || "",
+  picture: p.picture || "",
+  urlLinkedin: p.urlLinkedin || "",
+  urlGithub: p.urlGithub || "",
+  urlPortfolio: p.urlPortfolio || "",
+  skills: [...(p.skills || [])],
+  experiences: (p.experiences || []).map((e) => ({ ...EMPTY_EXPERIENCE, ...e, endDate: e.endDate || "" })),
+});
+
+const formatMonth = (value) =>
+  value ? new Date(value).toLocaleDateString("en", { month: "short", year: "numeric" }) : "";
+
+function validate(form) {
+  const errors = {};
+  if (!form.firstName.trim()) errors.firstName = "Your first name is required.";
+  if (!form.lastName.trim()) errors.lastName = "Your last name is required.";
+  if (form.headline.length > 150) errors.headline = "At most 150 characters.";
+  if (form.education.length > 1000) errors.education = "At most 1000 characters.";
+  if (form.bio.length > 2000) errors.bio = "At most 2000 characters.";
+  LINKS.forEach(({ key, label }) => {
+    if (!isValidUrl(form[key])) errors[key] = `This doesn't look like a ${label} address.`;
+  });
+  form.experiences.forEach((e, i) => {
+    if (!e.position.trim() || !e.company.trim() || !e.startDate) {
+      errors[`experience-${i}`] = "Position, company and start date are required.";
+    } else if (e.endDate && e.endDate < e.startDate) {
+      errors[`experience-${i}`] = "The end date is before the start date.";
+    }
+  });
+  return errors;
+}
 
 export default function CandidateProfile() {
-  const { user, setUser } = useOutletContext();
-
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [showAlert, setShowAlert] = useState(false);
+  const { setUser } = useOutletContext();
   const toast = useToast();
 
-  // States for forms
-  const [basicForm, setBasicForm] = useState({
-    firstName: "",
-    lastName: ""
-  });
-
-  const [profileForm, setProfileForm] = useState({
-    urlLinkedin: "",
-    urlGithub: "",
-    urlPortfolio: "",
-    bio: "",
-    picture: ""
-  });
-
-  const [skills, setSkills] = useState([]);
-  const [experiences, setExperiences] = useState([]);
-
-  // Form states for adding new skill / experience
+  const [profile, setProfile] = useState(null);
+  const [form, setForm] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [skillInput, setSkillInput] = useState("");
-  const [newExp, setNewExp] = useState({
-    position: "",
-    company: "",
-    startDate: "",
-    endDate: ""
-  });
+  const [uploadingPicture, setUploadingPicture] = useState(false);
+  const [drafting, setDrafting] = useState(false);
+  const [draft, setDraft] = useState(null);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const [uploadingPic, setUploadingPic] = useState(false);
+  const [cv, setCv] = useState(null);
+  const [cvUrl, setCvUrl] = useState("");
+  const [cvUploading, setCvUploading] = useState(false);
+  const [cvError, setCvError] = useState("");
 
-  // AI Profile Assistant state
-  const [showAiAssistantModal, setShowAiAssistantModal] = useState(false);
-  const [aiInputText, setAiInputText] = useState("");
-  const [aiTargetRole, setAiTargetRole] = useState("");
-  const [generatingAi, setGeneratingAi] = useState(false);
-  const [aiGenResult, setAiGenResult] = useState(null);
-
-  // Load profile from the backend on mount
   useEffect(() => {
     let active = true;
-    const fetchProfile = async () => {
-      setLoading(true);
+    (async () => {
       try {
-        const profile = await candidateService.getProfile();
-        if (active) {
-          setProfileForm({
-            urlLinkedin: profile.urlLinkedin || "",
-            urlGithub: profile.urlGithub || "",
-            urlPortfolio: profile.urlPortfolio || "",
-            bio: profile.bio || "",
-            picture: profile.picture || ""
-          });
-
-          setBasicForm({
-            firstName: profile.firstName || "",
-            lastName: profile.lastName || ""
-          });
-
-          setSkills(profile.skills || []);
-          setExperiences(profile.experiences || []);
-
-          // Sync with layout context
-          setUser(prev => ({
-            ...prev,
-            firstName: profile.firstName || prev?.firstName,
-            lastName: profile.lastName || prev?.lastName,
-            candidateProfile: profile
-          }));
-        }
+        const data = await candidateService.getProfile();
+        if (!active) return;
+        setProfile(data);
+        setForm(toForm(data));
       } catch (err) {
-        console.error("Failed to load candidate profile:", err);
-        setErrorMsg("Failed to load candidate profile information.");
-        setShowAlert(true);
-      } finally {
-        if (active) setLoading(false);
+        console.error(err);
+        setErrorMsg("Your profile couldn't be loaded. Please refresh the page.");
       }
-    };
-
-    fetchProfile();
+    })();
+    loadCv();
     return () => { active = false; };
-  }, [setUser]);
+  }, []);
 
-  // Profile Completeness Calculation
-  const calculateCompleteness = () => {
-    let score = 0;
-    if (basicForm.firstName && basicForm.lastName) score += 20;
-    if (profileForm.picture) score += 15;
-    if (profileForm.bio && profileForm.bio.length > 20) score += 20;
-    if (skills.length >= 1) score += 15;
-    if (skills.length >= 3) score += 10;
-    if (experiences.length >= 1) score += 10;
-    if (profileForm.urlLinkedin || profileForm.urlGithub || profileForm.urlPortfolio) score += 10;
-    return Math.min(100, score);
-  };
+  // The object URL of the CV preview is freed when it changes or the page closes.
+  useEffect(() => () => { if (cvUrl) URL.revokeObjectURL(cvUrl); }, [cvUrl]);
 
-  const completenessScore = calculateCompleteness();
-
-  const getBadgeInfo = (score) => {
-    if (score >= 90) return { label: "⭐ All-Star Profile", color: "var(--green)", bg: "rgba(var(--green-rgb), 0.15)", border: "rgba(var(--green-rgb), 0.4)" };
-    if (score >= 75) return { label: "🥇 Strong Profile", color: "var(--cyan)", bg: "rgba(var(--cyan-rgb), 0.15)", border: "rgba(var(--cyan-rgb), 0.4)" };
-    if (score >= 50) return { label: "🥈 Intermediate Profile", color: "var(--orange)", bg: "rgba(var(--orange-rgb), 0.15)", border: "rgba(var(--orange-rgb), 0.4)" };
-    return { label: "🥉 Basic Profile", color: "var(--text-muted)", bg: "rgba(var(--text-muted-rgb), 0.15)", border: "rgba(var(--text-muted-rgb), 0.4)" };
-  };
-
-  const badgeInfo = getBadgeInfo(completenessScore);
-
-  const handleGenerateAiProfile = async () => {
-    setGeneratingAi(true);
-    setAiGenResult(null);
+  const loadCv = async () => {
     try {
-      const res = await aiService.generateBio(
-        aiTargetRole || (experiences.length > 0 ? experiences[0].position : "Software Engineer"),
-        skills,
-        aiInputText
-      );
-      setAiGenResult(res);
+      const meta = await candidateService.getMyCv();
+      setCv(meta);
+      if (meta.fileName?.toLowerCase().endsWith(".pdf")) {
+        const blob = await candidateService.getMyCvFile();
+        setCvUrl(URL.createObjectURL(new Blob([blob], { type: "application/pdf" })));
+      } else {
+        setCvUrl("");
+      }
     } catch (err) {
-      console.error("AI Bio Generation Error:", err);
-      setErrorMsg("Failed to generate AI profile summary.");
-      setShowAlert(true);
+      if (err.response?.status !== 404) console.error(err);
+      setCv(null);
+      setCvUrl("");
+    }
+  };
+
+  const handleCvChange = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    const error = validateFile(file, [".pdf", ".docx"]);
+    setCvError(error || "");
+    if (error) return;
+    setCvUploading(true);
+    try {
+      await candidateService.uploadMyCv(file);
+      await loadCv();
+      toast("Your CV is updated. Match scores will use it from now on.");
+    } catch (err) {
+      setCvError(err.response?.data?.message || "Your CV couldn't be uploaded. Please try again.");
     } finally {
-      setGeneratingAi(false);
+      setCvUploading(false);
     }
   };
 
-  const handleApplyAiResult = () => {
-    if (!aiGenResult) return;
-    if (aiGenResult.generated_bio) {
-      setProfileForm(prev => ({ ...prev, bio: aiGenResult.generated_bio }));
-    }
-    if (aiGenResult.extracted_skills && aiGenResult.extracted_skills.length > 0) {
-      const combined = Array.from(new Set([...skills, ...aiGenResult.extracted_skills]));
-      setSkills(combined);
-    }
-    setShowAiAssistantModal(false);
+  if (!profile || !form) {
+    return (
+      <div className="profile-page">
+        {errorMsg ? <p className="text-muted">{errorMsg}</p> : <SkeletonCards count={3} />}
+      </div>
+    );
+  }
+
+  const errors = validate(form);
+  const showError = (key) => submitted && errors[key];
+  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const fullName = `${profile.firstName || ""} ${profile.lastName || ""}`.trim();
+
+  const startEditing = () => {
+    setForm(toForm(profile));
+    setSubmitted(false);
+    setDraft(null);
+    setEditing(true);
   };
 
-  const handleAddSkill = (e) => {
-    e.preventDefault();
-    const cleanSkill = skillInput.trim();
-    if (cleanSkill && !skills.includes(cleanSkill)) {
-      setSkills([...skills, cleanSkill]);
+  const cancelEditing = () => {
+    setForm(toForm(profile));
+    setEditing(false);
+    setDraft(null);
+  };
+
+  const addSkill = () => {
+    const skill = skillInput.trim();
+    if (skill && !form.skills.some((s) => s.toLowerCase() === skill.toLowerCase())) {
+      setForm((f) => ({ ...f, skills: [...f.skills, skill] }));
     }
     setSkillInput("");
   };
 
-  const handleRemoveSkill = (skillToRemove) => {
-    setSkills(skills.filter(s => s !== skillToRemove));
-  };
+  const updateExperience = (index, key, value) =>
+    setForm((f) => ({ ...f, experiences: f.experiences.map((e, i) => (i === index ? { ...e, [key]: value } : e)) }));
 
-  const handleAddExperience = (e) => {
-    e.preventDefault();
-    if (!newExp.position.trim() || !newExp.company.trim() || !newExp.startDate) {
-      setErrorMsg("Position, Company, and Start Date are required to add an experience.");
-      setShowAlert(true);
+  const handlePicture = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setErrorMsg("Please choose an image (JPG or PNG).");
       return;
     }
-
-    setExperiences([...experiences, { ...newExp }]);
-    setNewExp({
-      position: "",
-      company: "",
-      startDate: "",
-      endDate: ""
-    });
-  };
-
-  const handleRemoveExperience = (index) => {
-    setExperiences(experiences.filter((_, idx) => idx !== index));
-  };
-
-  const handlePictureFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setUploadingPic(true);
+    setUploadingPicture(true);
     try {
-      const uploadRes = await candidateService.uploadFile(file);
-      setProfileForm({ ...profileForm, picture: uploadRes.url });
+      const { url } = await candidateService.uploadFile(file);
+      setForm((f) => ({ ...f, picture: url }));
     } catch (err) {
       console.error(err);
-      setErrorMsg("Failed to upload profile picture.");
-      setShowAlert(true);
+      setErrorMsg("Your photo couldn't be uploaded. Please try again.");
     } finally {
-      setUploadingPic(false);
+      setUploadingPicture(false);
     }
   };
 
-  const handleSaveProfile = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMsg("");
-
+  const handleDraftBio = async () => {
+    setDrafting(true);
     try {
-      const formatUrl = (urlStr) => {
-        if (!urlStr) return "";
-        const trimmed = urlStr.trim();
-        if (!trimmed) return "";
-        if (/^https?:\/\//i.test(trimmed)) return trimmed;
-        return `https://${trimmed}`;
-      };
+      const result = await aiService.draftBio({
+        headline: form.headline,
+        skills: form.skills,
+        education: form.education,
+        experiences: form.experiences.filter((e) => e.position && e.company)
+          .map((e) => ({ ...e, endDate: e.endDate || null })),
+      });
+      setForm((f) => ({ ...f, bio: result.text }));
+      setDraft(result);
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setDrafting(false);
+    }
+  };
 
-      const formattedLinkedin = formatUrl(profileForm.urlLinkedin);
-      const formattedGithub = formatUrl(profileForm.urlGithub);
-      const formattedPortfolio = formatUrl(profileForm.urlPortfolio);
-
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSubmitted(true);
+    if (Object.keys(errors).length > 0) {
+      const first = document.querySelector("[aria-invalid='true']");
+      first?.focus();
+      return;
+    }
+    setSaving(true);
+    try {
       const updatedUser = await candidateService.updateBasicInfo({
-        firstName: basicForm.firstName,
-        lastName: basicForm.lastName
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
       });
-
-      const updatedProfile = await candidateService.updateProfile({
-        urlLinkedin: formattedLinkedin,
-        urlGithub: formattedGithub,
-        urlPortfolio: formattedPortfolio,
-        bio: profileForm.bio,
-        picture: profileForm.picture,
-        skills: skills,
-        experiences: experiences.map(exp => ({
-          position: exp.position,
-          company: exp.company,
-          startDate: exp.startDate,
-          endDate: exp.endDate || null
-        }))
+      const updated = await candidateService.updateProfile({
+        headline: form.headline.trim(),
+        education: form.education.trim(),
+        bio: form.bio,
+        picture: form.picture,
+        urlLinkedin: normalizeUrl(form.urlLinkedin),
+        urlGithub: normalizeUrl(form.urlGithub),
+        urlPortfolio: normalizeUrl(form.urlPortfolio),
+        skills: form.skills,
+        experiences: form.experiences.map((x) => ({
+          position: x.position.trim(), company: x.company.trim(), startDate: x.startDate, endDate: x.endDate || null,
+        })),
       });
-
-      setUser(prev => ({
-        ...prev,
-        firstName: updatedUser.firstName,
-        lastName: updatedUser.lastName,
-        candidateProfile: updatedProfile
-      }));
-
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        const parsed = JSON.parse(storedUser);
-        const updatedStored = {
-          ...parsed,
-          firstName: updatedUser.firstName,
-          lastName: updatedUser.lastName
-        };
-        localStorage.setItem("user", JSON.stringify(updatedStored));
-      }
-
+      setProfile(updated);
+      setForm(toForm(updated));
+      setEditing(false);
+      setDraft(null);
+      setUser((prev) => ({ ...prev, firstName: updatedUser.firstName, lastName: updatedUser.lastName, candidateProfile: updated }));
+      try {
+        const stored = JSON.parse(localStorage.getItem("user") || "null");
+        if (stored) localStorage.setItem("user", JSON.stringify({ ...stored, firstName: updatedUser.firstName, lastName: updatedUser.lastName }));
+      } catch { /* the layout copy is a convenience only */ }
       toast("Your profile is saved.");
     } catch (err) {
-      console.error(err);
-      setErrorMsg(
-        err.response?.data?.message || 
-        err.response?.data || 
-        "Failed to update profile. Please verify your inputs."
-      );
-      setShowAlert(true);
+      const data = err.response?.data;
+      setErrorMsg(data?.message || (data && typeof data === "object" ? Object.values(data).join(" ") : "") ||
+        "Your profile couldn't be saved. Please try again.");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const defaultAvatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=60";
+  const completeness = [
+    { key: "picture", weight: 10, done: !!profile.picture, suggestion: "Add a profile photo", onFix: () => focusField(setEditing, "profile-picture") },
+    { key: "headline", weight: 15, done: !!profile.headline, suggestion: "Add a headline (your job title)", onFix: () => focusField(setEditing, "profile-headline") },
+    { key: "bio", weight: 15, done: (profile.bio || "").trim().length >= 40, suggestion: "Write a short bio", onFix: () => focusField(setEditing, "profile-bio") },
+    { key: "skills", weight: 15, done: (profile.skills || []).length >= 3, suggestion: "List at least 3 skills", onFix: () => focusField(setEditing, "profile-skill-input") },
+    { key: "experience", weight: 15, done: (profile.experiences || []).length > 0, suggestion: "Add your experience", onFix: () => focusField(setEditing, "profile-add-experience") },
+    { key: "education", weight: 10, done: !!profile.education, suggestion: "Add your education", onFix: () => focusField(setEditing, "profile-education") },
+    { key: "cv", weight: 15, done: !!cv, suggestion: "Upload your CV", onFix: () => document.getElementById("profile-cv-input")?.focus() },
+    { key: "links", weight: 5, done: LINKS.some(({ key }) => profile[key]), suggestion: "Add LinkedIn, GitHub or a portfolio", onFix: () => focusField(setEditing, "profile-urlLinkedin") },
+  ];
+
+  const experiences = [...(profile.experiences || [])].sort((a, b) =>
+    (a.endDate ? 0 : 1) - (b.endDate ? 0 : 1) || String(b.startDate).localeCompare(String(a.startDate)));
+
+  const cvCard = (
+    <SectionCard id="cv" title="My CV"
+      action={
+        <label className="secondary-btn btn-compact file-button">
+          {cvUploading ? "Uploading…" : cv ? "Replace" : "Upload"}
+          <input id="profile-cv-input" type="file" accept=".pdf,.docx" onChange={handleCvChange} disabled={cvUploading}
+            aria-label={cv ? "Replace your CV (PDF or DOCX)" : "Upload your CV (PDF or DOCX)"} />
+        </label>
+      }>
+      {cvError && <span className="field-error" role="alert">{cvError}</span>}
+      {cv ? (
+        <>
+          <div className="cv-file">
+            <span className="cv-file__icon" aria-hidden="true">{cv.fileName?.toLowerCase().endsWith(".pdf") ? "PDF" : "DOC"}</span>
+            <div className="grow">
+              <div className="text-strong truncate">{cv.fileName}</div>
+              {cv.uploadedAt && <div className="hint">Uploaded {new Date(cv.uploadedAt).toLocaleDateString()}</div>}
+            </div>
+            {cvUrl && <a className="cv-link text-sm" href={cvUrl} target="_blank" rel="noreferrer">Open</a>}
+          </div>
+          {cvUrl ? (
+            <iframe className="cv-preview" src={cvUrl} title={`Preview of ${cv.fileName}`} />
+          ) : (
+            <p className="hint">The preview is available for PDF files. Your DOCX CV is used for matching as it is.</p>
+          )}
+        </>
+      ) : (
+        <Missing>No CV yet. Upload one (PDF or DOCX, max {MAX_FILE_SIZE_MB} MB) to see how well you match each offer.</Missing>
+      )}
+    </SectionCard>
+  );
 
   return (
-    <div style={{ maxWidth: "960px", margin: "0 auto", textAlign: "left" }}>
-      {/* Top Profile Summary Card with AI Assistant Trigger & Completeness Gauge */}
-      <div 
-        className="dashboard-panel" 
-        style={{ 
-          marginBottom: "32px",
-          padding: "28px",
-          position: "relative",
-          background: "linear-gradient(135deg, rgba(var(--bg-rgb), 0.9), rgba(var(--surface-raised-rgb), 0.9))",
-          border: "1px solid rgba(var(--cyan-rgb), 0.2)",
-          boxShadow: "0 12px 32px rgba(var(--black-rgb), 0.3)"
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "24px", flexWrap: "wrap", marginBottom: "20px" }}>
-          <div>
-            <img 
-              src={profileForm.picture || defaultAvatar} 
-              alt="Profile Preview" 
-              style={{
-                width: "100px",
-                height: "100px",
-                borderRadius: "50%",
-                objectFit: "cover",
-                backgroundColor: "rgba(var(--white-rgb), 0.05)",
-                border: "3px solid var(--cyan)",
-                padding: "3px",
-                boxShadow: "0 8px 24px rgba(var(--cyan-rgb), 0.25)"
-              }}
-              onError={(e) => { e.target.src = defaultAvatar; }}
-            />
-          </div>
-          <div style={{ flex: 1, minWidth: "220px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-              <h2 style={{ margin: 0, fontSize: "1.75rem", fontWeight: "700", color: "var(--white)" }}>
-                {basicForm.firstName} {basicForm.lastName}
-              </h2>
-              <span style={{
-                backgroundColor: badgeInfo.bg,
-                color: badgeInfo.color,
-                border: `1px solid ${badgeInfo.border}`,
-                padding: "4px 12px",
-                borderRadius: "20px",
-                fontSize: "0.8rem",
-                fontWeight: "600"
-              }}>
-                {badgeInfo.label}
-              </span>
-            </div>
-
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", fontSize: "0.92rem", color: "var(--text-secondary)", marginTop: "8px" }}>
-              <span>✉️ {user?.email}</span>
-              {skills.length > 0 && <span>⚡ {skills.length} Skills Listed</span>}
-              {experiences.length > 0 && <span>💼 {experiences.length} Experiences</span>}
-            </div>
-          </div>
-
-          <div>
-            <button 
-              type="button"
-              className="primary-btn"
-              onClick={() => setShowAiAssistantModal(true)}
-              style={{
-                background: "linear-gradient(135deg, var(--violet), var(--violet))",
-                boxShadow: "0 4px 15px rgba(var(--violet-rgb), 0.4)",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                fontWeight: "600",
-                padding: "10px 18px",
-                fontSize: "0.9rem"
-              }}
-            >
-              <span>✨ AI Profile & Skill Enhancer</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Profile Completeness Bar */}
-        <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid rgba(var(--white-rgb), 0.08)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: "8px" }}>
-            <span style={{ color: "var(--text-muted)", fontWeight: "500" }}>Profile Completeness Meter</span>
-            <span style={{ color: badgeInfo.color, fontWeight: "700" }}>{completenessScore}% Complete</span>
-          </div>
-          <div style={{ height: "8px", width: "100%", backgroundColor: "rgba(var(--white-rgb), 0.1)", borderRadius: "4px", overflow: "hidden" }}>
-            <div style={{
-              height: "100%",
-              width: `${completenessScore}%`,
-              background: "linear-gradient(90deg, var(--cyan), var(--violet), var(--magenta))",
-              borderRadius: "4px",
-              transition: "width 0.6s ease-in-out"
-            }} />
-          </div>
-          {completenessScore < 100 && (
-            <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "6px" }}>
-              💡 Tip: {completenessScore < 50 ? "Add your skills and bio to boost candidate visibility." : completenessScore < 80 ? "Add professional links (LinkedIn/GitHub) & experience to reach All-Star status." : "Complete any missing fields for 100% maximum recruiter appeal."}
-            </div>
-          )}
-        </div>
-      </div>
-
-
-      <form onSubmit={handleSaveProfile}>
-        {/* Personal Details Section */}
-        <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)" }}>
-            Personal Details
-          </h3>
-          <div className="form-grid">
-            <div className="form-group">
-              <label>First Name *</label>
-              <input 
-                type="text" 
-                value={basicForm.firstName}
-                onChange={(e) => setBasicForm({ ...basicForm, firstName: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Last Name *</label>
-              <input 
-                type="text" 
-                value={basicForm.lastName}
-                onChange={(e) => setBasicForm({ ...basicForm, lastName: e.target.value })}
-                required
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Bio Section */}
-        <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)" }}>
-            Professional Bio
-          </h3>
-          <div className="form-group" style={{ marginBottom: "16px" }}>
-            <label>Profile Picture</label>
-            <input 
-              type="file" 
-              accept="image/*"
-              onChange={handlePictureFileChange}
-              style={{ color: "var(--white)" }}
-            />
-            {uploadingPic && <span style={{ fontSize: "0.8rem", color: "var(--cyan)", marginTop: "4px" }}>Uploading image...</span>}
-          </div>
-          <div className="form-group">
-            <label>Bio (Introduce yourself to recruiters) *</label>
-            <textarea 
-              rows="6" 
-              maxLength="2000"
-              placeholder="Brief professional summary..."
-              value={profileForm.bio}
-              onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
-              required
-            />
-          </div>
-        </div>
-
-        {/* Social Links Section */}
-        <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)" }}>
-            Professional Links
-          </h3>
-          <div className="form-grid">
-            <div className="form-group">
-              <label>LinkedIn Profile URL</label>
-              <input 
-                type="text" 
-                placeholder="linkedin.com/in/username" 
-                value={profileForm.urlLinkedin}
-                onChange={(e) => setProfileForm({ ...profileForm, urlLinkedin: e.target.value })}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>GitHub Profile URL</label>
-              <input 
-                type="text" 
-                placeholder="github.com/username" 
-                value={profileForm.urlGithub}
-                onChange={(e) => setProfileForm({ ...profileForm, urlGithub: e.target.value })}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Portfolio Website URL</label>
-              <input 
-                type="text" 
-                placeholder="myportfolio.dev" 
-                value={profileForm.urlPortfolio}
-                onChange={(e) => setProfileForm({ ...profileForm, urlPortfolio: e.target.value })}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Skills Section */}
-        <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)" }}>
-            Skills
-          </h3>
-          <div className="skills-input-row">
-            <input 
-              type="text" 
-              placeholder="e.g. React, Java, UI/UX" 
-              value={skillInput}
-              onChange={(e) => setSkillInput(e.target.value)}
-              style={{ flex: 1, backgroundColor: "rgba(var(--black-rgb), 0.2)", border: "1px solid var(--border-color)", color: "var(--white)", padding: "10px", borderRadius: "8px", outline: "none" }}
-              onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); handleAddSkill(e); } }}
-            />
-            <button type="button" className="secondary-btn" onClick={handleAddSkill} style={{ height: "42px" }}>
-              Add Skill
-            </button>
-          </div>
-
-          <div className="skills-tags-container">
-            {skills.map((skill, index) => (
-              <span key={index} className="skill-tag">
-                {skill}
-                <button type="button" className="remove-tag-btn" onClick={() => handleRemoveSkill(skill)}>×</button>
-              </span>
+    <div className="profile-page page-stack">
+      <header className="profile-hero">
+        <Avatar src={editing ? form.picture : profile.picture} name={fullName} size="lg" />
+        <div className="profile-hero__main">
+          <h2 className="profile-hero__name">{fullName || "Your name"}</h2>
+          {profile.headline
+            ? <p className="profile-hero__tagline">{profile.headline}</p>
+            : <p className="profile-hero__tagline profile-hero__tagline--empty">No headline yet</p>}
+          <div className="profile-hero__meta">
+            <span>{profile.email}</span>
+            {LINKS.filter(({ key }) => profile[key]).map(({ key, label }) => (
+              <a key={key} className="link-chip" href={profile[key]} target="_blank" rel="noreferrer">{label} ↗</a>
             ))}
-            {skills.length === 0 && (
-              <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", fontStyle: "italic", marginTop: "8px" }}>
-                No skills added yet. Add some to get noticed!
-              </div>
-            )}
           </div>
         </div>
+        {!editing && (
+          <div className="profile-hero__actions">
+            <button type="button" className="primary-btn" onClick={startEditing}>Edit profile</button>
+          </div>
+        )}
+      </header>
 
-        {/* Experiences Section */}
-        <div className="dashboard-panel" style={{ padding: "24px", marginBottom: "24px" }}>
-          <h3 style={{ margin: "0 0 20px 0", fontSize: "1.15rem", fontWeight: "600", color: "var(--cyan)" }}>
-            Professional Experience
-          </h3>
-          
-          {/* New Experience Inline Form */}
-          <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "20px", marginBottom: "20px" }}>
-            <h4 style={{ margin: "0 0 14px 0", fontSize: "0.95rem", color: "var(--text-muted)" }}>Add Professional Experience</h4>
-            <div className="experience-form-row">
-              <div className="form-group">
-                <label>Job Position *</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Frontend Engineer" 
-                  value={newExp.position}
-                  onChange={(e) => setNewExp({ ...newExp, position: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>Company *</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. TechCorp" 
-                  value={newExp.company}
-                  onChange={(e) => setNewExp({ ...newExp, company: e.target.value })}
-                />
-              </div>
-            </div>
-            
-            <div className="experience-form-row" style={{ marginTop: "12px" }}>
-              <div className="form-group">
-                <label>Start Date *</label>
-                <input 
-                  type="date" 
-                  value={newExp.startDate}
-                  onChange={(e) => setNewExp({ ...newExp, startDate: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>End Date (Leave blank if current)</label>
-                <input 
-                  type="date" 
-                  value={newExp.endDate}
-                  onChange={(e) => setNewExp({ ...newExp, endDate: e.target.value })}
-                />
-              </div>
-            </div>
-            
-            <button type="button" className="secondary-btn" onClick={handleAddExperience} style={{ marginTop: "16px" }}>
-              Add Experience
-            </button>
+      {!editing ? (
+        <div className="profile-layout">
+          <div className="profile-column">
+            <SectionCard id="about" title="About">
+              {profile.bio ? <p className="profile-text">{profile.bio}</p> : <Missing>No bio yet.</Missing>}
+            </SectionCard>
+
+            <SectionCard id="experience" title="Experience">
+              {experiences.length === 0 ? <Missing>No experience added yet.</Missing> : (
+                <ol className="timeline">
+                  {experiences.map((e, i) => (
+                    <li key={e.id || i} className={`timeline__item ${e.endDate ? "" : "timeline__item--current"}`}>
+                      <p className="timeline__title">{e.position}</p>
+                      <p className="timeline__meta">
+                        {e.company} · {formatMonth(e.startDate)} – {e.endDate ? formatMonth(e.endDate) : "present"}
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </SectionCard>
+
+            <SectionCard id="education" title="Education">
+              {profile.education ? <p className="profile-text">{profile.education}</p> : <Missing>No education added yet.</Missing>}
+            </SectionCard>
+
+            {cvCard}
           </div>
 
-          {/* Experience list */}
-          <div className="experience-list">
-            {experiences.map((exp, index) => (
-              <div key={index} className="experience-item-card">
-                <div className="experience-details">
-                  <h4>{exp.position}</h4>
-                  <p>Company: {exp.company}</p>
-                  <div className="experience-dates">
-                    Duration: {exp.startDate} to {exp.endDate || "Present"}
-                  </div>
-                </div>
-                <button 
-                  type="button" 
-                  className="action-btn-small btn-reject" 
-                  onClick={() => handleRemoveExperience(index)}
-                  style={{ padding: "4px 8px" }}
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-            {experiences.length === 0 && (
-              <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", fontStyle: "italic", textAlign: "center", padding: "20px 0" }}>
-                No experience listed. Add one to show recruiters your work history.
-              </div>
-            )}
-          </div>
+          <aside className="profile-column profile-column--aside">
+            <ProfileCompleteness items={completeness} />
+            <SectionCard id="skills" title="Skills">
+              {(profile.skills || []).length === 0 ? <Missing>No skills listed yet.</Missing> : (
+                <ul className="tag-list">
+                  {profile.skills.map((s) => <li key={s} className="tag">{s}</li>)}
+                </ul>
+              )}
+            </SectionCard>
+          </aside>
         </div>
-
-        {/* Action Button Row */}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "16px", marginBottom: "40px" }}>
-          <button 
-            type="submit" 
-            className="primary-btn" 
-            disabled={loading}
-            style={{ padding: "12px 28px" }}
-          >
-            {loading ? "Saving Changes..." : "Save Profile Details"}
-          </button>
-        </div>
-      </form>
-
-      {/* AI Profile Enhancer & Skill Extractor Modal */}
-      {showAiAssistantModal && (
-        <div className="modal-overlay" style={{ backdropFilter: "blur(8px)" }}>
-          <div className="modal-content" style={{ maxWidth: "650px", width: "90%", borderRadius: "20px", border: "1px solid rgba(var(--violet-rgb), 0.4)" }}>
-            <div className="modal-header" style={{ borderBottom: "1px solid rgba(var(--white-rgb), 0.08)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ fontSize: "1.5rem" }}>✨</span>
-                <div>
-                  <h2 style={{ margin: 0, fontSize: "1.25rem" }}>AI Candidate Profile Generator</h2>
-                  <p style={{ margin: "2px 0 0 0", fontSize: "0.82rem", color: "var(--violet-soft)" }}>
-                    Automatically extract technical skills & generate a compelling bio summary
-                  </p>
-                </div>
+      ) : (
+        <form className="page-stack" onSubmit={handleSave} noValidate>
+          <SectionCard id="edit-identity" title="Identity">
+            <div className="form-grid">
+              <div className="form-group">
+                <label htmlFor="profile-firstName">First name *</label>
+                <input id="profile-firstName" value={form.firstName} onChange={set("firstName")} aria-invalid={!!showError("firstName")} />
+                {showError("firstName") && <span className="field-error">{errors.firstName}</span>}
               </div>
-              <button className="close-btn" onClick={() => setShowAiAssistantModal(false)}>×</button>
+              <div className="form-group">
+                <label htmlFor="profile-lastName">Last name *</label>
+                <input id="profile-lastName" value={form.lastName} onChange={set("lastName")} aria-invalid={!!showError("lastName")} />
+                {showError("lastName") && <span className="field-error">{errors.lastName}</span>}
+              </div>
+              <div className="form-group form-full-width">
+                <label htmlFor="profile-headline">Headline <span className="char-count">{form.headline.length}/150</span></label>
+                <input id="profile-headline" placeholder="e.g. Java backend developer" value={form.headline}
+                  onChange={set("headline")} aria-invalid={!!showError("headline")} />
+                <span className="field-hint">Your current or target job title. Recruiters see it first.</span>
+                {showError("headline") && <span className="field-error">{errors.headline}</span>}
+              </div>
+              <div className="form-group form-full-width">
+                <label htmlFor="profile-picture">Profile photo</label>
+                <input id="profile-picture" type="file" accept="image/*" className="file-input" onChange={handlePicture} />
+                {uploadingPicture && <span className="field-hint">Uploading…</span>}
+              </div>
             </div>
+          </SectionCard>
 
-            <div className="modal-body" style={{ padding: "20px 0" }}>
-              <div className="form-group" style={{ marginBottom: "16px" }}>
-                <label>Target Job Title / Specialization</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Full Stack Developer, Data Analyst..." 
-                  value={aiTargetRole}
-                  onChange={(e) => setAiTargetRole(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: "20px" }}>
-                <label>Paste your CV text, project notes, or skills list</label>
-                <textarea 
-                  rows="5"
-                  placeholder="Paste text from your CV/Resume here... e.g. Experienced in Java, Spring Boot, React, SQL, Docker..."
-                  value={aiInputText}
-                  onChange={(e) => setAiInputText(e.target.value)}
-                />
-              </div>
-
-              <button 
-                type="button" 
-                className="primary-btn" 
-                onClick={handleGenerateAiProfile}
-                disabled={generatingAi}
-                style={{ width: "100%", background: "linear-gradient(135deg, var(--violet), var(--violet))", padding: "12px" }}
-              >
-                {generatingAi ? "Generating Profile Summary..." : "✨ Extract Skills & Generate Bio"}
+          <SectionCard id="edit-bio" title="About"
+            action={
+              <button type="button" className="accent-btn accent-violet btn-compact" onClick={handleDraftBio} disabled={drafting}>
+                {drafting ? "Drafting…" : "Draft my bio"}
               </button>
+            }>
+            <div className="form-group">
+              <label htmlFor="profile-bio">Bio <span className="char-count">{form.bio.length}/2000</span></label>
+              <textarea id="profile-bio" rows="6" value={form.bio} onChange={set("bio")} aria-invalid={!!showError("bio")}
+                placeholder="A few sentences about what you do and what you're looking for." />
+              {showError("bio") && <span className="field-error">{errors.bio}</span>}
+              <span className="field-hint">"Draft my bio" writes a starting point from your headline, experience, skills and education only.</span>
+              <DraftNote draft={draft} />
+            </div>
+          </SectionCard>
 
-              {aiGenResult && (
-                <div style={{ marginTop: "20px", background: "rgba(var(--white-rgb), 0.03)", padding: "16px", borderRadius: "12px", border: "1px solid rgba(var(--violet-rgb), 0.3)" }}>
-                  <h4 style={{ margin: "0 0 10px 0", color: "var(--violet-soft)", fontSize: "0.95rem" }}>Generated Professional Bio:</h4>
-                  <p style={{ color: "var(--text-sub)", fontSize: "0.9rem", lineHeight: "1.5", margin: "0 0 14px 0" }}>
-                    "{aiGenResult.generated_bio}"
-                  </p>
+          <SectionCard id="edit-skills" title="Skills">
+            <div className="tag-input">
+              <input id="profile-skill-input" placeholder="Add a skill, then press Enter" value={skillInput}
+                onChange={(e) => setSkillInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSkill(); } }}
+                aria-label="New skill" />
+              <button type="button" className="secondary-btn" onClick={addSkill}>Add</button>
+            </div>
+            {form.skills.length > 0 && (
+              <ul className="tag-list">
+                {form.skills.map((s) => (
+                  <li key={s} className="tag">
+                    {s}
+                    <button type="button" className="tag__remove" aria-label={`Remove ${s}`}
+                      onClick={() => setForm((f) => ({ ...f, skills: f.skills.filter((x) => x !== s) }))}>×</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
 
-                  {aiGenResult.extracted_skills && aiGenResult.extracted_skills.length > 0 && (
-                    <div>
-                      <h5 style={{ margin: "0 0 8px 0", color: "var(--text-muted)", fontSize: "0.85rem" }}>Extracted Skills:</h5>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                        {aiGenResult.extracted_skills.map((s, i) => (
-                          <span key={i} style={{ backgroundColor: "rgba(var(--violet-rgb), 0.2)", color: "var(--violet-soft)", padding: "2px 8px", borderRadius: "12px", fontSize: "0.78rem" }}>
-                            {s}
-                          </span>
-                        ))}
+          <SectionCard id="edit-experience" title="Experience"
+            action={
+              <button id="profile-add-experience" type="button" className="secondary-btn btn-compact"
+                onClick={() => setForm((f) => ({ ...f, experiences: [...f.experiences, { ...EMPTY_EXPERIENCE }] }))}>
+                + Add experience
+              </button>
+            }>
+            {form.experiences.length === 0 ? <Missing>No experience yet.</Missing> : (
+              <div className="experience-editor">
+                {form.experiences.map((x, i) => (
+                  <div key={i}>
+                    <div className="experience-row">
+                      <div className="form-group">
+                        <label htmlFor={`exp-position-${i}`}>Position *</label>
+                        <input id={`exp-position-${i}`} value={x.position} onChange={(e) => updateExperience(i, "position", e.target.value)}
+                          aria-invalid={!!showError(`experience-${i}`)} />
                       </div>
+                      <div className="form-group">
+                        <label htmlFor={`exp-company-${i}`}>Company *</label>
+                        <input id={`exp-company-${i}`} value={x.company} onChange={(e) => updateExperience(i, "company", e.target.value)} />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor={`exp-start-${i}`}>Start *</label>
+                        <input id={`exp-start-${i}`} type="date" value={x.startDate} onChange={(e) => updateExperience(i, "startDate", e.target.value)} />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor={`exp-end-${i}`}>End (empty = current)</label>
+                        <input id={`exp-end-${i}`} type="date" value={x.endDate} onChange={(e) => updateExperience(i, "endDate", e.target.value)} />
+                      </div>
+                      <button type="button" className="icon-button" aria-label={`Remove experience ${x.position || i + 1}`}
+                        onClick={() => setForm((f) => ({ ...f, experiences: f.experiences.filter((_, j) => j !== i) }))}>×</button>
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
+                    {showError(`experience-${i}`) && <span className="field-error">{errors[`experience-${i}`]}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </SectionCard>
 
-            <div className="modal-footer" style={{ borderTop: "1px solid rgba(var(--white-rgb), 0.08)", paddingTop: "14px", display: "flex", justifyContent: "space-between" }}>
-              <button className="secondary-btn" onClick={() => setShowAiAssistantModal(false)}>
-                Cancel
-              </button>
-              {aiGenResult && (
-                <button className="primary-btn" onClick={handleApplyAiResult} style={{ backgroundColor: "var(--green)" }}>
-                  Apply to Profile Form
-                </button>
-              )}
+          <SectionCard id="edit-education" title="Education">
+            <div className="form-group">
+              <label htmlFor="profile-education">Degrees and schools <span className="char-count">{form.education.length}/1000</span></label>
+              <textarea id="profile-education" rows="3" value={form.education} onChange={set("education")}
+                aria-invalid={!!showError("education")} placeholder="e.g. Master in software engineering, ENICAR (2024)" />
+              {showError("education") && <span className="field-error">{errors.education}</span>}
             </div>
+          </SectionCard>
+
+          <SectionCard id="edit-links" title="Links">
+            <div className="form-grid">
+              {LINKS.map(({ key, label }) => (
+                <div key={key} className="form-group">
+                  <label htmlFor={`profile-${key}`}>{label}</label>
+                  <input id={`profile-${key}`} inputMode="url" value={form[key]} onChange={set(key)}
+                    placeholder={`${label.toLowerCase()}.com/…`} aria-invalid={!!showError(key)} />
+                  {showError(key) && <span className="field-error">{errors[key]}</span>}
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+
+          <div className="edit-actions">
+            <button type="button" className="secondary-btn" onClick={cancelEditing} disabled={saving}>Cancel</button>
+            <button type="submit" className="primary-btn" disabled={saving}>{saving ? "Saving…" : "Save profile"}</button>
           </div>
-        </div>
+        </form>
       )}
 
-      <AlertModal 
-        isOpen={showAlert}
-        type="error"
-        title="Profile Update Failed"
-        message={errorMsg}
-        onClose={() => setShowAlert(false)}
-      />
-
+      <AlertModal isOpen={!!errorMsg} type="error" title="Something went wrong" message={errorMsg} onClose={() => setErrorMsg("")} />
     </div>
   );
 }
-

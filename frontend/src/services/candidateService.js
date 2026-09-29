@@ -72,6 +72,12 @@ const candidateService = {
     return response.data;
   },
 
+  // The stored CV file itself (for the preview on the profile page).
+  getMyCvFile: async () => {
+    const response = await api.get("/candidates/me/cv/file", { responseType: "blob" });
+    return response.data;
+  },
+
   uploadMyCv: async (file) => {
     const formData = new FormData();
     formData.append("file", file);

@@ -1,6 +1,8 @@
 package com.hirehub.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import com.hirehub.company.CompanyFields;
 import lombok.Data;
 import org.hibernate.validator.constraints.URL;
 
@@ -14,6 +16,7 @@ public class RecruiterProfileRequestDto {
 
     private String logo;
 
+    @Size(max = CompanyFields.DESCRIPTION_MAX, message = "Description must be at most 5000 characters")
     private String description;
 
     private Integer foundedYear;

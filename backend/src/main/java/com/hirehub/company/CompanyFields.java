@@ -22,11 +22,14 @@ public final class CompanyFields {
     record Field(String name, Kind kind, int maxLength,
                  Function<RecruiterProfile, Object> getter, BiConsumer<RecruiterProfile, Object> setter) {}
 
+    /** Max length of the company description (a TEXT column; the limit is a sanity check). */
+    public static final int DESCRIPTION_MAX = 5000;
+
     static final Map<String, Field> FIELDS = new LinkedHashMap<>();
 
     static {
         text("companyName", 255, RecruiterProfile::getCompanyName, RecruiterProfile::setCompanyName);
-        text("description", 255, RecruiterProfile::getDescription, RecruiterProfile::setDescription);
+        text("description", DESCRIPTION_MAX, RecruiterProfile::getDescription, RecruiterProfile::setDescription);
         url("logo", RecruiterProfile::getLogo, RecruiterProfile::setLogo);
         FIELDS.put("foundedYear", new Field("foundedYear", Kind.YEAR, 0, RecruiterProfile::getFoundedYear,
                 (p, v) -> p.setFoundedYear((Integer) v)));
@@ -60,20 +63,6 @@ public final class CompanyFields {
 
     static boolean isBlank(Object value) {
         return value == null || (value instanceof String s && s.isBlank());
-    }
-
-    /** Shortens text at a sentence (or word) boundary so it fits its column. */
-    static String fit(String text, int max) {
-        if (text.length() <= max) {
-            return text;
-        }
-        String cut = text.substring(0, max - 1);
-        int sentence = Math.max(cut.lastIndexOf(". "), Math.max(cut.lastIndexOf("! "), cut.lastIndexOf("? ")));
-        if (sentence > max / 2) {
-            return cut.substring(0, sentence + 1);
-        }
-        int space = cut.lastIndexOf(' ');
-        return (space > 0 ? cut.substring(0, space) : cut) + "…";
     }
 
     public static List<String> parse(String stored) {

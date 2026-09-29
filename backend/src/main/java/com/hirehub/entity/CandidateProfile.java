@@ -31,6 +31,14 @@ public class CandidateProfile {
 
     private String urlPortfolio;
 
+    /** Current or target job title, e.g. "Java backend developer". */
+    @Column(length = 150)
+    private String headline;
+
+    /** Degrees and schools, as the candidate writes them. */
+    @Column(length = 1000)
+    private String education;
+
     @Column(columnDefinition = "TEXT")
     private String bio;
 

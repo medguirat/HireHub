@@ -44,6 +44,19 @@ public class CandidateCvService {
                 .orElseThrow(() -> new ResourceNotFoundException("You haven't uploaded a CV yet."));
     }
 
+    public record CvFile(byte[] data, String fileName) {
+        public boolean isPdf() {
+            return fileName.toLowerCase(Locale.ROOT).endsWith(".pdf");
+        }
+    }
+
+    /** The candidate's own stored CV file, for the preview on their profile. */
+    public CvFile readMyCvFile(User candidate) {
+        CandidateCv cv = cvRepository.findByCandidateId(candidate.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("You haven't uploaded a CV yet."));
+        return new CvFile(storage.read(cv.getStoredFileName()), cv.getOriginalFileName());
+    }
+
     /**
      * Stores the candidate's CV, replacing the previous one. The text is
      * extracted immediately; if the ai-service is down the file is kept and the

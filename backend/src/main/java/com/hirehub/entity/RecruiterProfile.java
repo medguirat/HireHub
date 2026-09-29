@@ -31,6 +31,7 @@ public class RecruiterProfile {
 
     private String logo;
 
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     private Integer foundedYear;

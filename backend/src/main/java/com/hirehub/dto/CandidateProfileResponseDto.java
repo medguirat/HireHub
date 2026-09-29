@@ -25,6 +25,8 @@ public class CandidateProfileResponseDto {
 
     private String urlPortfolio;
 
+    private String headline;
+    private String education;
     private String bio;
 
     private String picture;

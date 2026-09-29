@@ -98,6 +98,17 @@ The LLM only writes the suggestions. The score never depends on it, and if the L
 | `VITE_API_URL` | frontend | `http://localhost:8081/api` |
 | `EMBEDDING_MODEL` | ai-service | `paraphrase-multilingual-MiniLM-L12-v2` (French, English, Arabic and 50+ other languages) |
 
+## Database changes to apply by hand
+
+The backend uses `spring.jpa.hibernate.ddl-auto=update`, which adds new tables and columns by itself but never changes an existing column. Run this once on an existing database (MySQL):
+
+```sql
+-- Company description: from VARCHAR(255) to TEXT (max 5000 characters, checked by the API)
+ALTER TABLE recruiter_profiles MODIFY description TEXT NULL;
+```
+
+The test database (`hirehub_test`) is recreated on every test run, so it needs nothing.
+
 ## Company profile import
 
 A recruiter can give their company website at signup. The account is created immediately; the import runs in the background and fills the company profile with what the website states. The profile page shows "We're building your company profile from your website…" while it runs.
