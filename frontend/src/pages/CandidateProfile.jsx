@@ -12,6 +12,7 @@ import { focusField, isValidUrl, normalizeUrl } from "../utils/profile";
 import "../styles/profile.css";
 import { formatDate, formatMonthYear } from "../utils/format";
 import { errorMessage } from "../utils/apiError";
+import fileService, { IMAGE_TYPES } from "../services/fileService";
 
 // pdf.js is large: only loaded when a CV preview is shown.
 const PdfPreview = lazy(() => import("../components/PdfPreview"));
@@ -110,14 +111,13 @@ export default function CandidateProfile() {
       try {
         const meta = await candidateService.getMyCv();
         if (!ignore) setCv(meta);
-        if (meta.fileName?.toLowerCase().endsWith(".pdf")) {
-          const blob = new Blob([await candidateService.getMyCvFile()], { type: "application/pdf" });
-          if (!ignore) setCvBlob(blob);
-          if (!ignore) setCvUrl(URL.createObjectURL(blob));
-        } else {
-          if (!ignore) setCvBlob(null);
-          if (!ignore) setCvUrl("");
-        }
+        // Fetched with the login token and kept in the browser (a blob: URL): the file is private.
+        const isPdf = meta.fileName?.toLowerCase().endsWith(".pdf");
+        const blob = new Blob([await candidateService.getMyCvFile()], {
+          type: isPdf ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        });
+        if (!ignore) setCvBlob(isPdf ? blob : null);
+        if (!ignore) setCvUrl(URL.createObjectURL(blob));
       } catch (err) {
         if (err.response?.status !== 404) console.error(err);
         if (!ignore) setCv(null);
@@ -127,6 +127,9 @@ export default function CandidateProfile() {
     })();
     return () => { ignore = true; };
   }, [cvReloadKey]);
+
+  // Free the previous local copy when it is replaced or the page closes.
+  useEffect(() => () => { if (cvUrl) URL.revokeObjectURL(cvUrl); }, [cvUrl]);
 
   useEffect(() => {
     let active = true;
@@ -208,17 +211,17 @@ export default function CandidateProfile() {
     const file = e.target.files[0];
     e.target.value = "";
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setErrorMsg("Please choose an image (JPG or PNG).");
+    if (!IMAGE_TYPES.split(",").includes(file.type)) {
+      setErrorMsg("Please choose a PNG, JPEG, GIF or WebP image.");
       return;
     }
     setUploadingPicture(true);
     try {
-      const { url } = await candidateService.uploadFile(file);
+      const { url } = await fileService.uploadImage(file);
       setForm((f) => ({ ...f, picture: url }));
     } catch (err) {
       console.error(err);
-      setErrorMsg("Your photo couldn't be uploaded. Please try again.");
+      setErrorMsg(errorMessage(err, "Your photo couldn't be uploaded. Please try again."));
     } finally {
       setUploadingPicture(false);
     }
@@ -323,7 +326,9 @@ export default function CandidateProfile() {
               <div className="text-strong truncate">{cv.fileName}</div>
               {cv.uploadedAt && <div className="hint">Uploaded {formatDate(cv.uploadedAt)}</div>}
             </div>
-            {cvUrl && <a className="cv-link text-sm" href={cvUrl} target="_blank" rel="noreferrer">Open</a>}
+            {cvUrl && (cvBlob
+              ? <a className="cv-link text-sm" href={cvUrl} target="_blank" rel="noreferrer">Open</a>
+              : <a className="cv-link text-sm" href={cvUrl} download={cv.fileName}>Download</a>)}
           </div>
           {cvBlob ? (
             <Suspense fallback={<p className="hint">Loading the preview…</p>}>
@@ -434,7 +439,7 @@ export default function CandidateProfile() {
               </div>
               <div className="form-group form-full-width">
                 <label htmlFor="profile-picture">Profile photo</label>
-                <input id="profile-picture" type="file" accept="image/*" className="file-input" onChange={handlePicture} />
+                <input id="profile-picture" type="file" accept={IMAGE_TYPES} className="file-input" onChange={handlePicture} />
                 {uploadingPicture && <span className="field-hint">Uploading…</span>}
               </div>
             </div>

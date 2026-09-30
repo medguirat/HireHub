@@ -7,6 +7,7 @@ import com.hirehub.entity.*;
 import com.hirehub.repository.ApplicationRepository;
 import com.hirehub.repository.JobOfferRepository;
 import com.hirehub.repository.UserRepository;
+import com.hirehub.files.ApplicationDocumentService;
 import com.hirehub.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,11 @@ class ApplicationControllerIT {
     @Autowired private ApplicationRepository applicationRepository;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private JwtService jwtService;
+    @Autowired private ApplicationDocumentService documents;
+
+    private String storedCvId(User candidate) {
+        return documents.store(candidate, "%PDF-1.4 test".getBytes(), "cv.pdf").getId();
+    }
 
     private User persistUser(String email, Role role) {
         return userRepository.save(User.builder()
@@ -77,7 +83,7 @@ class ApplicationControllerIT {
         String token = jwtService.generateToken(candidate.getEmail());
 
         ApplicationRequestDto dto = new ApplicationRequestDto();
-        dto.setCv("cv.pdf");
+        dto.setCvFileId(storedCvId(candidate));
         dto.setCoverLetter("Motivated");
         dto.setJobOfferId(offer.getId());
 
@@ -105,7 +111,7 @@ class ApplicationControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.cv").exists());
+                .andExpect(jsonPath("$.fieldErrors.cvFileId").value("Upload your CV to apply"));
     }
 
     @Test
@@ -115,7 +121,7 @@ class ApplicationControllerIT {
         String token = jwtService.generateToken(recruiter.getEmail());
 
         ApplicationRequestDto dto = new ApplicationRequestDto();
-        dto.setCv("cv.pdf");
+        dto.setCvFileId("any-file-id"); // refused on the role before the file is looked up
         dto.setJobOfferId(offer.getId());
 
         mockMvc.perform(post("/api/applications")
@@ -133,7 +139,7 @@ class ApplicationControllerIT {
         String token = jwtService.generateToken(candidate.getEmail());
 
         ApplicationRequestDto dto = new ApplicationRequestDto();
-        dto.setCv("cv.pdf");
+        dto.setCvFileId(storedCvId(candidate));
         dto.setJobOfferId(offer.getId());
 
         mockMvc.perform(post("/api/applications")
@@ -164,7 +170,7 @@ class ApplicationControllerIT {
         String token = jwtService.generateToken(candidate.getEmail());
 
         ApplicationRequestDto dto = new ApplicationRequestDto();
-        dto.setCv("cv.pdf");
+        dto.setCvFileId(storedCvId(candidate));
         dto.setJobOfferId(offer.getId());
 
         mockMvc.perform(post("/api/applications")

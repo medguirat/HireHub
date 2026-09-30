@@ -7,6 +7,7 @@ import { SkeletonRows } from "../components/Skeleton";
 import { useToast } from "../components/toastContext";
 import fetchAllPages from "../utils/fetchAllPages";
 import { errorMessage } from "../utils/apiError";
+import DocumentButton from "../components/DocumentButton";
 
 export default function RecruiterOverview() {
   const navigate = useNavigate();
@@ -141,10 +142,9 @@ export default function RecruiterOverview() {
                         </td>
                         <td data-label="Applied Position">{app.jobOfferTitle}</td>
                         <td data-label="CV / Resume">
-                          {app.cv ? (
-                            <a href={app.cv} target="_blank" rel="noreferrer" className="cv-link">
-                              View CV
-                            </a>
+                          {app.cvFileName ? (
+                            <DocumentButton applicationId={app.id} fileName={app.cvFileName} label="View CV"
+                              title={`CV of ${app.candidateName} ${app.candidateLastName}`} />
                           ) : (
                             "No CV"
                           )}

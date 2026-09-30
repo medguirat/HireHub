@@ -6,9 +6,13 @@ import OfferForm from "./OfferForm";
 import ApplyModal from "./ApplyModal";
 import { tomorrow, validateOffer } from "../utils/offerValidation";
 import candidateService from "../services/candidateService";
+import fileService from "../services/fileService";
 
 vi.mock("../services/candidateService", () => ({
-  default: { uploadFile: vi.fn(), createApplication: vi.fn() },
+  default: { createApplication: vi.fn() },
+}));
+vi.mock("../services/fileService", () => ({
+  default: { uploadDocument: vi.fn() },
 }));
 
 const EMPTY = { title: "", description: "", location: "", contractType: "CDI", deadline: "" };
@@ -60,13 +64,13 @@ describe("ApplyModal", () => {
     const big = new File([new Uint8Array(11 * 1024 * 1024)], "cv.pdf", { type: "application/pdf" });
     await user.upload(cvInput, big);
     expect(screen.getByText(/This file is 11\.0 MB/)).toBeInTheDocument();
-    expect(candidateService.uploadFile).not.toHaveBeenCalled();
+    expect(fileService.uploadDocument).not.toHaveBeenCalled();
   });
 
   it("uploads the CV, sends the application and reports success", async () => {
     const user = userEvent.setup();
     const onApplied = vi.fn();
-    candidateService.uploadFile.mockResolvedValue({ url: "http://files/cv.pdf" });
+    fileService.uploadDocument.mockResolvedValue({ id: "file-42", fileName: "cv.pdf", size: 4 });
     candidateService.createApplication.mockResolvedValue({ id: 1 });
     render(<ApplyModal offer={{ id: 3, title: "Java Developer" }} onClose={() => {}} onApplied={onApplied} />);
 
@@ -74,14 +78,18 @@ describe("ApplyModal", () => {
     await user.type(screen.getByPlaceholderText(/Introduce yourself/), "Motivated");
     await user.click(screen.getByRole("button", { name: "Send application" }));
 
-    expect(candidateService.createApplication).toHaveBeenCalledWith("http://files/cv.pdf", "Motivated", 3);
+    // The CV is stored privately and referred to by its id: no public link is ever sent.
+    expect(fileService.uploadDocument).toHaveBeenCalledTimes(1);
+    expect(candidateService.createApplication).toHaveBeenCalledWith(
+      { jobOfferId: 3, cvFileId: "file-42", coverLetter: "Motivated", coverLetterFileId: undefined });
     expect(onApplied).toHaveBeenCalledWith({ id: 3, title: "Java Developer" });
   });
 
   it("shows the API's message when applying fails (e.g. already applied)", async () => {
     const user = userEvent.setup();
-    candidateService.uploadFile.mockResolvedValue({ url: "u" });
-    candidateService.createApplication.mockRejectedValue({ response: { data: { message: "You have already applied to this offer." } } });
+    fileService.uploadDocument.mockResolvedValue({ id: "file-1", fileName: "cv.pdf", size: 4 });
+    candidateService.createApplication.mockRejectedValue({ response: { status: 400,
+      data: { code: "BAD_REQUEST", message: "You have already applied to this offer.", correlationId: "c" } } });
     render(<ApplyModal offer={{ id: 3, title: "Java Developer" }} onClose={() => {}} onApplied={() => {}} />);
     await user.upload(document.querySelector('input[type="file"]'), new File(["%PDF"], "cv.pdf", { type: "application/pdf" }));
     await user.click(screen.getByRole("button", { name: "Send application" }));

@@ -25,8 +25,9 @@ const candidateService = {
     return response.data;
   },
 
-  createApplication: async (cv, coverLetter, jobOfferId) => {
-    const response = await api.post("/applications", { cv, coverLetter, jobOfferId });
+  // cvFileId / coverLetterFileId come from fileService.uploadDocument.
+  createApplication: async ({ jobOfferId, cvFileId, coverLetter, coverLetterFileId }) => {
+    const response = await api.post("/applications", { jobOfferId, cvFileId, coverLetter, coverLetterFileId });
     return response.data;
   },
 
@@ -55,16 +56,6 @@ const candidateService = {
     return response.data;
   },
 
-  uploadFile: async (file) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    const response = await api.post("/files/upload", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data"
-      }
-    });
-    return response.data;
-  },
 
   // The CV used for matching (one per candidate; uploading replaces it).
   getMyCv: async () => {

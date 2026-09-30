@@ -2,6 +2,7 @@ import { useState } from "react";
 import candidateService from "../services/candidateService";
 import { MAX_FILE_SIZE_MB, validateFile } from "../utils/files";
 import { errorMessage } from "../utils/apiError";
+import fileService from "../services/fileService";
 
 /** The application form (CV + cover letter) for one offer; used wherever a candidate can apply. */
 export default function ApplyModal({ offer, onClose, onApplied }) {
@@ -31,12 +32,16 @@ export default function ApplyModal({ offer, onClose, onApplied }) {
 
     setApplying(true);
     try {
-      const { url: cvUrl } = await candidateService.uploadFile(cvFile);
-      let coverLetter = coverLetterText;
-      if (coverLetterType === "file" && coverLetterFile) {
-        coverLetter = (await candidateService.uploadFile(coverLetterFile)).url;
-      }
-      await candidateService.createApplication(cvUrl, coverLetter, offer.id);
+      // The files are stored privately; the application refers to them by id.
+      const cv = await fileService.uploadDocument(cvFile);
+      const letterFile = coverLetterType === "file" && coverLetterFile
+        ? await fileService.uploadDocument(coverLetterFile) : null;
+      await candidateService.createApplication({
+        jobOfferId: offer.id,
+        cvFileId: cv.id,
+        coverLetter: coverLetterType === "text" ? coverLetterText : "",
+        coverLetterFileId: letterFile?.id,
+      });
       onApplied(offer);
     } catch (err) {
       console.error(err);

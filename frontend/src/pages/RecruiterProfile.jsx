@@ -10,6 +10,7 @@ import { DraftNote, Missing, ProfileCompleteness, SectionCard } from "../compone
 import { focusField, isValidUrl, normalizeUrl } from "../utils/profile";
 import "../styles/profile.css";
 import { errorMessage } from "../utils/apiError";
+import fileService, { IMAGE_TYPES } from "../services/fileService";
 
 const COMPANY_FIELDS = [
   "companyName", "website", "logo", "description", "foundedYear", "industry", "mission", "vision",
@@ -200,18 +201,19 @@ export default function RecruiterProfile() {
     const file = e.target.files[0];
     e.target.value = "";
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setErrorMsg("Please choose an image (PNG, JPG or SVG).");
+    // SVG isn't accepted: an SVG file can contain scripts, and logos are served publicly.
+    if (!IMAGE_TYPES.split(",").includes(file.type)) {
+      setErrorMsg("Please choose a PNG, JPEG, GIF or WebP image.");
       return;
     }
     setUploadingLogo(true);
     try {
-      const { url } = await recruiterService.uploadFile(file);
+      const { url } = await fileService.uploadImage(file);
       setForm((prev) => ({ ...prev, logo: url }));
       unmark("logo");
     } catch (err) {
       console.error(err);
-      setErrorMsg("The logo couldn't be uploaded. Please try again.");
+      setErrorMsg(errorMessage(err, "The logo couldn't be uploaded. Please try again."));
     } finally {
       setUploadingLogo(false);
     }
@@ -442,7 +444,7 @@ export default function RecruiterProfile() {
               </div>
               <div className="form-group form-full-width">
                 <label htmlFor="company-logo">Logo{fromWebsite("logo")}</label>
-                <input id="company-logo" type="file" accept="image/*" className="file-input" onChange={handleLogo} />
+                <input id="company-logo" type="file" accept={IMAGE_TYPES} className="file-input" onChange={handleLogo} />
                 {uploadingLogo && <span className="field-hint">Uploading…</span>}
               </div>
               <div className="form-group form-full-width">

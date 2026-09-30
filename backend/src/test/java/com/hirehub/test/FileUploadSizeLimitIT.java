@@ -80,7 +80,7 @@ class FileUploadSizeLimitIT {
 
         restTemplate.setErrorHandler(new NoOpResponseErrorHandler());
         ResponseEntity<Map<String, String>> response = restTemplate.exchange(
-                "http://localhost:" + port + "/api/files/upload",
+                "http://localhost:" + port + "/api/candidates/documents",
                 HttpMethod.POST,
                 new HttpEntity<>(form, headers),
                 new ParameterizedTypeReference<>() {});

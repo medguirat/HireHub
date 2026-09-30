@@ -8,6 +8,7 @@ import { useToast } from "../components/toastContext";
 import fetchAllPages from "../utils/fetchAllPages";
 import { formatDate } from "../utils/format";
 import { errorMessage } from "../utils/apiError";
+import DocumentButton from "../components/DocumentButton";
 
 export default function OfferApplications() {
   const { id } = useParams();
@@ -118,16 +119,18 @@ export default function OfferApplications() {
                         </button>
                       </td>
                       <td data-label="CV / Resume">
-                        {app.cv ? (
-                          <a href={app.cv} target="_blank" rel="noreferrer" className="cv-link">
-                            Open CV
-                          </a>
+                        {app.cvFileName ? (
+                          <DocumentButton applicationId={app.id} fileName={app.cvFileName} label="Open CV"
+                            title={`CV of ${app.candidateName} ${app.candidateLastName}`} />
                         ) : (
                           "No CV"
                         )}
                       </td>
-                      <td data-label="Cover Letter" className="cell-truncate" title={app.coverLetter}>
-                        {app.coverLetter || "No cover letter"}
+                      <td data-label="Cover Letter" className="cell-truncate" title={app.coverLetter || undefined}>
+                        {app.coverLetterFileName ? (
+                          <DocumentButton applicationId={app.id} which="cover-letter" fileName={app.coverLetterFileName}
+                            label="Open letter" title={`Cover letter of ${app.candidateName} ${app.candidateLastName}`} />
+                        ) : app.coverLetter || "No cover letter"}
                       </td>
                       <td data-label="Status">
                         <span className={`status-badge status-${app.status.toLowerCase()}`}>

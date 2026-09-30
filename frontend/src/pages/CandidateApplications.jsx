@@ -8,6 +8,7 @@ import { SkeletonRows } from "../components/Skeleton";
 import { useToast } from "../components/toastContext";
 import { formatDateTime } from "../utils/format";
 import { errorMessage } from "../utils/apiError";
+import DocumentButton from "../components/DocumentButton";
 
 export default function CandidateApplications() {
   const [applications, setApplications] = useState([]);
@@ -179,17 +180,19 @@ export default function CandidateApplications() {
             <div>
               <dt>CV</dt>
               <dd>
-                {selectedApp.cv ? (
-                  <a href={selectedApp.cv} target="_blank" rel="noreferrer" className="cv-link">Open the CV you sent (PDF)</a>
+                {selectedApp.cvFileName ? (
+                  <DocumentButton applicationId={selectedApp.id} fileName={selectedApp.cvFileName}
+                    label="Open the CV you sent (PDF)" title="The CV you sent" />
                 ) : "No CV file"}
               </dd>
             </div>
-            {selectedApp.coverLetter && (
+            {(selectedApp.coverLetter || selectedApp.coverLetterFileName) && (
               <div>
                 <dt>Cover letter</dt>
                 <dd>
-                  {selectedApp.coverLetter.startsWith("http") ? (
-                    <a href={selectedApp.coverLetter} target="_blank" rel="noreferrer" className="cv-link">Open your cover letter (PDF)</a>
+                  {selectedApp.coverLetterFileName ? (
+                    <DocumentButton applicationId={selectedApp.id} which="cover-letter" fileName={selectedApp.coverLetterFileName}
+                      label="Open your cover letter (PDF)" title="Your cover letter" />
                   ) : (
                     <p className="letter-block">{selectedApp.coverLetter}</p>
                   )}

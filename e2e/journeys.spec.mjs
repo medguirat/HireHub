@@ -102,6 +102,13 @@ test("candidate finds the new offer first, gets a real CV match and applies", as
   const row = page.locator("tr", { hasText: OFFER_TITLE });
   await expect(row).toBeVisible();
   await expect(row.locator(".status-badge")).toHaveText("Pending");
+
+  // The CV they sent opens from the application details, fetched with their login.
+  await row.click();
+  await page.getByRole("button", { name: "Open the CV you sent (PDF)" }).click();
+  const viewer = page.getByRole("dialog", { name: "The CV you sent" });
+  await expect(viewer.locator("canvas.pdf-preview__page").first()).toBeVisible();
+  await expect(viewer.getByRole("link", { name: "Download" })).toHaveAttribute("href", /^blob:/);
 });
 
 test("recruiter sees the application, invites the candidate, and sees it in the statistics", async ({ page }) => {
@@ -109,6 +116,24 @@ test("recruiter sees the application, invites the candidate, and sees it in the 
   await page.goto("/recruiter-dashboard/applications");
   const row = page.locator("tbody tr", { hasText: OFFER_TITLE });
   await expect(row).toContainText("Cyrine Candidate");
+
+  // The candidate's CV: previewed in the page and downloadable, without the token ever in a URL.
+  const fileRequests = [];
+  page.on("request", (r) => { if (r.url().includes("/cv")) fileRequests.push(r); });
+  await row.getByRole("button", { name: "Open CV" }).click();
+  const viewer = page.getByRole("dialog", { name: "CV of Cyrine Candidate" });
+  await expect(viewer.locator("canvas.pdf-preview__page").first()).toBeVisible();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    viewer.getByRole("link", { name: "Download" }).click(),
+  ]);
+  expect(download.suggestedFilename()).toBe("cv-java.pdf");
+  expect(fileRequests.length).toBeGreaterThan(0);
+  for (const request of fileRequests) {
+    expect(request.url()).not.toMatch(/token|Bearer/i);
+    expect(request.headers().authorization).toMatch(/^Bearer /);
+  }
+  await viewer.locator(".modal-footer").getByRole("button", { name: "Close" }).click();
 
   await row.getByRole("button", { name: "Accept…" }).click();
   await expect(page.getByRole("dialog", { name: "Schedule Interview & Send Invite" })).toBeVisible();

@@ -8,6 +8,7 @@ import com.hirehub.dto.ApplicationStatusUpdateDto;
 import com.hirehub.entity.*;
 import com.hirehub.exception.BadRequestException;
 import com.hirehub.exception.ResourceNotFoundException;
+import com.hirehub.files.ApplicationDocumentService;
 import com.hirehub.repository.ApplicationRepository;
 import com.hirehub.repository.JobOfferRepository;
 import com.hirehub.repository.UserRepository;
@@ -25,15 +26,24 @@ public class ApplicationService {
     private final UserRepository userRepository;
     private final JobOfferRepository jobOfferRepository;
     private final NotificationRepository notificationRepository;
+    private final ApplicationDocumentService documents;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               UserRepository userRepository,
                               JobOfferRepository jobOfferRepository,
-                              NotificationRepository notificationRepository) {
+                              NotificationRepository notificationRepository,
+                              ApplicationDocumentService documents) {
         this.applicationRepository = applicationRepository;
         this.userRepository = userRepository;
         this.jobOfferRepository = jobOfferRepository;
         this.notificationRepository = notificationRepository;
+        this.documents = documents;
+    }
+
+    /** Which of an application's files is asked for. */
+    public enum Document { CV, COVER_LETTER }
+
+    public record DocumentContent(String fileName, byte[] data) {
     }
 
 
@@ -50,8 +60,10 @@ public class ApplicationService {
                 .id(application.getId())
                 .status(application.getStatus())
                 .applicationDate(application.getApplicationDate())
-                .cv(application.getCv())
-                .coverLetter(application.getCoverLetter())
+                .cvFileName(application.getCvFile() != null ? application.getCv() : null)
+                .coverLetter(isOldUploadLink(application.getCoverLetter()) ? null : application.getCoverLetter())
+                .coverLetterFileName(application.getCoverLetterFile() != null
+                        ? application.getCoverLetterFile().getOriginalName() : null)
                 .candidateName(application.getCandidate().getFirstName())
                 .candidateLastName(application.getCandidate().getLastName())
                 .jobOfferTitle(application.getJobOffer().getTitle())
@@ -63,6 +75,11 @@ public class ApplicationService {
                 .build();
     }
 
+
+    /** Before files were private, a cover letter file was stored as a public link in the text column. */
+    private static boolean isOldUploadLink(String coverLetter) {
+        return coverLetter != null && coverLetter.startsWith("http") && coverLetter.contains("/uploads/");
+    }
 
     private boolean isOwnerCandidate(Application app, User user) {
         return app.getCandidate().getId().equals(user.getId());
@@ -99,6 +116,24 @@ public class ApplicationService {
         return toDto(application);
     }
 
+    /**
+     * An application's CV or cover-letter file. Only the candidate who sent it and the recruiter who
+     * owns the offer may read it; anyone else signed in gets 403.
+     */
+    public DocumentContent readDocument(Long id, Document which, User currentUser) {
+        Application application = applicationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+        if (!isOwnerCandidate(application, currentUser) && !isOwnerRecruiter(application, currentUser)) {
+            throw new ForbiddenException("You don't have access to this application's files.");
+        }
+        StoredFile file = which == Document.CV ? application.getCvFile() : application.getCoverLetterFile();
+        if (file == null) {
+            throw new ResourceNotFoundException(which == Document.CV
+                    ? "There is no CV file for this application." : "There is no cover letter file for this application.");
+        }
+        return new DocumentContent(file.getOriginalName(), documents.read(file));
+    }
+
     public ApplicationResponseDto createApplication(ApplicationRequestDto dto, User currentUser) {
 
         User candidate = userRepository.findById(currentUser.getId())
@@ -119,9 +154,16 @@ public class ApplicationService {
             throw new BadRequestException("You have already applied for this job offer.");
         }
 
+        StoredFile cvFile = documents.attachable(dto.getCvFileId(), candidate);
+        StoredFile coverLetterFile = dto.getCoverLetterFileId() == null || dto.getCoverLetterFileId().isBlank()
+                ? null : documents.attachable(dto.getCoverLetterFileId(), candidate);
+        String coverLetter = dto.getCoverLetter() == null || dto.getCoverLetter().isBlank() ? null : dto.getCoverLetter().trim();
+
         Application app = Application.builder()
-                .cv(dto.getCv())
-                .coverLetter(dto.getCoverLetter())
+                .cv(cvFile.getOriginalName())
+                .cvFile(cvFile)
+                .coverLetter(coverLetter)
+                .coverLetterFile(coverLetterFile)
                 .status(ApplicationStatus.PENDING)
                 .applicationDate(LocalDate.now())
                 .candidate(candidate)

@@ -4,20 +4,16 @@ import com.hirehub.dto.CvMetadataDto;
 import com.hirehub.dto.MatchResponseDto;
 import com.hirehub.entity.Role;
 import com.hirehub.entity.User;
+import com.hirehub.files.FileResponses;
 import com.hirehub.matching.CandidateCvService;
 import com.hirehub.matching.MatchingService;
 import com.hirehub.security.CurrentUserProvider;
-import org.springframework.http.CacheControl;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api/candidates")
@@ -50,14 +46,7 @@ public class MatchingController {
         CandidateCvService.CvFile file = cvService.readMyCvFile(candidate);
         MediaType type = file.isPdf() ? MediaType.APPLICATION_PDF
                 : MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-        ContentDisposition disposition = (file.isPdf() ? ContentDisposition.inline() : ContentDisposition.attachment())
-                .filename(file.fileName(), StandardCharsets.UTF_8).build();
-        return ResponseEntity.ok()
-                .contentType(type)
-                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
-                .header("X-Content-Type-Options", "nosniff")
-                .cacheControl(CacheControl.noStore().cachePrivate())
-                .body(file.data());
+        return FileResponses.privateFile(file.data(), type, file.fileName(), file.isPdf());
     }
 
     @PutMapping(value = "/me/cv", consumes = "multipart/form-data")

@@ -16,9 +16,17 @@ public class ApplicationResponseDto {
 
     private java.time.LocalDate applicationDate;
 
-    private String cv ;
+    /**
+     * The CV's file name, or null when there is no file to open (very old applications).
+     * The file itself: GET /api/applications/{id}/cv (the candidate and the offer's recruiter only).
+     */
+    private String cvFileName;
 
+    /** A written cover letter. */
     private String coverLetter;
+
+    /** Set when the cover letter was sent as a PDF: GET /api/applications/{id}/cover-letter. */
+    private String coverLetterFileName;
 
     private String candidateName;
 

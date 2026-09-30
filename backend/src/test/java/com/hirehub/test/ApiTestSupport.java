@@ -1,6 +1,7 @@
 package com.hirehub.test;
 
 import com.hirehub.entity.*;
+import com.hirehub.files.ApplicationDocumentService;
 import com.hirehub.repository.*;
 import com.hirehub.security.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,10 @@ abstract class ApiTestSupport {
     @Autowired protected NotificationRepository notificationRepository;
     @Autowired protected PasswordEncoder passwordEncoder;
     @Autowired protected JwtService jwtService;
+    @Autowired protected ApplicationDocumentService documents;
+
+    /** A minimal valid PDF (the upload checks the %PDF- signature). */
+    protected static final byte[] PDF = "%PDF-1.4\n% HireHub test file\n%%EOF\n".getBytes();
 
     protected User user(String email, Role role) {
         User user = userRepository.save(User.builder().firstName("Test").lastName("User").email(email)
@@ -60,5 +65,19 @@ abstract class ApiTestSupport {
     protected static String offerJson(String title, LocalDate deadline) {
         return "{\"title\":\"" + title + "\",\"description\":\"Java and Spring Boot\",\"location\":\"Tunis\","
                 + "\"contractType\":\"CDI\",\"deadline\":\"" + deadline + "\"}";
+    }
+
+    /** A private PDF owned by this user, as if uploaded through POST /api/candidates/documents. */
+    protected StoredFile storedPdf(User owner, String name) {
+        return documents.store(owner, PDF, name);
+    }
+
+    /** An application whose CV (and optionally cover letter) are real private files. */
+    protected Application applicationWithFiles(User candidate, JobOffer offer, boolean coverLetterFile) {
+        StoredFile cv = storedPdf(candidate, "cv-" + candidate.getId() + ".pdf");
+        return applicationRepository.save(Application.builder().cv(cv.getOriginalName()).cvFile(cv)
+                .coverLetterFile(coverLetterFile ? storedPdf(candidate, "letter.pdf") : null)
+                .status(ApplicationStatus.PENDING).applicationDate(LocalDate.now())
+                .candidate(candidate).jobOffer(offer).build());
     }
 }

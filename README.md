@@ -182,11 +182,31 @@ Other settings (not secret), as environment variables or in `.env`:
 | Variable | Used by | Default |
 |---|---|---|
 | `AI_SERVICE_URL` | backend | `http://localhost:8000` |
-| `CV_STORAGE_DIR` | backend: private CV files, never served publicly | `cv-store` |
+| `CV_STORAGE_DIR` | backend: private files (CVs, cover letters), never served publicly | `cv-store` |
 | `VITE_API_URL` | frontend | `http://localhost:8081/api` |
 | `EMBEDDING_MODEL` | ai-service | `paraphrase-multilingual-MiniLM-L12-v2` (French, English, Arabic and 50+ other languages) |
 | `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`, `LLM_TIMEOUT_SECONDS` | ai-service, optional | unset: no LLM (see Ollama above) |
 | `COMPANY_SCRAPER_ALLOW_PRIVATE` | ai-service, E2E tests only | unset: local and private addresses are refused |
+
+## Files and who can see them
+
+| File | Where it is stored | Who can read it |
+|---|---|---|
+| CV and cover letter sent with an application | `backend/cv-store/` (private) | the candidate who applied and the recruiter who owns the offer, through `GET /api/applications/{id}/cv` and `/cover-letter`; any other signed-in user gets 403, anyone not signed in 401 |
+| Candidate's profile CV (used for matching) | `backend/cv-store/` (private) | only that candidate: `GET /api/candidates/me/cv/file` |
+| Profile photos and company logos | `backend/uploads/` (public) | anyone with the link, like a LinkedIn photo |
+
+- Private files are downloaded by the frontend with the login token in the `Authorization` header and shown
+  from a local copy in the browser (pdf.js preview, Download and Open buttons). The token never appears in a URL.
+- Candidates upload application files with `POST /api/candidates/documents` (PDF only, checked from the file's
+  content) and attach them to the application by id.
+- Photos and logos: `POST /api/files/images` accepts PNG, JPEG, GIF and WebP only, checked from the file's content
+  (a renamed PDF, an HTML page or an SVG is refused), and stores them under a random name. `/uploads` serves those
+  image types and nothing else. They stay public because they are shown with plain `<img>` tags everywhere and are
+  meant to be seen by recruiters and candidates.
+- Applications made before this change pointed to public `/uploads/*.pdf` links. At startup, the backend copies each
+  such file that still exists into private storage and links it to its application (once; it's idempotent). The
+  old public copies are no longer served; they stay in `backend/uploads/` and can be deleted by hand.
 
 ## API errors
 

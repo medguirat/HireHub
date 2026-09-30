@@ -53,7 +53,7 @@ class ApiErrorFormatIT extends ApiTestSupport {
         application(candidate, offer);
         assertError(mockMvc.perform(post("/api/applications").header("Authorization", token(candidate))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"cv\":\"cv.pdf\",\"jobOfferId\":" + offer.getId() + "}")),
+                        .content("{\"cvFileId\":\"not-checked-before-the-offer\",\"jobOfferId\":" + offer.getId() + "}")),
                 400, "BAD_REQUEST", "You have already applied for this job offer.")
                 .andExpect(jsonPath("$.fieldErrors").doesNotExist());
     }

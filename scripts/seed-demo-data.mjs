@@ -623,10 +623,11 @@ async function seedApplications(candidateSessions, recruiterTokenByOffer) {
       const results = await allPages(`/candidates/offers?keyword=${encodeURIComponent(title)}`, token);
       const offer = results.find((o) => o.title === title && o.companyName === company);
       if (!offer) throw new Error(`Offer "${title}" of ${company} not found`);
-      const upload = expectOk(await call("POST", "/files/upload", { token, form: pdfForm(fileName, cv) }), "Upload application CV");
+      // Application CVs are private files, attached by id.
+      const upload = expectOk(await call("POST", "/candidates/documents", { token, form: pdfForm(fileName, cv) }), "Upload application CV");
       application = expectOk(await call("POST", "/applications", {
         token,
-        json: { jobOfferId: offer.id, cv: upload.url, coverLetter: `I would love to bring my experience to the ${title} role.` },
+        json: { jobOfferId: offer.id, cvFileId: upload.id, coverLetter: `I would love to bring my experience to the ${title} role.` },
       }), `Apply to ${title}`);
       note(true, `application ${email} -> ${title}`);
     }

@@ -131,7 +131,7 @@ class OfferLifecycleIT {
         // Nobody can apply anymore.
         mockMvc.perform(post("/api/applications").header("Authorization", token(lateCandidate))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"cv\":\"cv.pdf\",\"jobOfferId\":" + offer.getId() + "}"))
+                        .content("{\"cvFileId\":\"not-checked-before-the-offer\",\"jobOfferId\":" + offer.getId() + "}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("This offer has been closed and no longer accepts applications."));
     }

@@ -36,6 +36,8 @@ class EndpointAccessIT extends ApiTestSupport {
                 Arguments.of("PATCH", "/api/applications/1/status", Role.RECRUITER),
                 Arguments.of("GET", "/api/applications/1/evaluation", Role.RECRUITER),
                 Arguments.of("PUT", "/api/applications/1/evaluation", Role.RECRUITER),
+                Arguments.of("GET", "/api/applications/1/cv", null),
+                Arguments.of("GET", "/api/applications/1/cover-letter", null),
                 // Candidate
                 Arguments.of("GET", "/api/candidates/offers", Role.CANDIDATE),
                 Arguments.of("GET", "/api/candidates/offers/1", Role.CANDIDATE),
@@ -44,6 +46,7 @@ class EndpointAccessIT extends ApiTestSupport {
                 Arguments.of("PUT", "/api/candidates/me", Role.CANDIDATE),
                 Arguments.of("GET", "/api/candidates/me/cv", Role.CANDIDATE),
                 Arguments.of("GET", "/api/candidates/me/cv/file", Role.CANDIDATE),
+                Arguments.of("POST", "/api/candidates/documents", Role.CANDIDATE),
                 Arguments.of("GET", "/api/candidates/offers/1/match", Role.CANDIDATE),
                 // Recruiter
                 Arguments.of("GET", "/api/recruiters/offers", Role.RECRUITER),
@@ -60,7 +63,7 @@ class EndpointAccessIT extends ApiTestSupport {
                 Arguments.of("GET", "/api/users/me", null),
                 Arguments.of("PUT", "/api/users/me", null),
                 Arguments.of("DELETE", "/api/users/1", null),
-                Arguments.of("POST", "/api/files/upload", null),
+                Arguments.of("POST", "/api/files/images", null),
                 Arguments.of("GET", "/api/test", null)
         );
     }

@@ -548,6 +548,11 @@ button.notice:hover { background: var(--glass-hover); }
 .letter-editor { font-family: inherit; font-size: var(--fs-sm); line-height: 1.5; resize: vertical; }
 .modal-content--medium { max-width: 600px; }
 
+/* Private PDF viewer (CVs, cover letters) */
+.document-viewer { max-width: 760px; width: 94%; max-height: 90vh; display: flex; flex-direction: column; }
+.document-viewer .modal-body { overflow-y: auto; min-height: 120px; }
+.document-viewer .modal-header { gap: var(--space-3); }
+
 /* ---------- Spacing inside the new layout containers (legacy panels carry their own margins) ---------- */
 .page-stack > *,
 .grid-two > *,

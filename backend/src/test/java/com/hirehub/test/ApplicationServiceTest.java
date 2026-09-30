@@ -9,6 +9,7 @@ import com.hirehub.dto.ApplicationStatusUpdateDto;
 import com.hirehub.entity.*;
 import com.hirehub.exception.BadRequestException;
 import com.hirehub.exception.ResourceNotFoundException;
+import com.hirehub.files.ApplicationDocumentService;
 import com.hirehub.repository.ApplicationRepository;
 import com.hirehub.repository.JobOfferRepository;
 import com.hirehub.repository.NotificationRepository;
@@ -39,6 +40,7 @@ class ApplicationServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private JobOfferRepository jobOfferRepository;
     @Mock private NotificationRepository notificationRepository;
+    @Mock private ApplicationDocumentService documents;
 
     @InjectMocks private ApplicationService applicationService;
 
@@ -67,7 +69,7 @@ class ApplicationServiceTest {
     void createApplication_throwsWhenJobOfferNotFound() {
         User candidate = candidate(1L);
         ApplicationRequestDto dto = new ApplicationRequestDto();
-        dto.setCv("cv.pdf");
+        dto.setCvFileId("file-1");
         dto.setJobOfferId(99L);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(candidate));
@@ -81,7 +83,7 @@ class ApplicationServiceTest {
     void createApplication_throwsWhenCandidateNotFound() {
         User candidate = candidate(1L);
         ApplicationRequestDto dto = new ApplicationRequestDto();
-        dto.setCv("cv.pdf");
+        dto.setCvFileId("file-1");
         dto.setJobOfferId(10L);
 
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
@@ -97,7 +99,7 @@ class ApplicationServiceTest {
         JobOffer offer = offer(10L, LocalDate.now().minusDays(1), recruiter);
 
         ApplicationRequestDto dto = new ApplicationRequestDto();
-        dto.setCv("cv.pdf");
+        dto.setCvFileId("file-1");
         dto.setJobOfferId(10L);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(candidate));
@@ -115,7 +117,7 @@ class ApplicationServiceTest {
         JobOffer offer = offer(10L, LocalDate.now().plusDays(5), recruiter);
 
         ApplicationRequestDto dto = new ApplicationRequestDto();
-        dto.setCv("cv.pdf");
+        dto.setCvFileId("file-1");
         dto.setJobOfferId(10L);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(candidate));
@@ -133,13 +135,15 @@ class ApplicationServiceTest {
         JobOffer offer = offer(10L, LocalDate.now().plusDays(5), recruiter);
 
         ApplicationRequestDto dto = new ApplicationRequestDto();
-        dto.setCv("cv.pdf");
+        dto.setCvFileId("file-1");
         dto.setCoverLetter("Motivated candidate");
         dto.setJobOfferId(10L);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(candidate));
         when(jobOfferRepository.findById(10L)).thenReturn(Optional.of(offer));
         when(applicationRepository.existsByCandidateIdAndJobOfferId(1L, 10L)).thenReturn(false);
+        when(documents.attachable("file-1", candidate)).thenReturn(
+                StoredFile.builder().id("file-1").owner(candidate).originalName("my-cv.pdf").build());
         when(applicationRepository.save(any(Application.class))).thenAnswer(inv -> {
             Application a = inv.getArgument(0);
             a.setId(100L);

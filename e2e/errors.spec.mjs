@@ -1,11 +1,22 @@
 // Error paths: applying twice, an invalid CV file, an expired session,
 // and the matching service being down (never a made-up score).
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { API, FIXTURES, dateIn, logIn, registerByApi, tokenFor } from "./support/helpers.mjs";
 
 const TITLE = `QA E2E Errors offer ${Date.now().toString(36)}`;
 let offerId;
+let applicationId;
+
+/** Uploads the fixture CV as a private application document -> its id. */
+async function uploadCv(token) {
+  const form = new FormData();
+  form.append("file", new Blob([readFileSync(path.join(FIXTURES, "cv-java.pdf"))], { type: "application/pdf" }), "cv-java.pdf");
+  const response = await fetch(`${API}/candidates/documents`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: form });
+  expect(response.status).toBe(200);
+  return (await response.json()).id;
+}
 
 test.beforeAll(async () => {
   await registerByApi("err-recruiter", "RECRUITER", { companyName: "QA Errors Inc" });
@@ -22,12 +33,15 @@ test.beforeAll(async () => {
 
 test("applying twice is refused, and the offer shows it's already applied", async ({ page }) => {
   const token = await tokenFor("err-candidate");
+  const cvFileId = await uploadCv(token);
   const apply = () => fetch(`${API}/applications`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ cv: "qa-e2e-cv.pdf", jobOfferId: offerId }),
+    body: JSON.stringify({ cvFileId, jobOfferId: offerId }),
   });
-  expect((await apply()).status).toBe(200);
+  const first = await apply();
+  expect(first.status).toBe(200);
+  applicationId = (await first.json()).id;
   const second = await apply();
   expect(second.status).toBe(400);
   const body = await second.json();
@@ -39,6 +53,22 @@ test("applying twice is refused, and the offer shows it's already applied", asyn
   await page.locator(".offer-card", { hasText: TITLE }).click();
   await expect(page.locator(".details-actions .state-badge")).toHaveText("Already applied");
   await expect(page.locator(".details-actions").getByRole("button", { name: "Apply Now" })).toHaveCount(0);
+});
+
+test("an application's CV is private: other users get 403, and nobody gets it without logging in", async () => {
+  const url = `${API}/applications/${applicationId}/cv`;
+  const as = async (who) => (await fetch(url, { headers: { Authorization: `Bearer ${await tokenFor(who)}` } })).status;
+
+  expect(await as("err-candidate")).toBe(200); // the candidate who applied
+  expect(await as("err-recruiter")).toBe(200); // the recruiter who owns the offer
+  await registerByApi("err-other-recruiter", "RECRUITER", { companyName: "QA Other Inc" });
+  await registerByApi("err-other-candidate", "CANDIDATE");
+  expect(await as("err-other-recruiter")).toBe(403);
+  expect(await as("err-other-candidate")).toBe(403);
+  expect((await fetch(url)).status).toBe(401);
+
+  // The public uploads folder doesn't serve documents.
+  expect((await fetch(`${API.replace(/\/api$/, "")}/uploads/anything.pdf`)).status).toBe(404);
 });
 
 test("an invalid CV file is refused with a clear message", async ({ page }) => {
