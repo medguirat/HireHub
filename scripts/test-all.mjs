@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Runs every test suite: ai-service (pytest), backend (Maven), frontend (build).
+// Runs every test suite: ai-service (pytest), backend (Maven), frontend (unit tests and build).
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,6 +11,7 @@ const PYTHON = process.env.PYTHON || (IS_WINDOWS ? "python" : "python3");
 const suites = [
   ["ai-service", "ai-service", `${PYTHON} -m pytest -q`],
   ["backend", "backend", IS_WINDOWS ? ".\\mvnw.cmd -q test" : "./mvnw -q test"],
+  ["frontend unit tests", "frontend", "npm test"],
   ["frontend build", "frontend", "npm run build"],
 ];
 

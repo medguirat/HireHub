@@ -34,4 +34,8 @@ public class CandidateProfileRequestDto {
 
     @Valid
     private List<ExperienceDto> experiences;
+
+    @Valid
+    @Size(max = 15, message = "List at most 15 languages")
+    private List<LanguageDto> languages;
 }

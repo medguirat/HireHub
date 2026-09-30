@@ -1,10 +1,12 @@
 package com.hirehub.exception;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -13,9 +15,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -64,6 +68,23 @@ public class GlobalExceptionHandler {
         log.warn("[{}] Upload rejected, file too large: {}", correlationId, ex.getMessage());
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                 .body(errorBody("Your file must be under 10 MB. Please compress it or choose a smaller file.", correlationId));
+    }
+
+    /** Malformed JSON or a value of the wrong type (e.g. an unknown enum value): the client's fault, not ours. */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> handleUnreadableBody(HttpMessageNotReadableException ex) {
+        String message = "The request body is not valid JSON.";
+        if (ex.getCause() instanceof InvalidFormatException invalid) {
+            String field = invalid.getPath().stream()
+                    .map(ref -> ref.getFieldName() != null ? ref.getFieldName() : "[" + ref.getIndex() + "]")
+                    .collect(Collectors.joining(".")).replace(".[", "[");
+            Class<?> target = invalid.getTargetType();
+            message = target != null && target.isEnum()
+                    ? "Invalid value for " + field + ". Allowed values: "
+                      + Arrays.stream(target.getEnumConstants()).map(Object::toString).collect(Collectors.joining(", ")) + "."
+                    : "Invalid value for " + field + ".";
+        }
+        return ResponseEntity.badRequest().body(Map.of("message", message));
     }
 
     @ExceptionHandler(MissingServletRequestPartException.class)

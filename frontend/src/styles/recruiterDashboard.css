@@ -12,19 +12,25 @@
 }
 
 /* Sidebar Styling */
+/* The sidebar column stretches with the page (its background never stops midway);
+   its contents stay in view while the page scrolls. */
 .recruiter-sidebar {
+  position: relative;
+  z-index: 10;
+  flex-shrink: 0;
   width: var(--sidebar-width);
   background: rgba(var(--bg-rgb), 0.85);
   backdrop-filter: blur(20px);
   border-right: 1px solid var(--border-color);
+}
+
+.sidebar-inner {
+  position: sticky;
+  top: 0;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   padding: 30px 16px 24px;
-  position: fixed;
-  height: 100vh;
-  left: 0;
-  top: 0;
-  z-index: 10;
 }
 
 .sidebar-brand {
@@ -100,11 +106,10 @@
 
 /* Main Content Area */
 .recruiter-content {
-  margin-left: var(--sidebar-width);
   flex: 1;
+  min-width: 0;
   padding: 40px;
   min-height: 100vh;
-  overflow-y: auto;
 }
 
 .content-header {
@@ -782,11 +787,14 @@
     position: sticky;
     top: 0;
     width: 100%;
-    height: auto;
-    padding: 10px 16px;
     border-right: none;
     border-bottom: 1px solid var(--line);
     z-index: 50;
+  }
+  .sidebar-inner {
+    position: static;
+    height: auto;
+    padding: 10px 16px;
   }
   .sidebar-brand {
     justify-content: space-between;
@@ -822,7 +830,6 @@
     padding-top: 12px;
   }
   .recruiter-content {
-    margin-left: 0;
     padding: 20px 16px 40px;
   }
   .content-header {

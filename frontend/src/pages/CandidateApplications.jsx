@@ -6,6 +6,7 @@ import EmptyState from "../components/EmptyState";
 import Pagination from "../components/Pagination";
 import { SkeletonRows } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
+import { formatDateTime } from "../utils/format";
 
 export default function CandidateApplications() {
   const [applications, setApplications] = useState([]);
@@ -68,7 +69,7 @@ export default function CandidateApplications() {
     if (!dateStr) return "";
     try {
       const date = new Date(dateStr);
-      return date.toLocaleString();
+      return formatDateTime(date);
     } catch (e) {
       return dateStr;
     }

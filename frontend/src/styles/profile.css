@@ -218,3 +218,19 @@
   background: var(--white);
   box-shadow: var(--shadow-pop);
 }
+
+.language-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: end;
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--glass-subtle);
+  border: 1px solid var(--line);
+}
+.language-row .form-group { margin: 0; }
+@media (max-width: 640px) {
+  .language-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .language-row .form-group:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+}

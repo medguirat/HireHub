@@ -6,4 +6,4 @@ rephrase recommendations, but never influences the score.
 """
 
 # Bump on any change that can alter scores: cached results are recomputed.
-ALGORITHM_VERSION = "2026.09-2"
+ALGORITHM_VERSION = "2026.09-3"

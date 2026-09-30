@@ -53,6 +53,15 @@ public class CandidateProfile {
     @Builder.Default
     private List<String> skills = new ArrayList<>();
 
+    @ElementCollection
+    @CollectionTable(
+            name = "candidate_languages",
+            joinColumns = @JoinColumn(name = "candidate_profile_id")
+    )
+    @OrderColumn(name = "position")
+    @Builder.Default
+    private List<CandidateLanguage> languages = new ArrayList<>();
+
     @OneToMany(mappedBy = "candidateProfile", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Experience> experiences = new ArrayList<>();

@@ -6,6 +6,7 @@ import EmptyState from "../components/EmptyState";
 import { SkeletonCards } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
 import fetchAllPages from "../utils/fetchAllPages";
+import { formatDate } from "../utils/format";
 
 export default function RecruiterOffers() {
   const navigate = useNavigate();
@@ -56,15 +57,6 @@ export default function RecruiterOffers() {
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("fr-FR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric"
-    });
-  };
 
 
   // Newest first (server order), open offers before closed ones.
@@ -106,7 +98,7 @@ export default function RecruiterOffers() {
                   Location: {offer.location}
                 </div>
                 <div className="meta-item">
-                  Deadline: {formatDate(offer.deadline)}
+                  Deadline: {formatDate(offer.deadline, "none")}
                 </div>
               </div>
               <div className="offer-actions">

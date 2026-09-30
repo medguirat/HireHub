@@ -7,6 +7,7 @@ import EmptyState from "../components/EmptyState";
 import Pagination from "../components/Pagination";
 import { SkeletonCards } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
+import { formatDate } from "../utils/format";
 
 const EMPTY_FILTERS = { keyword: "", location: "", contractType: "" };
 
@@ -203,7 +204,7 @@ export default function CandidateOffers() {
                   <div className="details-meta-item">Location: <strong>{selectedOffer.location}</strong></div>
                   <div className="details-meta-item">Contract: <strong>{selectedOffer.contractType}</strong></div>
                   {selectedOffer.deadline && (
-                    <div className="details-meta-item">Deadline: <strong>{selectedOffer.deadline}</strong></div>
+                    <div className="details-meta-item">Deadline: <strong>{formatDate(selectedOffer.deadline)}</strong></div>
                   )}
                 </div>
 

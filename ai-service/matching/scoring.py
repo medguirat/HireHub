@@ -7,6 +7,7 @@ rewarded - for something the offer doesn't ask for.
 """
 
 from . import ALGORITHM_VERSION
+from .wording import count_of, min_years, years
 from .parsing import (
     candidate_education,
     candidate_experience,
@@ -72,7 +73,7 @@ def _skills_category(cv_text, title, description):
         "required_count": len(required),
         "nice_to_have_count": len(nice),
         "summary": (
-            f"{req_hits} of {len(required)} required skills"
+            count_of(req_hits, len(required), "required skill")
             + (f" ({req_partial} partially)" if req_partial else "")
             + (f", {nice_hits} of {len(nice)} nice-to-have" if nice else "")
             if offered else "The offer lists no recognizable skills."
@@ -118,14 +119,14 @@ def _experience_category(cv_text, title, description, offer_skills):
     if not applicable:
         summary = "The offer doesn't require a minimum amount of experience."
     elif total_years == 0:
-        summary = f"Requires {need.years:g}+ years; no dated experience found in the CV."
+        summary = f"Requires {min_years(need.years)}; no dated experience found in the CV."
     elif candidate_years == 0:
-        summary = f"Requires {need.years:g}+ years; none of the CV's {total_years:g} years relate to this offer's skills."
+        summary = f"Requires {min_years(need.years)}; none of the CV's {years(total_years)} relate to this offer's skills."
     elif candidate_years < total_years:
-        summary = (f"Requires {need.years:g}+ years; about {candidate_years:g} relevant years in the CV "
-                   f"({total_years:g} in total).")
+        summary = (f"Requires {min_years(need.years)}; the CV shows about {years(candidate_years)} of relevant "
+                   f"experience ({years(total_years)} in total).")
     else:
-        summary = f"Requires {need.years:g}+ years; the CV shows about {candidate_years:g}."
+        summary = f"Requires {min_years(need.years)}; the CV shows about {years(candidate_years)}."
     return {
         "applicable": applicable,
         "score": score,
@@ -169,7 +170,7 @@ def _languages_category(cv_text, description):
         "applicable": True,
         "score": round(sum(r["score"] for r in rows) / len(rows)),
         "languages": rows,
-        "summary": f"{met} of {len(rows)} required languages at the expected level.",
+        "summary": f"{count_of(met, len(rows), 'required language')} at the expected level.",
     }
 
 

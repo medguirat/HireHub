@@ -40,7 +40,7 @@ export default function CandidateLayout() {
 
   const displayName = `${user.firstName} ${user.lastName}`;
 
-  const { title, subtitle } = pageTitle(pathname);
+  const { title, subtitle, hideBadge } = pageTitle(pathname);
 
   return (
     <div className="recruiter-layout">
@@ -52,9 +52,7 @@ export default function CandidateLayout() {
             <h1>{title}</h1>
             {subtitle && <p>{subtitle}</p>}
           </div>
-          <div className="user-badge">
-            {displayName}
-          </div>
+          {!hideBadge && <div className="user-badge">{displayName}</div>}
         </div>
 
         <Outlet context={{ user, setUser }} />

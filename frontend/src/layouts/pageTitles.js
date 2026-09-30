@@ -1,6 +1,7 @@
 import { matchPath } from "react-router-dom";
 
-// Title and one-line purpose of each dashboard page, shown in the layout header.
+// Title and one-line purpose of each dashboard page, shown in the layout header and used
+// as the sidebar label. hideBadge: the page already shows the user's or company's name.
 const PAGES = [
   { path: "/recruiter-dashboard", title: "Overview", subtitle: "Your offers and the latest applications at a glance." },
   { path: "/recruiter-dashboard/offers", title: "Job offers", subtitle: "Publish, edit and close your offers." },
@@ -10,11 +11,11 @@ const PAGES = [
   { path: "/recruiter-dashboard/applications", title: "Applications", subtitle: "Every application to your offers." },
   { path: "/recruiter-dashboard/applications/:id/rate", title: "Candidate evaluation", subtitle: "Rate the candidate, decide, and schedule an interview." },
   { path: "/recruiter-dashboard/stats", title: "Statistics", subtitle: "Applications, offers and outcomes over time." },
-  { path: "/recruiter-dashboard/profile", title: "Company profile", subtitle: "What candidates see about your company." },
+  { path: "/recruiter-dashboard/profile", title: "Company profile", subtitle: "What candidates see about your company.", hideBadge: true },
   { path: "/candidate-dashboard", title: "Overview", subtitle: "Your applications and the newest offers." },
   { path: "/candidate-dashboard/offers", title: "Job offers", subtitle: "Search open offers and check how well your CV matches." },
   { path: "/candidate-dashboard/applications", title: "My applications", subtitle: "Track where each application stands." },
-  { path: "/candidate-dashboard/profile", title: "My profile", subtitle: "Your details, skills and experience." },
+  { path: "/candidate-dashboard/profile", title: "My profile", subtitle: "Your details, skills and experience.", hideBadge: true },
 ];
 
 export default function pageTitle(pathname) {

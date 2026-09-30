@@ -66,6 +66,37 @@ class ProfileFieldsIT {
     }
 
     @Test
+    void candidateLanguagesAreSavedInOrderWithoutDuplicates() throws Exception {
+        User candidate = user("profile-lang@test.com", Role.CANDIDATE);
+        mockMvc.perform(put("/api/candidates/me").header("Authorization", token(candidate))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"languages\": [{\"language\": \"English\", \"level\": \"FLUENT\"},"
+                                + " {\"language\": \" Arabic \", \"level\": \"NATIVE\"},"
+                                + " {\"language\": \"english\", \"level\": \"PROFESSIONAL\"}]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.languages.length()").value(2))
+                .andExpect(jsonPath("$.languages[0].language").value("english"))
+                .andExpect(jsonPath("$.languages[0].level").value("PROFESSIONAL"))
+                .andExpect(jsonPath("$.languages[1].language").value("Arabic"))
+                .andExpect(jsonPath("$.languages[1].level").value("NATIVE"));
+    }
+
+    @Test
+    void aLanguageNeedsANameAndAKnownLevel() throws Exception {
+        User candidate = user("profile-lang-bad@test.com", Role.CANDIDATE);
+        mockMvc.perform(put("/api/candidates/me").header("Authorization", token(candidate))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"languages\": [{\"language\": \"\", \"level\": \"FLUENT\"}]}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(put("/api/candidates/me").header("Authorization", token(candidate))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"languages\": [{\"language\": \"French\", \"level\": \"GODLIKE\"}]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "Invalid value for languages[0].level. Allowed values: NATIVE, FLUENT, PROFESSIONAL, INTERMEDIATE, BASIC."));
+    }
+
+    @Test
     void candidateHeadlineIsLimitedTo150Characters() throws Exception {
         User candidate = user("profile-cand-long@test.com", Role.CANDIDATE);
         mockMvc.perform(put("/api/candidates/me").header("Authorization", token(candidate))

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import candidateService from "../services/candidateService";
 import "../styles/cvMatch.css";
+import { formatDate } from "../utils/format";
 
 // Keep in sync with the backend's spring.servlet.multipart.max-file-size.
 const MAX_FILE_SIZE_MB = 10;
@@ -31,10 +32,6 @@ function band(score) {
   return { key: "low", label: "Low match" };
 }
 
-function formatDate(value) {
-  if (!value) return "";
-  return new Date(value).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
-}
 
 function ScoreRing({ score }) {
   const radius = 42;

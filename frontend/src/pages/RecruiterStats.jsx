@@ -1,29 +1,13 @@
 import { useState, useEffect } from "react";
 import recruiterService from "../services/recruiterService";
 import fetchAllPages from "../utils/fetchAllPages";
+import { TIMEFRAMES, computeStats } from "../utils/recruiterStats";
 import AlertModal from "../components/AlertModal";
 import { SkeletonCards } from "../components/Skeleton";
 
-const TIMEFRAMES = [
-  { key: "3M", months: 3, label: "Last 3 months" },
-  { key: "6M", months: 6, label: "Last 6 months" },
-  { key: "1Y", months: 12, label: "Last 12 months" },
-];
-
-const CONTRACTS = [
-  { types: ["CDI"], title: "CDI", subtitle: "Permanent contracts", accent: "violet", icon: "💼" },
-  { types: ["CDD"], title: "CDD", subtitle: "Fixed-term contracts", accent: "cyan", icon: "📄" },
-  { types: ["STAGE", "INTERNSHIP"], title: "Internships", subtitle: "Students and trainees", accent: "green", icon: "🎓" },
-  { types: ["FREELANCE"], title: "Freelance", subtitle: "Independent contractors", accent: "magenta", icon: "🚀" },
-];
-
-const OUTCOMES = [
-  { status: "ACCEPTED", label: "Accepted", accent: "green", ring: "donut__accepted" },
-  { status: "PENDING", label: "Pending review", accent: "orange", ring: "donut__pending" },
-  { status: "REJECTED", label: "Rejected", accent: "red", ring: "donut__rejected" },
-];
-
-const percent = (part, total) => (total ? Math.round((part / total) * 100) : 0);
+const RING_CLASS = { ACCEPTED: "donut__accepted", PENDING: "donut__pending", REJECTED: "donut__rejected" };
+const BAR_CLASS = { ACCEPTED: "stack-bar__accepted", PENDING: "stack-bar__pending", REJECTED: "stack-bar__rejected" };
+const MAX_OFFER_ROWS = 8;
 
 // Chart geometry: x spread over 800 units, y from 220 (zero) up to 40 (period maximum).
 function chartGeometry(points) {
@@ -45,6 +29,7 @@ function chartGeometry(points) {
 
 const DONUT_RADIUS = 24;
 const DONUT_LENGTH = 2 * Math.PI * DONUT_RADIUS;
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default function RecruiterStats() {
   const [offers, setOffers] = useState([]);
@@ -54,61 +39,44 @@ export default function RecruiterStats() {
   const [timeframe, setTimeframe] = useState("6M");
 
   useEffect(() => {
-    fetchData();
+    (async () => {
+      setLoading(true);
+      try {
+        const [allOffers, allApplications] = await Promise.all([
+          fetchAllPages(recruiterService.getOffers),
+          fetchAllPages(recruiterService.getApplications)
+        ]);
+        setOffers(allOffers);
+        setApplications(allApplications);
+      } catch (err) {
+        console.error(err);
+        setErrorMsg("Your statistics couldn't be loaded. Please refresh the page.");
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [allOffers, allApplications] = await Promise.all([
-        fetchAllPages(recruiterService.getOffers),
-        fetchAllPages(recruiterService.getApplications)
-      ]);
-      setOffers(allOffers);
-      setApplications(allApplications);
-    } catch (err) {
-      console.error(err);
-      setErrorMsg("Your statistics couldn't be loaded. Please refresh the page.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const totalOffers = offers.length;
-  const totalApplications = applications.length;
-
-  const contracts = CONTRACTS.map((c) => {
-    const count = offers.filter((o) => c.types.includes((o.contractType || "").toUpperCase())).length;
-    return { ...c, count, pct: percent(count, totalOffers) };
-  });
+  const { months, label: periodLabel } = TIMEFRAMES.find((t) => t.key === timeframe);
+  const stats = computeStats(offers, applications, months);
+  const chart = chartGeometry(stats.monthly);
 
   let donutStart = 0;
-  const outcomes = OUTCOMES.map((o) => {
-    const count = applications.filter((a) => a.status === o.status).length;
-    const length = totalApplications ? (count / totalApplications) * DONUT_LENGTH : 0;
-    const segment = { ...o, count, pct: percent(count, totalApplications), length, start: donutStart };
+  const rings = stats.outcomes.map((o) => {
+    const length = stats.totalApplications ? (o.count / stats.totalApplications) * DONUT_LENGTH : 0;
+    const ring = { status: o.status, length, start: donutStart };
     donutStart += length;
-    return segment;
-  });
-  const acceptedPct = outcomes[0].pct;
+    return ring;
+  }).filter((r) => r.length > 0);
 
-  // Applications received per month over the selected period, from real application dates.
-  const { months, label: periodLabel } = TIMEFRAMES.find((t) => t.key === timeframe);
-  const now = new Date();
-  const monthly = Array.from({ length: months }, (_, i) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - (months - 1 - i), 1);
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-    return {
-      month: date.toLocaleString("en", { month: "short" }),
-      apps: applications.filter((a) => (a.applicationDate || "").startsWith(key)).length
-    };
-  });
-  const periodTotal = monthly.reduce((sum, p) => sum + p.apps, 0);
-  const chart = chartGeometry(monthly);
+  const maxPerOffer = Math.max(1, ...stats.perOffer.map((o) => o.total));
 
   return (
     <div className="page-stack">
-      <div className="row-end">
+      <div className="row-between">
+        <p className="text-muted text-sm" aria-live="polite" data-testid="period-summary">
+          {periodLabel}: {plural(stats.totalOffers, "offer")} published, {plural(stats.totalApplications, "application")} received.
+        </p>
         <div className="segmented" role="group" aria-label="Period">
           {TIMEFRAMES.map((t) => (
             <button key={t.key} type="button" aria-pressed={timeframe === t.key} title={t.label}
@@ -123,8 +91,8 @@ export default function RecruiterStats() {
         <SkeletonCards count={3} />
       ) : (
         <>
-          <section className="grid-cards" aria-label="Offers by contract type">
-            {contracts.map((c) => (
+          <section className="grid-cards" aria-label="Offers published by contract type">
+            {stats.contracts.map((c) => (
               <article key={c.title} className={`metric-card accent-${c.accent}`}>
                 <div className="metric-card__head">
                   <div className="row">
@@ -136,10 +104,10 @@ export default function RecruiterStats() {
                   </div>
                   <span className="pill">{c.pct}%</span>
                 </div>
-                <div className="metric-value">
+                <div className="metric-value" data-testid={`contract-${c.title}`}>
                   {c.count} <span className="metric-unit">{c.count === 1 ? "offer" : "offers"}</span>
                 </div>
-                <progress className="meter" max="100" value={c.pct} aria-label={`${c.title}: ${c.pct}% of your offers`} />
+                <progress className="meter" max="100" value={c.pct} aria-label={`${c.title}: ${c.pct}% of the offers published in the period`} />
               </article>
             ))}
           </section>
@@ -149,7 +117,7 @@ export default function RecruiterStats() {
               <div className="row-between">
                 <div>
                   <h2 className="section-title">Applications per month</h2>
-                  <p className="section-sub">{periodLabel} · {periodTotal} application{periodTotal === 1 ? "" : "s"}</p>
+                  <p className="section-sub">{periodLabel} · {plural(stats.periodTotal, "application")}</p>
                 </div>
                 <span className="row text-sm accent-magenta text-accent">
                   <span className="legend-dot" aria-hidden="true" /> Applications
@@ -157,7 +125,7 @@ export default function RecruiterStats() {
               </div>
 
               <div className="chart" role="img"
-                aria-label={monthly.map((p) => `${p.month}: ${p.apps}`).join(", ")}>
+                aria-label={stats.monthly.map((p) => `${p.month}: ${p.apps}`).join(", ")}>
                 <svg viewBox="0 0 800 240" aria-hidden="true">
                   <defs>
                     <linearGradient id="chartAreaGradient" x1="0" y1="0" x2="0" y2="1">
@@ -176,13 +144,13 @@ export default function RecruiterStats() {
                       {pt.apps > 0 && <text className="chart__value" x={pt.x} y={pt.y - 12}>{pt.apps}</text>}
                     </g>
                   ))}
-                  {periodTotal === 0 && (
+                  {stats.periodTotal === 0 && (
                     <text className="chart__empty" x="400" y="130">No applications received in this period</text>
                   )}
                 </svg>
                 <div className="chart__axis">
-                  {monthly.map((p, i) => (
-                    <span key={i} className={i === monthly.length - 1 ? "is-current" : undefined}>{p.month}</span>
+                  {stats.monthly.map((p, i) => (
+                    <span key={i} className={i === stats.monthly.length - 1 ? "is-current" : undefined}>{p.month}</span>
                   ))}
                 </div>
               </div>
@@ -191,28 +159,28 @@ export default function RecruiterStats() {
             <section className="glass-card stack-lg">
               <div>
                 <h2 className="section-title">Application outcomes</h2>
-                <p className="section-sub">Where every application to your offers stands</p>
+                <p className="section-sub">Where the period's applications stand</p>
               </div>
 
               <div className="summary-box">
                 <span className="donut-wrap">
                   <svg className="donut" viewBox="0 0 60 60" aria-hidden="true">
                     <circle className="donut__track" cx="30" cy="30" r={DONUT_RADIUS} />
-                    {outcomes.filter((o) => o.length > 0).map((o) => (
-                      <circle key={o.status} className={o.ring} cx="30" cy="30" r={DONUT_RADIUS}
-                        strokeDasharray={`${o.length} ${DONUT_LENGTH}`} strokeDashoffset={-o.start} />
+                    {rings.map((r) => (
+                      <circle key={r.status} className={RING_CLASS[r.status]} cx="30" cy="30" r={DONUT_RADIUS}
+                        strokeDasharray={`${r.length} ${DONUT_LENGTH}`} strokeDashoffset={-r.start} />
                     ))}
                   </svg>
-                  <span className="donut-wrap__label">{totalApplications}</span>
+                  <span className="donut-wrap__label">{stats.totalApplications}</span>
                 </span>
                 <div>
-                  <div className="text-strong">Total applications</div>
-                  <div className="text-sm accent-green text-accent">{acceptedPct}% accepted</div>
+                  <div className="text-strong">{stats.totalApplications === 1 ? "Application" : "Applications"}</div>
+                  <div className="text-sm accent-green text-accent">{stats.acceptedPct}% accepted</div>
                 </div>
               </div>
 
               <ul className="stack list-reset" aria-label="Applications by status">
-                {outcomes.map((o) => (
+                {stats.outcomes.map((o) => (
                   <li key={o.status} className={`status-row accent-${o.accent}`}>
                     <span className="status-row__label"><span className="legend-dot" aria-hidden="true" />{o.label}</span>
                     <span className="status-row__value">{o.count} ({o.pct}%)</span>
@@ -222,23 +190,56 @@ export default function RecruiterStats() {
             </section>
           </div>
 
-          <section className="glass-card stack-lg">
-            <div>
-              <h2 className="section-title">Offers by contract type</h2>
-              <p className="section-sub">Share of your {totalOffers} published offer{totalOffers === 1 ? "" : "s"}</p>
+          <section className="glass-card stack-lg" aria-labelledby="per-offer-title">
+            <div className="row-between">
+              <div>
+                <h2 id="per-offer-title" className="section-title">Applications per offer</h2>
+                <p className="section-sub">
+                  {periodLabel} · your offers with the most applications, and where those applications stand
+                </p>
+              </div>
+              <ul className="row list-reset text-sm" aria-label="Legend">
+                {[["ACCEPTED", "Accepted", "green"], ["PENDING", "Pending", "orange"], ["REJECTED", "Rejected", "red"]].map(([k, label, accent]) => (
+                  <li key={k} className={`row accent-${accent}`}><span className="legend-dot" aria-hidden="true" />{label}</li>
+                ))}
+              </ul>
             </div>
-            <div className="grid-cards">
-              {contracts.map((c) => (
-                <div key={c.title} className={`subtle-card stack accent-${c.accent}`}>
-                  <div className="row-between text-sm">
-                    <span className="text-strong">{c.title} · {c.subtitle}</span>
-                    <span className="text-accent text-strong">{c.count} ({c.pct}%)</span>
-                  </div>
-                  <progress className="meter meter--thick meter--solid" max="100" value={c.pct}
-                    aria-label={`${c.title}: ${c.pct}%`} />
-                </div>
-              ))}
-            </div>
+
+            {stats.perOffer.length === 0 ? (
+              <p className="text-muted text-sm">No applications received in this period.</p>
+            ) : (
+              <ol className="per-offer list-reset">
+                {stats.perOffer.slice(0, MAX_OFFER_ROWS).map((o) => (
+                  <li key={o.id} className="per-offer__row">
+                    <div className="row-between">
+                      <span className="text-strong truncate">
+                        {o.title}
+                        {o.closed && <span className="status-chip status-chip--closed chip-inline">Closed</span>}
+                      </span>
+                      <span className="text-sm text-muted per-offer__count">{plural(o.total, "application")}</span>
+                    </div>
+                    <svg className="stack-bar" viewBox="0 0 100 8" preserveAspectRatio="none" role="img"
+                      aria-label={`${o.ACCEPTED} accepted, ${o.PENDING} pending, ${o.REJECTED} rejected`}>
+                      <rect className="stack-bar__track" x="0" y="0" width="100" height="8" rx="2" />
+                      {(() => {
+                        let x = 0;
+                        return ["ACCEPTED", "PENDING", "REJECTED"].map((status) => {
+                          const width = (o[status] / maxPerOffer) * 100;
+                          const rect = width > 0 && (
+                            <rect key={status} className={BAR_CLASS[status]} x={x} y="0" width={width} height="8" />
+                          );
+                          x += width;
+                          return rect;
+                        });
+                      })()}
+                    </svg>
+                  </li>
+                ))}
+              </ol>
+            )}
+            {stats.perOffer.length > MAX_OFFER_ROWS && (
+              <p className="hint">Showing the {MAX_OFFER_ROWS} offers with the most applications out of {stats.perOffer.length}.</p>
+            )}
           </section>
         </>
       )}

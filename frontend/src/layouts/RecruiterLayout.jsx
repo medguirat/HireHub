@@ -39,7 +39,7 @@ export default function RecruiterLayout() {
 
   const companyName = user.recruiterProfile?.companyName || `${user.firstName} ${user.lastName}`;
 
-  const { title, subtitle } = pageTitle(pathname);
+  const { title, subtitle, hideBadge } = pageTitle(pathname);
 
   return (
     <div className="recruiter-layout">
@@ -51,9 +51,7 @@ export default function RecruiterLayout() {
             <h1>{title}</h1>
             {subtitle && <p>{subtitle}</p>}
           </div>
-          <div className="user-badge">
-            {companyName}
-          </div>
+          {!hideBadge && <div className="user-badge">{companyName}</div>}
         </div>
 
         <Outlet context={{ user, setUser }} />

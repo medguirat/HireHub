@@ -6,6 +6,7 @@ import EmptyState from "../components/EmptyState";
 import { SkeletonRows } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
 import fetchAllPages from "../utils/fetchAllPages";
+import { formatDate } from "../utils/format";
 
 export default function OfferApplications() {
   const { id } = useParams();
@@ -80,7 +81,7 @@ export default function OfferApplications() {
                 {offer?.contractType || "CDI"}
               </span>
               <span className="text-muted text-sm">
-                Location: {offer?.location} · Deadline: {new Date(offer?.deadline).toLocaleDateString("fr-FR")}
+                Location: {offer?.location} · Deadline: {formatDate(offer?.deadline, "none")}
               </span>
             </div>
           </div>

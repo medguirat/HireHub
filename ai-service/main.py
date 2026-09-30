@@ -120,11 +120,17 @@ class ExperienceIn(BaseModel):
     endDate: str | None = None
 
 
+class LanguageIn(BaseModel):
+    language: str = ""
+    level: str = ""
+
+
 class BioDraftRequest(BaseModel):
     headline: str = ""
     skills: list[str] = []
     experiences: list[ExperienceIn] = []
     education: str = ""
+    languages: list[LanguageIn] = []
 
 
 def _draft(fn, payload):

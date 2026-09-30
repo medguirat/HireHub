@@ -143,6 +143,10 @@ def bio_facts(data, today=None):
         "skills": [s for s in (_clean(s) for s in data.get("skills") or []) if s],
         "experiences": experiences,
         "education": _clean(data.get("education")),
+        "languages": [
+            {"language": _clean(l.get("language")), "level": _clean(l.get("level"))}
+            for l in data.get("languages") or [] if _clean(l.get("language"))
+        ],
         "years": total_months // 12,
     }
     return facts
@@ -170,6 +174,9 @@ def bio_template(facts):
         sentences.append(f"Skills: {_join(facts['skills'][:12])}.")
     if facts["education"]:
         sentences.append(f"Education: {_sentence(facts['education'])}")
+    if facts["languages"]:
+        spoken = [f"{l['language']} ({l['level']})" if l["level"] else l["language"] for l in facts["languages"]]
+        sentences.append(f"Languages: {_join(spoken)}.")
 
     if not sentences:
         raise NotEnoughData("Add your headline, experience or skills first, then draft your bio from them.")
@@ -187,6 +194,7 @@ def bio_facts_for_llm(facts):
         ],
         "skills": facts["skills"][:15],
         "education": facts["education"],
+        "languages": facts["languages"],
     }
 
 
@@ -272,5 +280,5 @@ def draft_company(data, rewriter=None):
 def draft_bio(data, rewriter=None, today=None):
     facts = bio_facts(data, today)
     template_text = bio_template(facts)
-    used = [k for k in ("headline", "experiences", "skills", "education") if facts[k]]
+    used = [k for k in ("headline", "experiences", "skills", "education", "languages") if facts[k]]
     return _finish("bio", bio_facts_for_llm(facts), template_text, rewriter) | {"used": used}

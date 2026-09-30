@@ -4,6 +4,7 @@ import recruiterService from "../services/recruiterService";
 import AlertModal from "../components/AlertModal";
 import { SkeletonRows } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
+import { formatDate, formatDateTime } from "../utils/format";
 
 export default function CandidateRating() {
   const { id } = useParams();
@@ -160,7 +161,7 @@ export default function CandidateRating() {
     
     setInterviewDate(dateString);
 
-    const formattedDate = defaultDate.toLocaleString();
+    const formattedDate = formatDateTime(defaultDate);
     const initialText = 
       `Dear ${candidateName},\n\n` +
       `We are pleased to invite you for an interview regarding the ${jobTitle} position.\n\n` +
@@ -189,7 +190,7 @@ export default function CandidateRating() {
 
     try {
       const parsedDate = new Date(newDateVal);
-      const formattedDate = parsedDate.toLocaleString();
+      const formattedDate = formatDateTime(parsedDate);
       const candidateName = `${app.candidateName} ${app.candidateLastName}`;
       const jobTitle = app.jobOfferTitle;
       const companyName = user?.recruiterProfile?.companyName || "our company";
@@ -323,7 +324,7 @@ export default function CandidateRating() {
                   <span className="score-number">{finalScore} / 20</span>
                   <span className={`text-strong text-accent accent-${evalStatus.accent}`}>{evalStatus.text}</span>
                   <span className="hint">
-                    {savedAt ? `Last saved ${new Date(savedAt).toLocaleString()}` : "Not saved yet"}
+                    {savedAt ? `Last saved ${formatDateTime(savedAt)}` : "Not saved yet"}
                   </span>
                 </div>
                 <div className="row">
@@ -349,7 +350,7 @@ export default function CandidateRating() {
                 </div>
                 <div className="doc-meta">
                   <div>Reference: HH-LETTER-{app.id}</div>
-                  <div>Date: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</div>
+                  <div>Date: {formatDate(new Date())}</div>
                 </div>
               </div>
 

@@ -66,6 +66,11 @@ def test_bio_template_from_profile_data():
         assert invented not in text.lower()
 
 
+def test_bio_lists_languages_with_their_level():
+    text = draft_bio({"languages": [{"language": "English", "level": "fluent"}, {"language": "Arabic", "level": "native"}]})["text"]
+    assert text == "Languages: English (fluent) and Arabic (native)."
+
+
 def test_bio_without_headline_uses_the_latest_position():
     data = {"experiences": [{"position": "Data analyst", "company": "Atlas", "startDate": "2025-01-01"}]}
     assert draft_bio(data, today=TODAY)["text"].startswith("Data analyst with 1 year of experience.")

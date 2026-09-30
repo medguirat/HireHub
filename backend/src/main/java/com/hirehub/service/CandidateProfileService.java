@@ -1,5 +1,8 @@
 package com.hirehub.service;
 
+import com.hirehub.dto.LanguageDto;
+import com.hirehub.entity.CandidateLanguage;
+
 import com.hirehub.dto.CandidateProfileRequestDto;
 import com.hirehub.dto.CandidateProfileResponseDto;
 import com.hirehub.dto.ExperienceDto;
@@ -47,6 +50,9 @@ public class CandidateProfileService {
                 .picture(profile.getPicture())
                 .skills(profile.getSkills())
                 .experiences(experiences)
+                .languages(profile.getLanguages().stream()
+                        .map(l -> LanguageDto.builder().language(l.getLanguage()).level(l.getLevel()).build())
+                        .toList())
                 .build();
     }
 
@@ -74,6 +80,15 @@ public class CandidateProfileService {
         profile.getSkills().clear();
         if (dto.getSkills() != null) {
             profile.getSkills().addAll(dto.getSkills());
+        }
+
+        // Languages: trimmed, one entry per language (the last one given wins).
+        profile.getLanguages().clear();
+        if (dto.getLanguages() != null) {
+            java.util.Map<String, CandidateLanguage> unique = new java.util.LinkedHashMap<>();
+            dto.getLanguages().forEach(l -> unique.put(l.getLanguage().trim().toLowerCase(java.util.Locale.ROOT),
+                    new CandidateLanguage(l.getLanguage().trim(), l.getLevel())));
+            profile.getLanguages().addAll(unique.values());
         }
 
         profile.getExperiences().clear();

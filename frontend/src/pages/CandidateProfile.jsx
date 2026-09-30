@@ -11,11 +11,23 @@ import {
   DraftNote, Missing, ProfileCompleteness, SectionCard, focusField, isValidUrl, normalizeUrl
 } from "../components/ProfileParts";
 import "../styles/profile.css";
+import { formatDate, formatMonthYear } from "../utils/format";
 
 // pdf.js is large: only loaded when a CV preview is shown.
 const PdfPreview = lazy(() => import("../components/PdfPreview"));
 
 const EMPTY_EXPERIENCE = { position: "", company: "", startDate: "", endDate: "" };
+const EMPTY_LANGUAGE = { language: "", level: "PROFESSIONAL" };
+// Same levels as the backend (LanguageLevel), shown with their CEFR equivalents.
+const LANGUAGE_LEVELS = [
+  { value: "NATIVE", label: "Native or bilingual" },
+  { value: "FLUENT", label: "Fluent (C1–C2)" },
+  { value: "PROFESSIONAL", label: "Professional (B2)" },
+  { value: "INTERMEDIATE", label: "Intermediate (B1)" },
+  { value: "BASIC", label: "Basic (A1–A2)" },
+];
+const levelLabel = (value) => LANGUAGE_LEVELS.find((l) => l.value === value)?.label || value;
+const COMMON_LANGUAGES = ["Arabic", "English", "French", "German", "Italian", "Spanish", "Chinese", "Turkish", "Portuguese", "Russian"];
 const LINKS = [
   { key: "urlLinkedin", label: "LinkedIn" },
   { key: "urlGithub", label: "GitHub" },
@@ -34,10 +46,11 @@ const toForm = (p) => ({
   urlPortfolio: p.urlPortfolio || "",
   skills: [...(p.skills || [])],
   experiences: (p.experiences || []).map((e) => ({ ...EMPTY_EXPERIENCE, ...e, endDate: e.endDate || "" })),
+  languages: (p.languages || []).map((l) => ({ ...l })),
 });
 
 const formatMonth = (value) =>
-  value ? new Date(value).toLocaleDateString("en", { month: "short", year: "numeric" }) : "";
+  formatMonthYear(value);
 
 function validate(form) {
   const errors = {};
@@ -48,6 +61,13 @@ function validate(form) {
   if (form.bio.length > 2000) errors.bio = "At most 2000 characters.";
   LINKS.forEach(({ key, label }) => {
     if (!isValidUrl(form[key])) errors[key] = `This doesn't look like a ${label} address.`;
+  });
+  const seen = new Set();
+  form.languages.forEach((l, i) => {
+    const name = l.language.trim().toLowerCase();
+    if (!name) errors[`language-${i}`] = "Enter the language, or remove this row.";
+    else if (seen.has(name)) errors[`language-${i}`] = "This language is already listed.";
+    seen.add(name);
   });
   form.experiences.forEach((e, i) => {
     if (!e.position.trim() || !e.company.trim() || !e.startDate) {
@@ -203,6 +223,8 @@ export default function CandidateProfile() {
         headline: form.headline,
         skills: form.skills,
         education: form.education,
+        languages: form.languages.filter((l) => l.language.trim())
+          .map((l) => ({ language: l.language.trim(), level: levelLabel(l.level).split(" (")[0].toLowerCase() })),
         experiences: form.experiences.filter((e) => e.position && e.company)
           .map((e) => ({ ...e, endDate: e.endDate || null })),
       });
@@ -238,6 +260,7 @@ export default function CandidateProfile() {
         urlGithub: normalizeUrl(form.urlGithub),
         urlPortfolio: normalizeUrl(form.urlPortfolio),
         skills: form.skills,
+        languages: form.languages.map((l) => ({ language: l.language.trim(), level: l.level })),
         experiences: form.experiences.map((x) => ({
           position: x.position.trim(), company: x.company.trim(), startDate: x.startDate, endDate: x.endDate || null,
         })),
@@ -264,11 +287,12 @@ export default function CandidateProfile() {
   const completeness = [
     { key: "picture", weight: 10, done: !!profile.picture, suggestion: "Add a profile photo", onFix: () => focusField(setEditing, "profile-picture") },
     { key: "headline", weight: 15, done: !!profile.headline, suggestion: "Add a headline (your job title)", onFix: () => focusField(setEditing, "profile-headline") },
-    { key: "bio", weight: 15, done: (profile.bio || "").trim().length >= 40, suggestion: "Write a short bio", onFix: () => focusField(setEditing, "profile-bio") },
+    { key: "bio", weight: 10, done: (profile.bio || "").trim().length >= 40, suggestion: "Write a short bio", onFix: () => focusField(setEditing, "profile-bio") },
     { key: "skills", weight: 15, done: (profile.skills || []).length >= 3, suggestion: "List at least 3 skills", onFix: () => focusField(setEditing, "profile-skill-input") },
     { key: "experience", weight: 15, done: (profile.experiences || []).length > 0, suggestion: "Add your experience", onFix: () => focusField(setEditing, "profile-add-experience") },
     { key: "education", weight: 10, done: !!profile.education, suggestion: "Add your education", onFix: () => focusField(setEditing, "profile-education") },
-    { key: "cv", weight: 15, done: !!cv, suggestion: "Upload your CV", onFix: () => document.getElementById("profile-cv-input")?.focus() },
+    { key: "languages", weight: 10, done: (profile.languages || []).length > 0, suggestion: "Add the languages you speak", onFix: () => focusField(setEditing, "profile-add-language") },
+    { key: "cv", weight: 10, done: !!cv, suggestion: "Upload your CV", onFix: () => document.getElementById("profile-cv-input")?.focus() },
     { key: "links", weight: 5, done: LINKS.some(({ key }) => profile[key]), suggestion: "Add LinkedIn, GitHub or a portfolio", onFix: () => focusField(setEditing, "profile-urlLinkedin") },
   ];
 
@@ -291,7 +315,7 @@ export default function CandidateProfile() {
             <span className="cv-file__icon" aria-hidden="true">{cv.fileName?.toLowerCase().endsWith(".pdf") ? "PDF" : "DOC"}</span>
             <div className="grow">
               <div className="text-strong truncate">{cv.fileName}</div>
-              {cv.uploadedAt && <div className="hint">Uploaded {new Date(cv.uploadedAt).toLocaleDateString()}</div>}
+              {cv.uploadedAt && <div className="hint">Uploaded {formatDate(cv.uploadedAt)}</div>}
             </div>
             {cvUrl && <a className="cv-link text-sm" href={cvUrl} target="_blank" rel="noreferrer">Open</a>}
           </div>
@@ -368,6 +392,15 @@ export default function CandidateProfile() {
                 <ul className="tag-list">
                   {profile.skills.map((s) => <li key={s} className="tag">{s}</li>)}
                 </ul>
+              )}
+            </SectionCard>
+            <SectionCard id="languages" title="Languages">
+              {(profile.languages || []).length === 0 ? <Missing>No languages listed yet.</Missing> : (
+                <dl className="detail-list">
+                  {profile.languages.map((l) => (
+                    <div key={l.language}><dt>{l.language}</dt><dd>{levelLabel(l.level)}</dd></div>
+                  ))}
+                </dl>
               )}
             </SectionCard>
           </aside>
@@ -471,6 +504,44 @@ export default function CandidateProfile() {
                         onClick={() => setForm((f) => ({ ...f, experiences: f.experiences.filter((_, j) => j !== i) }))}>×</button>
                     </div>
                     {showError(`experience-${i}`) && <span className="field-error">{errors[`experience-${i}`]}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </SectionCard>
+
+          <SectionCard id="edit-languages" title="Languages"
+            action={
+              <button id="profile-add-language" type="button" className="secondary-btn btn-compact"
+                onClick={() => setForm((f) => ({ ...f, languages: [...f.languages, { ...EMPTY_LANGUAGE }] }))}>
+                + Add language
+              </button>
+            }>
+            {form.languages.length === 0 ? <Missing>No languages yet.</Missing> : (
+              <div className="experience-editor">
+                <datalist id="common-languages">
+                  {COMMON_LANGUAGES.map((l) => <option key={l} value={l} />)}
+                </datalist>
+                {form.languages.map((l, i) => (
+                  <div key={i}>
+                    <div className="language-row">
+                      <div className="form-group">
+                        <label htmlFor={`lang-name-${i}`}>Language *</label>
+                        <input id={`lang-name-${i}`} list="common-languages" value={l.language}
+                          aria-invalid={!!showError(`language-${i}`)}
+                          onChange={(e) => setForm((f) => ({ ...f, languages: f.languages.map((x, j) => (j === i ? { ...x, language: e.target.value } : x)) }))} />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor={`lang-level-${i}`}>Level</label>
+                        <select id={`lang-level-${i}`} value={l.level}
+                          onChange={(e) => setForm((f) => ({ ...f, languages: f.languages.map((x, j) => (j === i ? { ...x, level: e.target.value } : x)) }))}>
+                          {LANGUAGE_LEVELS.map((lv) => <option key={lv.value} value={lv.value}>{lv.label}</option>)}
+                        </select>
+                      </div>
+                      <button type="button" className="icon-button" aria-label={`Remove ${l.language || "this language"}`}
+                        onClick={() => setForm((f) => ({ ...f, languages: f.languages.filter((_, j) => j !== i) }))}>×</button>
+                    </div>
+                    {showError(`language-${i}`) && <span className="field-error">{errors[`language-${i}`]}</span>}
                   </div>
                 ))}
               </div>

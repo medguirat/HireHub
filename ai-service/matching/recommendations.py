@@ -19,6 +19,8 @@ import urllib.request
 from dataclasses import dataclass, field
 from typing import Protocol
 
+from .wording import min_years, years
+
 log = logging.getLogger(__name__)
 
 MIN_RECOMMENDATIONS = 2
@@ -83,19 +85,19 @@ class RuleBasedRecommendationProvider:
         if c.required_years and c.candidate_years < c.required_years:
             if c.candidate_total_years == 0:
                 advice.append(
-                    f"The offer asks for {c.required_years:g}+ years of experience, but no dated experience was "
+                    f"The offer asks for {min_years(c.required_years)} of experience, but no dated experience was "
                     f"found in your CV. Add start and end dates to each role (e.g. \"Jan 2021 - Mar 2023\")."
                 )
             elif c.candidate_years == 0:
                 key_skills = _join((c.missing_required + c.matched_skills)[:2]) or "the offer's skills"
                 advice.append(
-                    f"The offer asks for {c.required_years:g}+ years of relevant experience; none of the roles in "
+                    f"The offer asks for {min_years(c.required_years)} of relevant experience; none of the roles in "
                     f"your CV mention {key_skills}. If you used them at work, describe it in the relevant role."
                 )
             else:
                 advice.append(
-                    f"The offer asks for {c.required_years:g}+ years of experience; your CV shows about "
-                    f"{c.candidate_years:g}. Include internships, freelance work and projects with dates so all "
+                    f"The offer asks for {min_years(c.required_years)} of experience; your CV shows about "
+                    f"{years(c.candidate_years)}. Include internships, freelance work and projects with dates so all "
                     f"of your relevant experience counts."
                 )
 

@@ -34,4 +34,5 @@ public class CandidateProfileResponseDto {
     private List<String> skills;
 
     private List<ExperienceDto> experiences;
+    private List<LanguageDto> languages;
 }
