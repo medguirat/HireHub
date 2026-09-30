@@ -5,39 +5,21 @@
 // Runs after every E2E run (Playwright global teardown), or by hand:
 //   node e2e/support/cleanup.mjs
 //
-// Database settings come from DB_HOST / DB_PORT / DB_NAME / DB_USER / DB_PASSWORD,
-// falling back to backend/src/main/resources/application.properties.
-import { readFileSync, rmSync } from "node:fs";
+// Database settings come from DB_URL / DB_USERNAME / DB_PASSWORD (environment or .env).
+import { rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import mysql from "mysql2/promise";
+import { mysqlConfig } from "../../scripts/lib/env.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const QA_EMAIL_PREFIX = "qa-e2e-";
-
-function dbConfig() {
-  let props = {};
-  try {
-    const text = readFileSync(path.join(ROOT, "backend", "src", "main", "resources", "application.properties"), "utf8");
-    props = Object.fromEntries(text.split(/\r?\n/).filter((l) => l.includes("=") && !l.trim().startsWith("#"))
-      .map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim()]));
-  } catch { /* use the environment only */ }
-  const url = props["spring.datasource.url"] || "";
-  const match = url.match(/jdbc:mysql:\/\/([^:/]+)(?::(\d+))?\/([^?]+)/) || [];
-  return {
-    host: process.env.DB_HOST || match[1] || "localhost",
-    port: Number(process.env.DB_PORT || match[2] || 3306),
-    database: process.env.DB_NAME || match[3] || "hirehub_db",
-    user: process.env.DB_USER || props["spring.datasource.username"] || "root",
-    password: process.env.DB_PASSWORD ?? props["spring.datasource.password"] ?? "",
-  };
-}
 
 const ids = (rows, key = "id") => rows.map((r) => r[key]);
 const inList = (values) => (values.length ? values.map(() => "?").join(",") : "NULL");
 
 export async function cleanupQaData({ log = console.log } = {}) {
-  const db = await mysql.createConnection(dbConfig());
+  const db = await mysql.createConnection(mysqlConfig());
   try {
     const [users] = await db.query("SELECT id, email FROM users WHERE email LIKE ?", [`${QA_EMAIL_PREFIX}%`]);
     if (users.length === 0) {

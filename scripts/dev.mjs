@@ -6,16 +6,20 @@
 // stops them too.
 //
 // Requires: Node 18+, Python 3.11+, JDK 17+, and MySQL running on :3306.
+// Configuration and secrets come from the root .env file (created from .env.example on
+// first run) and are passed to every service.
 
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import net from "node:net";
 import path from "node:path";
+import { ENV_FILE, configurationProblems, createEnvFileIfMissing, loadEnv } from "./lib/env.mjs";
 import {
   IS_WINDOWS, ROOT, clearState, descendantsOf, isAlive, killTree, processSnapshot, readState,
   stopRecordedChildren, writeState
 } from "./lib/processes.mjs";
 
+let serviceEnv = process.env;
 const PYTHON = process.env.PYTHON || (IS_WINDOWS ? "python" : "python3");
 
 const SERVICES = [
@@ -78,6 +82,21 @@ function portInUse(port) {
 
 function run(command, cwd) {
   return spawnSync(command, { cwd: path.join(ROOT, cwd), shell: true, stdio: "inherit" }).status === 0;
+}
+
+/** Reads .env (creating it on first run) and stops with instructions if a required secret is missing. */
+function loadConfiguration() {
+  if (createEnvFileIfMissing()) {
+    info(`Created ${ENV_FILE} with a new JWT_SECRET.`);
+    info("Set DB_PASSWORD in it to your MySQL password (leave it empty if there is none), then run npm run dev again.");
+    throw new Error("Configuration needed: set DB_PASSWORD in .env.");
+  }
+  const env = loadEnv();
+  const problems = configurationProblems(env);
+  if (problems.length) {
+    throw new Error(`Configuration problem in .env:\n  - ${problems.join("\n  - ")}`);
+  }
+  serviceEnv = env;
 }
 
 async function preflight() {
@@ -145,7 +164,7 @@ async function supervise(service) {
       cwd: path.join(ROOT, service.cwd),
       shell: true,
       detached: !IS_WINDOWS,
-      env: { ...process.env, FORCE_COLOR: "0" },
+      env: { ...serviceEnv, FORCE_COLOR: "0" },
     });
     service.child = child;
     recordChildren();
@@ -190,18 +209,18 @@ async function supervise(service) {
   }
 }
 
-function shutdown() {
+function shutdown(exitCode = 0) {
   if (stopping) return;
   stopping = true;
   info("Stopping all services...");
   SERVICES.forEach(stopChild);
   clearState();
-  setTimeout(() => process.exit(0), 500);
+  setTimeout(() => process.exit(exitCode), 500);
 }
 
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
-process.on("SIGHUP", shutdown); // terminal window closed
+process.on("SIGINT", () => shutdown());
+process.on("SIGTERM", () => shutdown());
+process.on("SIGHUP", () => shutdown()); // terminal window closed
 // Last resort for any other exit path (uncaught error, process.exit elsewhere).
 process.on("exit", () => {
   SERVICES.forEach(stopChild);
@@ -230,12 +249,13 @@ function startWatchdog() {
 
 try {
   takeOverFromPreviousRun();
+  loadConfiguration();
   writeState({ launcherPid: process.pid, children: [] });
   startWatchdog();
   await preflight();
   const watchers = SERVICES.map((s) => supervise(s).catch((err) => {
     info(paint(31, err.message));
-    shutdown();
+    shutdown(1);
   }));
   (async () => {
     while (!stopping && !SERVICES.every((s) => s.ready)) await sleep(1000);
@@ -249,6 +269,5 @@ try {
   await Promise.all(watchers);
 } catch (err) {
   info(paint(31, err.message));
-  shutdown();
-  process.exitCode = 1;
+  shutdown(1);
 }

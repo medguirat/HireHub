@@ -11,11 +11,15 @@ Recruitment platform with two roles, recruiters and candidates.
 ## Install and run (one command)
 
 Prerequisites (all free): Node 18+, Python 3.11+, JDK 17+, and MySQL 8 running on `localhost:3306`
-with the credentials from `backend/src/main/resources/application.properties` (the database is created automatically).
+(the database is created automatically).
 
 ```bash
 npm run dev
 ```
+
+The first time, this creates a `.env` file at the root of the repository (see [Secrets and local
+settings](#secrets-and-local-settings)) with a freshly generated `JWT_SECRET`, and asks you to put your MySQL
+password in it. Run `npm run dev` again after that.
 
 This single command:
 - installs missing Python and frontend dependencies,
@@ -146,7 +150,34 @@ A category the offer doesn't mention is left out, and the other weights are resc
 
 If the ai-service is unavailable, the app says so and offers a retry. It never shows an estimated score.
 
+## Secrets and local settings
+
+Secrets never go in the code. They live in `.env` at the root of the repository, which git ignores;
+`.env.example` lists every setting with placeholder values. The launcher passes `.env` to all three services, and
+the backend also reads it directly, so starting the backend from an IDE works the same way. A variable already set
+in your environment wins over `.env`.
+
+| Variable | What it is | Required |
+|---|---|---|
+| `DB_URL` | JDBC URL of the MySQL database | no (default `jdbc:mysql://localhost:3306/hirehub_db?createDatabaseIfNotExist=true`) |
+| `DB_USERNAME` | MySQL user | no (default `root`) |
+| `DB_PASSWORD` | MySQL password; leave the value empty if the account has none | **yes** |
+| `JWT_SECRET` | Key that signs login tokens: base64, at least 32 bytes (256 bits) | **yes**: the backend refuses to start without a valid one |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_AUTH`, `SMTP_STARTTLS` | Outgoing email server | no |
+
+Changing a value:
+1. Open `.env` in a text editor (create it with `cp .env.example .env` if it doesn't exist). Write `KEY=value` with
+   no quotes and no spaces around `=`.
+2. For a new `JWT_SECRET`, run `npm run secret` and paste the printed value after `JWT_SECRET=`. Changing it signs
+   everyone out (their tokens no longer verify).
+3. Restart: `npm run stop`, then `npm run dev`.
+
+Backend tests use their own database, `hirehub_test`, with the same `DB_USERNAME` / `DB_PASSWORD`, and a test-only
+signing key; they never read your `JWT_SECRET`.
+
 ## Configuration
+
+Other settings (not secret), as environment variables or in `.env`:
 
 | Variable | Used by | Default |
 |---|---|---|
