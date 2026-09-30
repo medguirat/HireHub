@@ -108,7 +108,7 @@ class ApplicationEvaluationControllerIT {
         mockMvc.perform(put("/api/applications/" + app.getId() + "/evaluation").header("Authorization", token(recruiter))
                         .contentType(MediaType.APPLICATION_JSON).content(EVALUATION.replace("\"communication\":5", "\"communication\":6")))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.communication").value("Ratings go from 1 to 5."));
+                .andExpect(jsonPath("$.fieldErrors.communication").value("Ratings go from 1 to 5."));
     }
 
     @Test

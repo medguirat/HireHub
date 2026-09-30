@@ -128,4 +128,4 @@ def test_draft_endpoints(client):
 
     response = client.post("/draft/bio", json={})
     assert response.status_code == 422
-    assert response.json()["detail"]["code"] == "not_enough_data"
+    assert response.json()["code"] == "not_enough_data"

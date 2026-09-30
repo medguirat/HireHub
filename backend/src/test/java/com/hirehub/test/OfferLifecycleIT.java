@@ -133,7 +133,7 @@ class OfferLifecycleIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"cv\":\"cv.pdf\",\"jobOfferId\":" + offer.getId() + "}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string("This offer has been closed and no longer accepts applications."));
+                .andExpect(jsonPath("$.message").value("This offer has been closed and no longer accepts applications."));
     }
 
     @Test

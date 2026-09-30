@@ -1,6 +1,7 @@
 import { useState } from "react";
 import candidateService from "../services/candidateService";
 import { MAX_FILE_SIZE_MB, validateFile } from "../utils/files";
+import { errorMessage } from "../utils/apiError";
 
 /** The application form (CV + cover letter) for one offer; used wherever a candidate can apply. */
 export default function ApplyModal({ offer, onClose, onApplied }) {
@@ -39,7 +40,7 @@ export default function ApplyModal({ offer, onClose, onApplied }) {
       onApplied(offer);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "Your application couldn't be sent. Please try again.");
+      setError(errorMessage(err, "Your application couldn't be sent. Please try again."));
     } finally {
       setApplying(false);
     }

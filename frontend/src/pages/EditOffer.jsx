@@ -3,9 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import AlertModal from "../components/AlertModal";
 import OfferForm from "../components/OfferForm";
-import { serverFieldErrors, validateOffer } from "../utils/offerValidation";
+import { validateOffer } from "../utils/offerValidation";
 import { SkeletonRows } from "../components/Skeleton";
 import { useToast } from "../components/toastContext";
+import { errorMessage, fieldErrors } from "../utils/apiError";
 
 export default function EditOffer() {
   const navigate = useNavigate();
@@ -64,11 +65,11 @@ export default function EditOffer() {
       navigate("/recruiter-dashboard/offers");
     } catch (err) {
       console.error(err);
-      const fieldErrors = serverFieldErrors(err.response?.data);
-      if (Object.keys(fieldErrors).length > 0) {
-        setServerErrors(fieldErrors);
+      const fromServer = fieldErrors(err);
+      if (Object.keys(fromServer).length > 0) {
+        setServerErrors(fromServer);
       } else {
-        setErrorMsg(err.response?.data?.message || "Your changes couldn't be saved. Please try again.");
+        setErrorMsg(errorMessage(err, "Your changes couldn't be saved. Please try again."));
       }
     } finally {
       setSubmitting(false);

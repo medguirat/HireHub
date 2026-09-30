@@ -30,7 +30,9 @@ test("applying twice is refused, and the offer shows it's already applied", asyn
   expect((await apply()).status).toBe(200);
   const second = await apply();
   expect(second.status).toBe(400);
-  expect(await second.text()).toBe("You have already applied for this job offer.");
+  const body = await second.json();
+  expect(body).toMatchObject({ code: "BAD_REQUEST", message: "You have already applied for this job offer." });
+  expect(body.correlationId).toBeTruthy();
 
   await logIn(page, "err-candidate");
   await page.goto("/candidate-dashboard/offers");
@@ -51,7 +53,7 @@ test("an invalid CV file is refused with a clear message", async ({ page }) => {
   form.append("file", new Blob(["not a cv"], { type: "text/plain" }), "notes.txt");
   const response = await fetch(`${API}/candidates/me/cv`, { method: "PUT", headers: { Authorization: `Bearer ${token}` }, body: form });
   expect(response.status).toBe(415);
-  expect((await response.json()).message).toBe("Please upload your CV as a PDF or DOCX file.");
+  expect(await response.json()).toMatchObject({ code: "CV_UNSUPPORTED_FORMAT", message: "Please upload your CV as a PDF or DOCX file." });
 });
 
 test("an expired session sends the user back to the login page with an explanation", async ({ page }) => {
@@ -74,7 +76,8 @@ test("when matching is unavailable, no score is shown and a retry works", async 
   await page.route("**/api/candidates/offers/*/match", async (route) => {
     if (failures-- > 0) {
       await route.fulfill({ status: 503, contentType: "application/json",
-        body: JSON.stringify({ code: "MATCHING_UNAVAILABLE", message: "The matching service is temporarily unavailable. Please try again in a moment." }) });
+        body: JSON.stringify({ code: "MATCHING_UNAVAILABLE", correlationId: "e2e-simulated",
+          message: "The matching service is temporarily unavailable. Please try again in a moment." }) });
     } else {
       await route.continue();
     }

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { apiError, errorCode, errorMessage } from "../utils/apiError";
 
 // Profile draft helpers. CV/offer matching does NOT live here: it goes
 // through the backend (candidateService.getOfferMatch).
@@ -21,8 +22,10 @@ async function draft(path, body) {
     const response = await aiClient.post(path, body);
     return response.data; // { text, ai_assisted, used }
   } catch (err) {
-    const message = err.response?.data?.detail?.message;
-    throw new Error(message || unavailable, { cause: err });
+    // The ai-service's own errors (e.g. "add a few details first") are worth showing; anything else isn't.
+    const message = apiError(err) && errorCode(err) !== "VALIDATION_FAILED" && err.response.status < 500
+      ? errorMessage(err, unavailable) : unavailable;
+    throw new Error(message, { cause: err });
   }
 }
 

@@ -11,6 +11,7 @@ import { DraftNote, Missing, ProfileCompleteness, SectionCard } from "../compone
 import { focusField, isValidUrl, normalizeUrl } from "../utils/profile";
 import "../styles/profile.css";
 import { formatDate, formatMonthYear } from "../utils/format";
+import { errorMessage } from "../utils/apiError";
 
 // pdf.js is large: only loaded when a CV preview is shown.
 const PdfPreview = lazy(() => import("../components/PdfPreview"));
@@ -160,7 +161,7 @@ export default function CandidateProfile() {
       loadCv();
       toast("Your CV is updated. Match scores will use it from now on.");
     } catch (err) {
-      setCvError(err.response?.data?.message || "Your CV couldn't be uploaded. Please try again.");
+      setCvError(errorMessage(err, "Your CV couldn't be uploaded. Please try again."));
     } finally {
       setCvUploading(false);
     }
@@ -283,9 +284,7 @@ export default function CandidateProfile() {
       } catch { /* the layout copy is a convenience only */ }
       toast("Your profile is saved.");
     } catch (err) {
-      const data = err.response?.data;
-      setErrorMsg(data?.message || (data && typeof data === "object" ? Object.values(data).join(" ") : "") ||
-        "Your profile couldn't be saved. Please try again.");
+      setErrorMsg(errorMessage(err, "Your profile couldn't be saved. Please try again."));
     } finally {
       setSaving(false);
     }

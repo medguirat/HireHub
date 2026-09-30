@@ -1,6 +1,7 @@
 package com.hirehub.company;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.hirehub.matching.AiServiceClient;
 import com.hirehub.matching.AiServiceUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,9 +56,8 @@ public class CompanyScraperClient {
             return new ScrapedCompany(body.path("url").asText(url), body.path("fields"));
         } catch (HttpClientErrorException e) {
             JsonNode error = e.getResponseBodyAs(JsonNode.class);
-            JsonNode detail = error == null ? null : error.path("detail");
-            if (e.getStatusCode() == HttpStatus.UNPROCESSABLE_ENTITY && detail != null && detail.has("message")) {
-                throw new CompanyScrapeException(detail.path("code").asText(), detail.path("message").asText());
+            if (e.getStatusCode() == HttpStatus.UNPROCESSABLE_ENTITY && AiServiceClient.isOwnError(error)) {
+                throw new CompanyScrapeException(error.path("code").asText(), error.path("message").asText());
             }
             log.error("Unexpected {} from ai-service /company/profile: {}", e.getStatusCode(), e.getResponseBodyAsString());
             throw new AiServiceUnavailableException("Unexpected response from ai-service /company/profile", e);

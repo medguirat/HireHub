@@ -67,13 +67,12 @@ public class AiServiceClient {
             return new ExtractedText(body.path("text").asText(), body.path("format").asText());
         } catch (HttpClientErrorException e) {
             JsonNode error = e.getResponseBodyAs(JsonNode.class);
-            JsonNode detail = error == null ? null : error.path("detail");
-            if (detail == null || !detail.has("message")) {
+            if (!isOwnError(error)) {
                 // Not one of the ai-service's own errors (e.g. a request validation error): a bug on our side.
                 log.error("Unexpected {} from ai-service /extract: {}", e.getStatusCode(), e.getResponseBodyAsString());
                 throw new AiServiceUnavailableException("Unexpected response from ai-service /extract", e);
             }
-            String message = detail.path("message").asText();
+            String message = error.path("message").asText();
             if (e.getStatusCode() == HttpStatus.UNSUPPORTED_MEDIA_TYPE) {
                 throw ApiException.cvUnsupported(message);
             }
@@ -109,5 +108,13 @@ public class AiServiceClient {
         } catch (RestClientException e) {
             return new Health(false, null);
         }
+    }
+
+    /**
+     * The ai-service answers errors as {code, message, correlationId, fieldErrors?}. Its own, expected
+     * errors (e.g. "no_text") carry a message for the user; VALIDATION_FAILED means we sent a bad request.
+     */
+    public static boolean isOwnError(JsonNode error) {
+        return error != null && error.hasNonNull("message") && !"VALIDATION_FAILED".equals(error.path("code").asText());
     }
 }

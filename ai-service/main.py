@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from company.scraper import ScrapeError, allows_local_sites, scrape_company
+from errors import install_error_handlers
 from drafts import NotEnoughData, draft_bio, draft_company, get_rewriter
 from matching import ALGORITHM_VERSION
 from matching.extraction import ExtractionError, extract_text
@@ -37,6 +38,7 @@ async def lifespan(_app):
 
 
 app = FastAPI(title="HireHub AI Service", lifespan=lifespan)
+install_error_handlers(app)
 
 # The browser only calls /draft/* directly; matching and company import go through the backend.
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])

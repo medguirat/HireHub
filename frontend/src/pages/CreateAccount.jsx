@@ -3,6 +3,7 @@ import Logo from "../components/Logo";
 import "../styles/authFlow.css";
 import { useState } from "react";
 import api from "../services/api";
+import { errorMessage } from "../utils/apiError";
 
 export default function CreateAccount() {
   const navigate = useNavigate();   
@@ -23,13 +24,6 @@ export default function CreateAccount() {
   const isRecruiter = form.role === "RECRUITER";
 
   // The API answers with {message} or, for invalid fields, {field: message}.
-  const errorText = (data) => {
-    if (!data) return "Registration failed. Please try again.";
-    if (typeof data === "string") return data;
-    if (data.message) return data.message;
-    return Object.values(data).join(" ");
-  };
-
   const handleRegister = async () => {
     if (isRecruiter && !form.companyName.trim()) {
       setError("Please enter your company name.");
@@ -47,7 +41,7 @@ export default function CreateAccount() {
         : "Account created. You can now log in.";
       navigate("/login", { replace: true, state: { notice } });
     } catch(error){
-      setError(errorText(error.response?.data));
+      setError(errorMessage(error, "Registration failed. Please try again."));
     } finally {
       setSubmitting(false);
     }

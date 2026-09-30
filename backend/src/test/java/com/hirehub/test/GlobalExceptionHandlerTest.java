@@ -1,11 +1,10 @@
 package com.hirehub.test;
 
+import com.hirehub.exception.ApiError;
 import com.hirehub.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,17 +20,18 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleGeneric_returnsGenericMessageAndACorrelationId() {
-        ResponseEntity<Map<String, String>> response = handler.handleGeneric(new RuntimeException("boom"));
+        ResponseEntity<ApiError> response = handler.handleGeneric(new RuntimeException("boom"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat(response.getBody().get("message")).isEqualTo("An unexpected error occurred. Please try again later.");
-        assertThat(response.getBody().get("correlationId")).isNotBlank();
+        assertThat(response.getBody().message()).isEqualTo("An unexpected error occurred. Please try again later.");
+        assertThat(response.getBody().code()).isEqualTo("INTERNAL_ERROR");
+        assertThat(response.getBody().correlationId()).isNotBlank();
     }
 
     @Test
     void handleGeneric_generatesADifferentCorrelationIdEachTime() {
-        String first = handler.handleGeneric(new RuntimeException("a")).getBody().get("correlationId");
-        String second = handler.handleGeneric(new RuntimeException("b")).getBody().get("correlationId");
+        String first = handler.handleGeneric(new RuntimeException("a")).getBody().correlationId();
+        String second = handler.handleGeneric(new RuntimeException("b")).getBody().correlationId();
 
         assertThat(first).isNotEqualTo(second);
     }

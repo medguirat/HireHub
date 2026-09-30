@@ -9,6 +9,7 @@ import { useToast } from "../components/toastContext";
 import { DraftNote, Missing, ProfileCompleteness, SectionCard } from "../components/ProfileParts";
 import { focusField, isValidUrl, normalizeUrl } from "../utils/profile";
 import "../styles/profile.css";
+import { errorMessage } from "../utils/apiError";
 
 const COMPANY_FIELDS = [
   "companyName", "website", "logo", "description", "foundedYear", "industry", "mission", "vision",
@@ -189,7 +190,7 @@ export default function RecruiterProfile() {
       setForm((prev) => ({ ...prev, website: p.website || prev.website }));
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.response?.data?.message || "We couldn't start the import. Please try again.");
+      setErrorMsg(errorMessage(err, "We couldn't start the import. Please try again."));
     } finally {
       setStartingImport(false);
     }
@@ -266,9 +267,7 @@ export default function RecruiterProfile() {
       } catch { /* the layout copy is a convenience only */ }
       toast("Your company profile is saved.");
     } catch (err) {
-      const data = err.response?.data;
-      setErrorMsg(data?.message || (data && typeof data === "object" ? Object.values(data).join(" ") : "") ||
-        "Your company profile couldn't be saved. Please try again.");
+      setErrorMsg(errorMessage(err, "Your company profile couldn't be saved. Please try again."));
     } finally {
       setSaving(false);
     }

@@ -105,7 +105,7 @@ class ApplicationControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.cv").exists());
+                .andExpect(jsonPath("$.fieldErrors.cv").exists());
     }
 
     @Test

@@ -46,7 +46,26 @@ def test_extract_pdf(client):
 def test_extract_rejects_unsupported_and_empty_files(client):
     unsupported = client.post("/extract", files={"file": ("cv.png", b"\x89PNG....", "image/png")})
     assert unsupported.status_code == 415
-    assert unsupported.json()["detail"]["code"] == "unsupported_format"
+    assert unsupported.json()["code"] == "unsupported_format"
     empty = client.post("/extract", files={"file": ("scan.pdf", make_pdf([]), "application/pdf")})
     assert empty.status_code == 422
-    assert empty.json()["detail"]["code"] == "no_text"
+    assert empty.json()["code"] == "no_text"
+
+
+def test_errors_share_the_backend_format(client):
+    """{code, message, correlationId, fieldErrors?}, like every backend error."""
+    own = client.post("/extract", files={"file": ("cv.png", b"\x89PNG....", "image/png")}).json()
+    assert set(own) == {"code", "message", "correlationId"}
+    assert own["message"].endswith(".")
+
+    invalid = client.post("/match", json={"cv_text": "x"})
+    assert invalid.status_code == 422
+    body = invalid.json()
+    assert body["code"] == "VALIDATION_FAILED"
+    assert "offer" in body["fieldErrors"]
+    assert body["correlationId"]
+
+    missing = client.get("/no-such-route")
+    assert missing.status_code == 404
+    assert missing.json()["code"] == "NOT_FOUND"
+    assert missing.json()["message"] == "Not found."

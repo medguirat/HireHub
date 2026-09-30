@@ -23,7 +23,15 @@ let redirectingToLogin = false;
 
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
+        // File downloads ask for a Blob; their errors then arrive as a Blob too. Read the JSON
+        // error body back so callers see { code, message, ... } like any other error.
+        const data = error.response?.data;
+        if (typeof Blob !== "undefined" && data instanceof Blob && data.type.includes("json")) {
+            try {
+                error.response.data = JSON.parse(await data.text());
+            } catch { /* keep the raw body */ }
+        }
         if (error.response && error.response.status === 401) {
             const hadSession = !!localStorage.getItem("token");
             localStorage.clear();

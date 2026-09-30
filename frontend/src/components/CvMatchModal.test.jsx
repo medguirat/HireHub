@@ -11,6 +11,8 @@ vi.mock("../services/candidateService", () => ({
 const offer = { id: 7, title: "Java Developer" };
 const cv = { fileName: "cv.pdf", uploadedAt: "2026-09-29T10:00:00" };
 const httpError = (status, data = {}) => Object.assign(new Error("HTTP " + status), { response: { status, data } });
+// The API's error body: { code, message, correlationId }.
+const apiError = (status, code, message) => httpError(status, { code, message, correlationId: "c0ffee00-0000" });
 
 const MATCH = {
   cached: false,
@@ -55,7 +57,7 @@ describe("CvMatchModal", () => {
     const user = userEvent.setup();
     candidateService.getMyCv.mockResolvedValue(cv);
     candidateService.getOfferMatch
-      .mockRejectedValueOnce(httpError(503, { message: "The matching service is temporarily unavailable." }))
+      .mockRejectedValueOnce(apiError(503, "MATCHING_UNAVAILABLE", "The matching service is temporarily unavailable."))
       .mockResolvedValueOnce(MATCH);
     render(<CvMatchModal offer={offer} onClose={() => {}} onApply={() => {}} canApply />);
 
@@ -65,6 +67,15 @@ describe("CvMatchModal", () => {
 
     await user.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByText("82")).toBeInTheDocument();
+  });
+
+  it("asks for a CV when the API answers CV_REQUIRED (the stored CV was removed meanwhile)", async () => {
+    candidateService.getMyCv.mockResolvedValue(cv);
+    candidateService.getOfferMatch.mockRejectedValue(
+      apiError(409, "CV_REQUIRED", "Upload your CV to see how well you match this offer."));
+    render(<CvMatchModal offer={offer} onClose={() => {}} onApply={() => {}} canApply />);
+    expect(await screen.findByLabelText(/CV file \(PDF or DOCX/)).toBeInTheDocument();
+    expect(screen.queryByText("No score available right now")).not.toBeInTheDocument();
   });
 
   it("refuses a wrong file type before uploading", async () => {

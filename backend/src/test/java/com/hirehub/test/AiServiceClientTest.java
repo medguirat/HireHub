@@ -70,7 +70,7 @@ class AiServiceClientTest {
     @Test
     void anUnexpectedValidationErrorIsTreatedAsAServiceFaultNotAsTheUsersFile() {
         status = 422;
-        response = "{\"detail\":[{\"type\":\"missing\",\"loc\":[\"body\",\"file\"]}]}";
+        response = "{\"code\":\"VALIDATION_FAILED\",\"message\":\"file: Field required.\",\"correlationId\":\"c1\",\"fieldErrors\":{\"file\":\"Field required\"}}";
 
         assertThrows(AiServiceUnavailableException.class, () -> client.extractText(new byte[]{1}, "cv.pdf"));
     }
@@ -78,7 +78,7 @@ class AiServiceClientTest {
     @Test
     void unreadableCvMapsTo422WithTheServiceMessage() {
         status = 422;
-        response = "{\"detail\":{\"code\":\"no_text\",\"message\":\"We couldn't find any text in this file.\"}}";
+        response = "{\"code\":\"no_text\",\"message\":\"We couldn't find any text in this file.\",\"correlationId\":\"c1\"}";
 
         ApiException error = assertThrows(ApiException.class, () -> client.extractText(new byte[]{1}, "scan.pdf"));
 
@@ -89,7 +89,7 @@ class AiServiceClientTest {
     @Test
     void unsupportedFormatMapsTo415() {
         status = 415;
-        response = "{\"detail\":{\"code\":\"unsupported_format\",\"message\":\"Please upload your CV as a PDF or DOCX file.\"}}";
+        response = "{\"code\":\"unsupported_format\",\"message\":\"Please upload your CV as a PDF or DOCX file.\",\"correlationId\":\"c1\"}";
 
         ApiException error = assertThrows(ApiException.class, () -> client.extractText(new byte[]{1}, "cv.png"));
 

@@ -5,6 +5,7 @@ import AlertModal from "../components/AlertModal";
 import { SkeletonRows } from "../components/Skeleton";
 import { useToast } from "../components/toastContext";
 import { formatDate, formatDateTime } from "../utils/format";
+import { errorMessage } from "../utils/apiError";
 
 export default function CandidateRating() {
   const { id } = useParams();
@@ -109,9 +110,7 @@ export default function CandidateRating() {
       setSavedAt(saved.updatedAt);
       toast("Your evaluation has been saved.");
     } catch (err) {
-      const data = err.response?.data;
-      setErrorMsg(data?.message || (data && typeof data === "object" ? Object.values(data)[0] : data) ||
-        "Your evaluation couldn't be saved. Please try again.");
+      setErrorMsg(errorMessage(err, "Your evaluation couldn't be saved. Please try again."));
       setShowAlert(true);
     } finally {
       setSavingEvaluation(false);
@@ -139,7 +138,7 @@ export default function CandidateRating() {
       toast("Candidate has been rejected.");
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.response?.data?.message || err.response?.data || "Failed to update candidate status.");
+      setErrorMsg(errorMessage(err, "The candidate's status couldn't be updated. Please try again."));
       setShowAlert(true);
     }
   };
@@ -235,7 +234,7 @@ export default function CandidateRating() {
       toast("Candidate accepted and interview invitation sent successfully.");
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.response?.data?.message || err.response?.data || "Failed to update status and schedule interview.");
+      setErrorMsg(errorMessage(err, "The interview couldn't be scheduled. Please try again."));
       setShowAlert(true);
     } finally {
       setScheduling(false);

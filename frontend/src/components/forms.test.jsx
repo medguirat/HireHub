@@ -4,7 +4,7 @@ import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import OfferForm from "./OfferForm";
 import ApplyModal from "./ApplyModal";
-import { serverFieldErrors, tomorrow, validateOffer } from "../utils/offerValidation";
+import { tomorrow, validateOffer } from "../utils/offerValidation";
 import candidateService from "../services/candidateService";
 
 vi.mock("../services/candidateService", () => ({
@@ -28,12 +28,6 @@ describe("offer validation", () => {
     const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     expect(validateOffer({ ...EMPTY, deadline: iso }).deadline).toBe("The deadline must be after today.");
     expect(validateOffer({ title: "T", description: "D", location: "L", contractType: "CDI", deadline: tomorrow() })).toEqual({});
-  });
-
-  it("reads field errors from the API, and ignores plain messages", () => {
-    expect(serverFieldErrors({ title: "Title is required" })).toEqual({ title: "Title is required" });
-    expect(serverFieldErrors({ message: "Something else" })).toEqual({});
-    expect(serverFieldErrors("text")).toEqual({});
   });
 
   it("shows errors only after the user tries to submit, then clears them as fields are fixed", async () => {

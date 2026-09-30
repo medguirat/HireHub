@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import candidateService from "../services/candidateService";
 import "../styles/cvMatch.css";
 import { formatDate } from "../utils/format";
+import { errorCode, errorMessage } from "../utils/apiError";
 
 // Keep in sync with the backend's spring.servlet.multipart.max-file-size.
 const MAX_FILE_SIZE_MB = 10;
@@ -131,15 +132,11 @@ export default function CvMatchModal({ offer, onClose, onApply, canApply }) {
       setMatch(await candidateService.getOfferMatch(offer.id));
       setPhase("result");
     } catch (err) {
-      const status = err.response?.status;
-      if (status === 409 && err.response?.data?.code === "CV_REQUIRED") {
+      if (errorCode(err) === "CV_REQUIRED") {
         setPhase("upload");
         return;
       }
-      setError(
-        err.response?.data?.message ||
-        (err.response ? "The match couldn't be computed." : "Can't reach the server. Check your connection.")
-      );
+      setError(errorMessage(err, "The match couldn't be computed."));
       setPhase("error");
     }
   }, [offer.id]);
@@ -157,7 +154,7 @@ export default function CvMatchModal({ offer, onClose, onApply, canApply }) {
         if (err.response?.status === 404) {
           setPhase("upload");
         } else {
-          setError(err.response?.data?.message || "Your CV couldn't be loaded.");
+          setError(errorMessage(err, "Your CV couldn't be loaded."));
           setPhase("error");
         }
       }
@@ -180,7 +177,7 @@ export default function CvMatchModal({ offer, onClose, onApply, canApply }) {
       setFile(null);
       await runMatch();
     } catch (err) {
-      setFileError(err.response?.data?.message || "Your CV couldn't be uploaded. Please try again.");
+      setFileError(errorMessage(err, "Your CV couldn't be uploaded. Please try again."));
     } finally {
       setUploading(false);
     }

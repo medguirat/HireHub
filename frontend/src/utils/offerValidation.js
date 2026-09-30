@@ -15,12 +15,6 @@ export function validateOffer(form) {
   return errors;
 }
 
-/** The API answers invalid fields with {field: message}; anything else is a general error. */
-export function serverFieldErrors(data) {
-  if (!data || typeof data !== "object" || data.message) return {};
-  return Object.fromEntries(Object.entries(data).filter(([, v]) => typeof v === "string"));
-}
-
 export const tomorrow = () => {
   const d = new Date();
   d.setDate(d.getDate() + 1);

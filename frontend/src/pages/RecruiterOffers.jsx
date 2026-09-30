@@ -7,6 +7,7 @@ import { SkeletonCards } from "../components/Skeleton";
 import { useToast } from "../components/toastContext";
 import fetchAllPages from "../utils/fetchAllPages";
 import { formatDate } from "../utils/format";
+import { errorMessage } from "../utils/apiError";
 
 export default function RecruiterOffers() {
   const navigate = useNavigate();
@@ -55,7 +56,7 @@ export default function RecruiterOffers() {
       loadOffers();
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.response?.data?.message || err.response?.data || "The offer couldn't be deleted. Please try again.");
+      setErrorMsg(errorMessage(err, "The offer couldn't be deleted. Please try again."));
       setShowAlert(true);
     } finally {
       setBusyOfferId(null);

@@ -7,6 +7,7 @@ import Pagination from "../components/Pagination";
 import { SkeletonRows } from "../components/Skeleton";
 import { useToast } from "../components/toastContext";
 import { formatDateTime } from "../utils/format";
+import { errorMessage } from "../utils/apiError";
 
 export default function CandidateApplications() {
   const [applications, setApplications] = useState([]);
@@ -63,7 +64,7 @@ export default function CandidateApplications() {
       }
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.response?.data?.message || "Your application couldn't be withdrawn. Please try again.");
+      setErrorMsg(errorMessage(err, "Your application couldn't be withdrawn. Please try again."));
       setShowAlert(true);
     } finally {
       setCancellingId(null);

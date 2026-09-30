@@ -7,6 +7,7 @@ import { SkeletonRows } from "../components/Skeleton";
 import { useToast } from "../components/toastContext";
 import fetchAllPages from "../utils/fetchAllPages";
 import { formatDate } from "../utils/format";
+import { errorMessage } from "../utils/apiError";
 
 export default function OfferApplications() {
   const { id } = useParams();
@@ -60,7 +61,7 @@ export default function OfferApplications() {
       fetchData(); // Refresh list
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.response?.data?.message || err.response?.data || "Failed to update candidate status.");
+      setErrorMsg(errorMessage(err, "The candidate's status couldn't be updated. Please try again."));
       setShowAlert(true);
     } finally {
       setBusyAppId(null);

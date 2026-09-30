@@ -41,9 +41,11 @@ class AuthControllerIT extends ApiTestSupport {
         mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content(signup("not-an-email", "short", null)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.email").value("Email must be valid"))
-                .andExpect(jsonPath("$.password").value("Password must be at least 8 characters"))
-                .andExpect(jsonPath("$.role").value("Role is required"));
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.email").value("Email must be valid"))
+                .andExpect(jsonPath("$.fieldErrors.password").value("Password must be at least 8 characters"))
+                .andExpect(jsonPath("$.fieldErrors.role").value("Role is required"))
+                .andExpect(jsonPath("$.message").value("Email must be valid. Password must be at least 8 characters. Role is required."));
     }
 
     @Test
@@ -52,7 +54,7 @@ class AuthControllerIT extends ApiTestSupport {
         mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content(signup("taken@test.com", "password123", "CANDIDATE")))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string("An account with this email already exists."));
+                .andExpect(jsonPath("$.message").value("An account with this email already exists."));
     }
 
     @Test
@@ -63,7 +65,7 @@ class AuthControllerIT extends ApiTestSupport {
                 "{\"email\":\"nobody@test.com\",\"password\":\"password123\"}"}) {
             mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isUnauthorized())
-                    .andExpect(content().string("Invalid email or password."));
+                    .andExpect(jsonPath("$.message").value("Invalid email or password."));
         }
     }
 
@@ -72,7 +74,7 @@ class AuthControllerIT extends ApiTestSupport {
         mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"\",\"password\":\"\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string("Enter your email and password."));
+                .andExpect(jsonPath("$.message").value("Enter your email and password."));
     }
 
     @Test

@@ -35,9 +35,9 @@ class CandidateAccountIT extends ApiTestSupport {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"urlLinkedin\":\"not a url\",\"experiences\":[{\"position\":\"\",\"company\":\"Acme\"}]}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.urlLinkedin").value("urlLinkedin must be a valid URL"))
-                .andExpect(jsonPath("$['experiences[0].position']").value("Position is required"))
-                .andExpect(jsonPath("$['experiences[0].startDate']").value("Start date is required"));
+                .andExpect(jsonPath("$.fieldErrors.urlLinkedin").value("urlLinkedin must be a valid URL"))
+                .andExpect(jsonPath("$.fieldErrors['experiences[0].position']").value("Position is required"))
+                .andExpect(jsonPath("$.fieldErrors['experiences[0].startDate']").value("Start date is required"));
     }
 
     @Test
@@ -63,7 +63,7 @@ class CandidateAccountIT extends ApiTestSupport {
         mockMvc.perform(put("/api/users/me").header("Authorization", token(candidate))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"firstName\":\"\",\"lastName\":\"\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.firstName").value("First name is required"));
+                .andExpect(jsonPath("$.fieldErrors.firstName").value("First name is required"));
         mockMvc.perform(put("/api/users/me").header("Authorization", token(candidate))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"firstName\":\"Nour\",\"lastName\":\"Hammami\"}"))
                 .andExpect(status().isOk())

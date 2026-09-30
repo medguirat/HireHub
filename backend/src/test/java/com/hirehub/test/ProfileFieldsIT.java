@@ -103,7 +103,7 @@ class ProfileFieldsIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"headline\": \"" + "a".repeat(151) + "\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.headline").value("Headline must be at most 150 characters"));
+                .andExpect(jsonPath("$.fieldErrors.headline").value("Headline must be at most 150 characters"));
     }
 
     @Test
@@ -124,6 +124,6 @@ class ProfileFieldsIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"companyName\": \"Acme\", \"description\": \"" + "a".repeat(5001) + "\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.description").value("Description must be at most 5000 characters"));
+                .andExpect(jsonPath("$.fieldErrors.description").value("Description must be at most 5000 characters"));
     }
 }

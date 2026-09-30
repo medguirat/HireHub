@@ -188,6 +188,30 @@ Other settings (not secret), as environment variables or in `.env`:
 | `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`, `LLM_TIMEOUT_SECONDS` | ai-service, optional | unset: no LLM (see Ollama above) |
 | `COMPANY_SCRAPER_ALLOW_PRIVATE` | ai-service, E2E tests only | unset: local and private addresses are refused |
 
+## API errors
+
+Every error from the backend and from the ai-service has the same JSON body:
+
+```json
+{
+  "code": "VALIDATION_FAILED",
+  "message": "Title is required. Deadline must be in the future.",
+  "correlationId": "3f2a9c1e-5b7d-4c21-9a0e-6f1d2c3b4a5e",
+  "fieldErrors": { "title": "Title is required", "deadline": "Deadline must be in the future" }
+}
+```
+
+- `message` is a complete sentence the frontend shows as is.
+- `code` is stable and meant for programs. The general ones are `VALIDATION_FAILED`, `BAD_REQUEST`, `AUTH_REQUIRED`
+  (401), `INVALID_CREDENTIALS`, `FORBIDDEN` (403), `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `CONFLICT`, `FILE_MISSING`,
+  `FILE_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE` and `INTERNAL_ERROR`. Feature-specific ones include `CV_REQUIRED`,
+  `CV_UNREADABLE`, `CV_UNSUPPORTED_FORMAT` and `MATCHING_UNAVAILABLE`.
+- `correlationId` is written in the server log line for the same error. For unexpected errors (500) the frontend
+  shows its first 8 characters as a reference, so a report from a user can be matched to the log.
+- `fieldErrors` (field → message) is present only for validation errors.
+
+The frontend reads errors only through `frontend/src/utils/apiError.js`.
+
 ## Database changes to apply by hand
 
 The backend uses `spring.jpa.hibernate.ddl-auto=update`, which adds new tables and columns by itself but never changes an existing column. Run this once on an existing database (MySQL):

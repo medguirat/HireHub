@@ -1,5 +1,8 @@
 package com.hirehub.config;
 
+import com.hirehub.exception.ApiError;
+import com.hirehub.exception.ApiErrorWriter;
+import com.hirehub.exception.ErrorCodes;
 import com.hirehub.security.CustomUserDetailsService;
 import com.hirehub.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
@@ -23,13 +26,16 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ApiErrorWriter errorWriter;
 
     public SecurityConfig(
             CustomUserDetailsService userDetailsService,
-            JwtAuthenticationFilter jwtAuthenticationFilter
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            ApiErrorWriter errorWriter
     ) {
         this.userDetailsService = userDetailsService;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.errorWriter = errorWriter;
     }
 
     @Bean
@@ -49,19 +55,13 @@ public class SecurityConfig {
                 // frontend only treats 401 as "log in again", so expired
                 // sessions never redirected to the login page.
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write(
-                                    "{\"message\":\"Your session has expired or you are not signed in. Please log in again.\"}");
-                        })
+                        .authenticationEntryPoint((request, response, authException) ->
+                                errorWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, ApiError.of(ErrorCodes.AUTH_REQUIRED,
+                                        "Your session has expired or you are not signed in. Please log in again.")))
                         // Signed in, but with the wrong role for this URL (see the role rules below).
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write(
-                                    "{\"message\":\"Your account type can't use this feature.\"}");
-                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) ->
+                                errorWriter.write(response, HttpServletResponse.SC_FORBIDDEN, ApiError.of(ErrorCodes.FORBIDDEN,
+                                        "Your account type can't use this feature.")))
                 )
 
                 .authorizeHttpRequests(auth -> auth
@@ -69,6 +69,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
+                        // Error dispatches carry the original response status; they must not be re-secured.
+                        .requestMatchers("/error").permitAll()
 
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
                         .requestMatchers("/uploads/**").permitAll()

@@ -4,6 +4,7 @@ import authService from "../services/authService";
 import AlertModal from "../components/AlertModal";
 import "../styles/login.css";
 import jobOfferLogin from "../images/JobOfferLogin.png";
+import { errorMessage } from "../utils/apiError";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -39,11 +40,7 @@ export default function Login() {
       }
     } catch (err) {
       console.error(err);
-      const data = err.response?.data;
-      const msg = (typeof data === "string" && data) || data?.message ||
-                  (data && typeof data === "object" ? Object.values(data).join(" ") : "") ||
-                  "Invalid email or password.";
-      setErrorMsg(msg);
+      setErrorMsg(errorMessage(err, "Invalid email or password."));
       setShowAlert(true);
     } finally {
       setLoading(false);

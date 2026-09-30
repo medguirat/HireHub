@@ -63,7 +63,7 @@ class CompanyScraperClientTest {
     @Test
     void aSiteThatCantBeImportedCarriesTheServiceMessage() {
         status = 422;
-        response = "{\"detail\":{\"code\":\"unreachable\",\"message\":\"We couldn't reach this website.\"}}";
+        response = "{\"code\":\"unreachable\",\"message\":\"We couldn't reach this website.\",\"correlationId\":\"c1\"}";
 
         CompanyScrapeException error = assertThrows(CompanyScrapeException.class, () -> client.scrape("x.example.com"));
 
@@ -74,7 +74,7 @@ class CompanyScraperClientTest {
     @Test
     void validationErrorsServerErrorsAndADownServiceAreUnavailable() {
         status = 422;
-        response = "{\"detail\":[{\"type\":\"missing\",\"loc\":[\"body\",\"url\"]}]}";
+        response = "{\"code\":\"VALIDATION_FAILED\",\"message\":\"url: Field required.\",\"correlationId\":\"c1\",\"fieldErrors\":{\"url\":\"Field required\"}}";
         assertThrows(AiServiceUnavailableException.class, () -> client.scrape("x.example.com"));
 
         status = 500;

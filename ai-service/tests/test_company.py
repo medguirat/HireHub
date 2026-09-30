@@ -218,7 +218,7 @@ def test_endpoint_returns_422_with_a_message_for_bad_urls():
     client = TestClient(main.app)  # no lifespan: the model isn't needed here
     response = client.post("/company/profile", json={"url": "ftp://acme.example.com"})
     assert response.status_code == 422
-    assert response.json()["detail"]["code"] == "invalid_url"
+    assert response.json()["code"] == "invalid_url"
 
 
 def test_endpoint_returns_the_fields(monkeypatch):

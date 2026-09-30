@@ -50,7 +50,7 @@ class UserControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("already exists")));
+                .andExpect(jsonPath("$.message", containsString("already exists")));
     }
 
     @Test
@@ -63,8 +63,9 @@ class UserControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.email").exists())
-                .andExpect(jsonPath("$.password").exists());
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.email").exists())
+                .andExpect(jsonPath("$.fieldErrors.password").exists());
     }
 
     @Test

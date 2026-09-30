@@ -42,11 +42,11 @@ class RecruiterOfferControllerIT extends ApiTestSupport {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"\",\"description\":\"\",\"location\":\"\",\"deadline\":\"" + LocalDate.now().minusDays(1) + "\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.title").value("Title is required"))
-                .andExpect(jsonPath("$.description").value("Description is required"))
-                .andExpect(jsonPath("$.location").value("Location is required"))
-                .andExpect(jsonPath("$.contractType").value("Contract type is required"))
-                .andExpect(jsonPath("$.deadline").value("Deadline must be in the future"));
+                .andExpect(jsonPath("$.fieldErrors.title").value("Title is required"))
+                .andExpect(jsonPath("$.fieldErrors.description").value("Description is required"))
+                .andExpect(jsonPath("$.fieldErrors.location").value("Location is required"))
+                .andExpect(jsonPath("$.fieldErrors.contractType").value("Contract type is required"))
+                .andExpect(jsonPath("$.fieldErrors.deadline").value("Deadline must be in the future"));
     }
 
     @Test
