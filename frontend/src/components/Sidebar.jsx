@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import authService from "../services/authService";
 import Logo from "./Logo";
 import pageTitle from "../layouts/pageTitles";
@@ -12,10 +12,8 @@ const CANDIDATE_LINKS = ["/candidate-dashboard", "/candidate-dashboard/offers", 
 
 export default function Sidebar() {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
-  // Small screens: the menu collapses behind a button in the top bar.
+  // Small screens: the menu collapses behind a button in the top bar and closes after a choice.
   const [menuOpen, setMenuOpen] = useState(false);
-  useEffect(() => setMenuOpen(false), [pathname]);
 
   const storedUser = localStorage.getItem("user");
   const user = storedUser ? JSON.parse(storedUser) : null;
@@ -41,7 +39,7 @@ export default function Sidebar() {
 
         <div className="sidebar-menu" id="sidebar-menu">
           {(isRecruiter ? RECRUITER_LINKS : CANDIDATE_LINKS).map((path, i) => (
-            <NavLink key={path} to={path} end={i === 0}
+            <NavLink key={path} to={path} end={i === 0} onClick={() => setMenuOpen(false)}
               className={({ isActive }) => `sidebar-item ${isActive ? "active" : ""}`}>
               {pageTitle(path).title}
             </NavLink>

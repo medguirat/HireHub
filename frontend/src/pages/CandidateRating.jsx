@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useOutletContext, useSearchParams } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import AlertModal from "../components/AlertModal";
 import { SkeletonRows } from "../components/Skeleton";
-import { useToast } from "../components/Toast";
+import { useToast } from "../components/toastContext";
 import { formatDate, formatDateTime } from "../utils/format";
 
 export default function CandidateRating() {
@@ -37,54 +37,55 @@ export default function CandidateRating() {
   });
 
   const [notes, setNotes] = useState("");
-  const [finalScore, setFinalScore] = useState(10);
   const [interviewType, setInterviewType] = useState("REMOTE");
   const [isAccepted, setIsAccepted] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
   const [savingEvaluation, setSavingEvaluation] = useState(false);
 
+  // Bumped by loadCandidateDetails() to load the data again (e.g. after an action on this page).
+  const [reloadKey, setReloadKey] = useState(0);
+  const loadCandidateDetails = () => setReloadKey((k) => k + 1);
+
   useEffect(() => {
-    loadCandidateDetails();
-  }, [id]);
-
-  const loadCandidateDetails = async () => {
-    setLoading(true);
-    try {
-      const data = await recruiterService.getApplicationById(id);
-      setApp(data);
-      setIsAccepted(data.status === "ACCEPTED");
-
+    // Ignore a response that arrives after a newer load started or the page closed.
+    let ignore = false;
+    (async () => {
       try {
-        const saved = await recruiterService.getEvaluation(id);
-        setRatings({
-          techSkills: saved.technicalSkills,
-          experience: saved.experience,
-          communication: saved.communication,
-          culturalFit: saved.culturalFit
-        });
-        setChecks({ hasDegree: saved.hasDegree, passedTest: saved.passedTest, availableNow: saved.availableNow });
-        setNotes(saved.notes || "");
-        setInterviewType(saved.interviewType || "REMOTE");
-        setSavedAt(saved.updatedAt);
-      } catch (evalErr) {
-        if (evalErr.response?.status !== 404) throw evalErr; // 404: not evaluated yet, keep defaults
-      }
-    } catch (err) {
-      console.error(err);
-      setErrorMsg("Failed to load candidate application details.");
-      setShowAlert(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+        const data = await recruiterService.getApplicationById(id);
+        if (!ignore) setApp(data);
+        if (!ignore) setIsAccepted(data.status === "ACCEPTED");
 
-  useEffect(() => {
-    const avgStars = (ratings.techSkills + ratings.experience + ratings.communication + ratings.culturalFit) / 4;
-    const bonus = (checks.hasDegree ? 1 : 0) + (checks.passedTest ? 1 : 0) + (checks.availableNow ? 1 : 0);
-    
-    const calculated = (avgStars / 5) * 17 + bonus;
-    setFinalScore(parseFloat(calculated.toFixed(1)));
-  }, [ratings, checks]);
+        try {
+          const saved = await recruiterService.getEvaluation(id);
+          if (!ignore) setRatings({
+            techSkills: saved.technicalSkills,
+            experience: saved.experience,
+            communication: saved.communication,
+            culturalFit: saved.culturalFit
+          });
+          if (!ignore) setChecks({ hasDegree: saved.hasDegree, passedTest: saved.passedTest, availableNow: saved.availableNow });
+          if (!ignore) setNotes(saved.notes || "");
+          if (!ignore) setInterviewType(saved.interviewType || "REMOTE");
+          if (!ignore) setSavedAt(saved.updatedAt);
+        } catch (evalErr) {
+          if (evalErr.response?.status !== 404) throw evalErr; // 404: not evaluated yet, keep defaults
+        }
+      } catch (err) {
+        console.error(err);
+        if (!ignore) setErrorMsg("Failed to load candidate application details.");
+        if (!ignore) setShowAlert(true);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, [id, reloadKey]);
+
+
+  // Same formula as the backend (ApplicationEvaluationService): stars scaled to 17, plus 1 point per check.
+  const avgStars = (ratings.techSkills + ratings.experience + ratings.communication + ratings.culturalFit) / 4;
+  const bonus = (checks.hasDegree ? 1 : 0) + (checks.passedTest ? 1 : 0) + (checks.availableNow ? 1 : 0);
+  const finalScore = parseFloat(((avgStars / 5) * 17 + bonus).toFixed(1));
 
   const handleStarClick = (criteria, stars) => {
     setRatings({
@@ -105,7 +106,6 @@ export default function CandidateRating() {
         notes,
         interviewType
       });
-      setFinalScore(saved.score);
       setSavedAt(saved.updatedAt);
       toast("Your evaluation has been saved.");
     } catch (err) {
@@ -177,11 +177,13 @@ export default function CandidateRating() {
     setShowScheduleModal(true);
   };
 
+  // One-shot: runs once when the application has loaded (the ref is cleared on first use).
   useEffect(() => {
     if (!acceptRequested.current || !app) return;
     acceptRequested.current = false;
     setSearchParams({}, { replace: true });
     if (app.status !== "ACCEPTED") handleAcceptClick();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately keyed on the loaded application only
   }, [app]);
 
   const handleDateChange = (newDateVal) => {

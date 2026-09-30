@@ -1,5 +1,7 @@
 package com.hirehub.controller;
 
+import com.hirehub.exception.BadRequestException;
+
 import com.hirehub.dto.LoginRequestDto;
 import com.hirehub.dto.LoginResponseDto;
 import com.hirehub.dto.UserRequestDto;
@@ -20,6 +22,10 @@ public class AuthController {
 
     @PostMapping("/login")
     public LoginResponseDto login(@RequestBody LoginRequestDto request) {
+        if (request.getEmail() == null || request.getEmail().isBlank()
+                || request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new BadRequestException("Enter your email and password.");
+        }
         return authService.login(request);
     }
 

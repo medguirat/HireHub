@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import AlertModal from "../components/AlertModal";
-import OfferForm, { serverFieldErrors, validateOffer } from "../components/OfferForm";
+import OfferForm from "../components/OfferForm";
+import { serverFieldErrors, validateOffer } from "../utils/offerValidation";
 import { SkeletonRows } from "../components/Skeleton";
-import { useToast } from "../components/Toast";
+import { useToast } from "../components/toastContext";
 
 export default function EditOffer() {
   const navigate = useNavigate();
@@ -24,27 +25,28 @@ export default function EditOffer() {
   });
 
   useEffect(() => {
-    loadOffer();
+    // Ignore a response that arrives after a newer load started or the page closed.
+    let ignore = false;
+    (async () => {
+      try {
+        const data = await recruiterService.getOfferById(id);
+        if (!ignore) setForm({
+          title: data.title || "",
+          description: data.description || "",
+          location: data.location || "",
+          contractType: data.contractType || "CDI",
+          deadline: data.deadline || ""
+        });
+      } catch (err) {
+        console.error(err);
+        if (!ignore) setErrorMsg("This job offer couldn't be loaded.");
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
   }, [id]);
 
-  const loadOffer = async () => {
-    setLoading(true);
-    try {
-      const data = await recruiterService.getOfferById(id);
-      setForm({
-        title: data.title || "",
-        description: data.description || "",
-        location: data.location || "",
-        contractType: data.contractType || "CDI",
-        deadline: data.deadline || ""
-      });
-    } catch (err) {
-      console.error(err);
-      setErrorMsg("This job offer couldn't be loaded.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const errors = { ...serverErrors, ...validateOffer(form) };
 

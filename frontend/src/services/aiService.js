@@ -22,7 +22,7 @@ async function draft(path, body) {
     return response.data; // { text, ai_assisted, used }
   } catch (err) {
     const message = err.response?.data?.detail?.message;
-    throw new Error(message || unavailable);
+    throw new Error(message || unavailable, { cause: err });
   }
 }
 

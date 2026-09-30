@@ -12,19 +12,19 @@ import java.time.LocalDate;
 @Data
 public class JobOfferRequestDto {
 
-    @NotBlank (message = "Title is required ")
+    @NotBlank(message = "Title is required")
     private String title;
 
-    @NotBlank (message = "Description is required")
+    @NotBlank(message = "Description is required")
     private String description;
 
-    @NotBlank (message = "Location is required")
+    @NotBlank(message = "Location is required")
     private String location;
 
-    @NotNull (message = "Contract type is required ")
+    @NotNull(message = "Contract type is required")
     private ContractType contractType;
 
-    @NotNull (message="Deadline is required")
-    @Future (message = "Deadline must be in the future ")
+    @NotNull(message = "Deadline is required")
+    @Future(message = "Deadline must be in the future")
     private LocalDate deadline;
 }

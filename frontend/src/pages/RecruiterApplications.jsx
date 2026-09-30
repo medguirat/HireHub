@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import AlertModal from "../components/AlertModal";
 import EmptyState from "../components/EmptyState";
 import { SkeletonRows } from "../components/Skeleton";
-import { useToast } from "../components/Toast";
+import { useToast } from "../components/toastContext";
 import fetchAllPages from "../utils/fetchAllPages";
 
 export default function RecruiterApplications() {
@@ -16,22 +16,27 @@ export default function RecruiterApplications() {
   const [busyAppId, setBusyAppId] = useState(null);
   const toast = useToast();
 
-  useEffect(() => {
-    loadApplications();
-  }, []);
+  // Bumped by loadApplications() to load the data again (e.g. after an action on this page).
+  const [reloadKey, setReloadKey] = useState(0);
+  const loadApplications = () => setReloadKey((k) => k + 1);
 
-  const loadApplications = async () => {
-    setLoading(true);
-    try {
-      setApplications(await fetchAllPages(recruiterService.getApplications));
-    } catch (err) {
-      console.error(err);
-      setErrorMsg("Applications couldn't be loaded. Please refresh the page.");
-      setShowAlert(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    // Ignore a response that arrives after a newer load started or the page closed.
+    let ignore = false;
+    (async () => {
+      try {
+        if (!ignore) setApplications(await fetchAllPages(recruiterService.getApplications));
+      } catch (err) {
+        console.error(err);
+        if (!ignore) setErrorMsg("Applications couldn't be loaded. Please refresh the page.");
+        if (!ignore) setShowAlert(true);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, [reloadKey]);
+
 
   // Only rejecting happens inline; accepting needs an interview date (evaluation page).
   const handleStatusChange = async (id, status) => {

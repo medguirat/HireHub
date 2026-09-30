@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import AlertModal from "../components/AlertModal";
 import EmptyState from "../components/EmptyState";
 import { SkeletonCards } from "../components/Skeleton";
-import { useToast } from "../components/Toast";
+import { useToast } from "../components/toastContext";
 import fetchAllPages from "../utils/fetchAllPages";
 import { formatDate } from "../utils/format";
 
@@ -17,22 +17,27 @@ export default function RecruiterOffers() {
   const [busyOfferId, setBusyOfferId] = useState(null);
   const toast = useToast();
 
-  useEffect(() => {
-    loadOffers();
-  }, []);
+  // Bumped by loadOffers() to load the data again (e.g. after an action on this page).
+  const [reloadKey, setReloadKey] = useState(0);
+  const loadOffers = () => setReloadKey((k) => k + 1);
 
-  const loadOffers = async () => {
-    setLoading(true);
-    try {
-      setOffers(await fetchAllPages(recruiterService.getOffers));
-    } catch (err) {
-      console.error(err);
-      setErrorMsg("Your job offers couldn't be loaded. Please refresh the page.");
-      setShowAlert(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    // Ignore a response that arrives after a newer load started or the page closed.
+    let ignore = false;
+    (async () => {
+      try {
+        if (!ignore) setOffers(await fetchAllPages(recruiterService.getOffers));
+      } catch (err) {
+        console.error(err);
+        if (!ignore) setErrorMsg("Your job offers couldn't be loaded. Please refresh the page.");
+        if (!ignore) setShowAlert(true);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, [reloadKey]);
+
 
   // An offer with applications is closed (archived) instead of deleted, so
   // nobody loses their application history; say which one will happen.

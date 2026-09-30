@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Runs HireHub locally with one command: ai-service, backend and frontend.
 // Each service is health-checked and restarted if it crashes or stops
-// answering. Ctrl+C stops everything.
+// answering. Ctrl+C stops everything; so does closing the terminal or killing
+// this process (a small watchdog stops the services then). `npm run stop`
+// stops them too.
 //
 // Requires: Node 18+, Python 3.11+, JDK 17+, and MySQL running on :3306.
 
@@ -9,10 +11,11 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import net from "node:net";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import {
+  IS_WINDOWS, ROOT, clearState, descendantsOf, isAlive, killTree, processSnapshot, readState,
+  stopRecordedChildren, writeState
+} from "./lib/processes.mjs";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const IS_WINDOWS = process.platform === "win32";
 const PYTHON = process.env.PYTHON || (IS_WINDOWS ? "python" : "python3");
 
 const SERVICES = [
@@ -95,13 +98,24 @@ async function preflight() {
   }
 }
 
-function killTree(child) {
-  if (!child || child.exitCode !== null) return;
-  if (IS_WINDOWS) {
-    spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], { stdio: "ignore" });
-  } else {
-    try { process.kill(-child.pid, "SIGTERM"); } catch { /* already gone */ }
-  }
+// Every child we start is recorded, so it can be stopped even if this process dies abruptly.
+// With `withTrees`, the processes each child started are recorded too (they outlive the
+// shell wrapper when the launcher is killed).
+function recordChildren(withTrees = false) {
+  const snapshot = withTrees ? processSnapshot() : null;
+  const previous = new Map((readState()?.children || []).map((c) => [c.name, c]));
+  writeState({
+    launcherPid: process.pid,
+    children: SERVICES.filter((svc) => svc.child && svc.child.exitCode === null).map((svc) => {
+      const tree = snapshot ? descendantsOf(svc.child.pid, snapshot)
+        : previous.get(svc.name)?.pid === svc.child.pid ? previous.get(svc.name).tree : [];
+      return { name: svc.name, pid: svc.child.pid, marker: svc.command, tree: tree || [] };
+    }),
+  });
+}
+
+function stopChild(service) {
+  if (service.child && service.child.exitCode === null) killTree(service.child.pid);
 }
 
 function pipe(service, stream) {
@@ -134,6 +148,7 @@ async function supervise(service) {
       env: { ...process.env, FORCE_COLOR: "0" },
     });
     service.child = child;
+    recordChildren();
     pipe(service, child.stdout);
     pipe(service, child.stderr);
     const exited = new Promise((resolve) => child.once("exit", resolve));
@@ -147,6 +162,7 @@ async function supervise(service) {
     if (ready) {
       log(service, paint(32, `ready at ${service.health}`));
       service.ready = true;
+      recordChildren(true);
       const healthySince = Date.now();
       let failures = 0;
       while (!stopping && child.exitCode === null) {
@@ -164,8 +180,9 @@ async function supervise(service) {
     }
 
     service.ready = false;
-    killTree(child);
+    stopChild(service);
     await exited;
+    recordChildren();
     if (stopping) return;
     log(service, paint(31, `stopped (exit code ${child.exitCode}); restarting in ${backoffMs / 1000}s`));
     await sleep(backoffMs);
@@ -177,14 +194,44 @@ function shutdown() {
   if (stopping) return;
   stopping = true;
   info("Stopping all services...");
-  SERVICES.forEach((s) => killTree(s.child));
+  SERVICES.forEach(stopChild);
+  clearState();
   setTimeout(() => process.exit(0), 500);
 }
 
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
+process.on("SIGHUP", shutdown); // terminal window closed
+// Last resort for any other exit path (uncaught error, process.exit elsewhere).
+process.on("exit", () => {
+  SERVICES.forEach(stopChild);
+  clearState();
+});
+
+function takeOverFromPreviousRun() {
+  const previous = readState();
+  if (!previous) return;
+  if (previous.launcherPid !== process.pid && isAlive(previous.launcherPid)) {
+    throw new Error(`HireHub is already running (launcher PID ${previous.launcherPid}). Use it, or run "npm run stop" first.`);
+  }
+  const stopped = stopRecordedChildren(previous);
+  if (stopped.length) info(`Stopped services left over from a previous run: ${stopped.join(", ")}.`);
+  clearState();
+}
+
+function startWatchdog() {
+  const watchdog = spawn(process.execPath, [path.join(ROOT, "scripts", "dev-watchdog.mjs"), String(process.pid)], {
+    detached: true,
+    stdio: "ignore",
+    windowsHide: true,
+  });
+  watchdog.unref();
+}
 
 try {
+  takeOverFromPreviousRun();
+  writeState({ launcherPid: process.pid, children: [] });
+  startWatchdog();
   await preflight();
   const watchers = SERVICES.map((s) => supervise(s).catch((err) => {
     info(paint(31, err.message));

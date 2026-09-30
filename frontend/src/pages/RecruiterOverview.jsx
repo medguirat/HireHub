@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import AlertModal from "../components/AlertModal";
 import EmptyState from "../components/EmptyState";
 import { SkeletonRows } from "../components/Skeleton";
-import { useToast } from "../components/Toast";
+import { useToast } from "../components/toastContext";
 import fetchAllPages from "../utils/fetchAllPages";
 
 export default function RecruiterOverview() {
@@ -18,27 +18,32 @@ export default function RecruiterOverview() {
   const [errorMsg, setErrorMsg] = useState("");
   const [showAlert, setShowAlert] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Bumped by fetchData() to load the data again (e.g. after an action on this page).
+  const [reloadKey, setReloadKey] = useState(0);
+  const fetchData = () => setReloadKey((k) => k + 1);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [allOffers, allApplications] = await Promise.all([
-        fetchAllPages(recruiterService.getOffers),
-        fetchAllPages(recruiterService.getApplications)
-      ]);
-      setOffers(allOffers);
-      setApplications(allApplications);
-    } catch (err) {
-      console.error(err);
-      setErrorMsg("Your overview couldn't be loaded. Please refresh the page.");
-      setShowAlert(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    // Ignore a response that arrives after a newer load started or the page closed.
+    let ignore = false;
+    (async () => {
+      try {
+        const [allOffers, allApplications] = await Promise.all([
+          fetchAllPages(recruiterService.getOffers),
+          fetchAllPages(recruiterService.getApplications)
+        ]);
+        if (!ignore) setOffers(allOffers);
+        if (!ignore) setApplications(allApplications);
+      } catch (err) {
+        console.error(err);
+        if (!ignore) setErrorMsg("Your overview couldn't be loaded. Please refresh the page.");
+        if (!ignore) setShowAlert(true);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, [reloadKey]);
+
 
   // Only rejecting happens inline; accepting needs an interview date (evaluation page).
   const handleStatusChange = async (id, status) => {

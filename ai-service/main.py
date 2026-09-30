@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from company.scraper import ScrapeError, scrape_company
+from company.scraper import ScrapeError, allows_local_sites, scrape_company
 from drafts import NotEnoughData, draft_bio, draft_company, get_rewriter
 from matching import ALGORITHM_VERSION
 from matching.extraction import ExtractionError, extract_text
@@ -50,6 +50,8 @@ def health():
         "embedding_model": semantic_scorer.model_name,
         "recommendations": recommendation_provider.name,
         "drafts": "llm" if draft_rewriter else "template",
+        # True only in end-to-end test runs (COMPANY_SCRAPER_ALLOW_PRIVATE=1), where a local site is imported.
+        "company_import_allows_local_sites": allows_local_sites(),
     }
     return JSONResponse(body, status_code=200 if semantic_scorer.loaded else 503)
 

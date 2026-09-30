@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import AlertModal from "../components/AlertModal";
 import EmptyState from "../components/EmptyState";
 import { SkeletonRows } from "../components/Skeleton";
-import { useToast } from "../components/Toast";
+import { useToast } from "../components/toastContext";
 import fetchAllPages from "../utils/fetchAllPages";
 import { formatDate } from "../utils/format";
 
@@ -19,31 +19,36 @@ export default function OfferApplications() {
   const [busyAppId, setBusyAppId] = useState(null);
   const toast = useToast();
 
+  // Bumped by fetchData() to load the data again (e.g. after an action on this page).
+  const [reloadKey, setReloadKey] = useState(0);
+  const fetchData = () => setReloadKey((k) => k + 1);
+
   useEffect(() => {
-    fetchData();
-  }, [id]);
+    // Ignore a response that arrives after a newer load started or the page closed.
+    let ignore = false;
+    (async () => {
+      try {
+        // 1. Fetch offer info
+        const offerData = await recruiterService.getOfferById(id);
+        if (!ignore) setOffer(offerData);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      // 1. Fetch offer info
-      const offerData = await recruiterService.getOfferById(id);
-      setOffer(offerData);
+        // 2. Fetch applications and filter by jobOfferId
+        const allApplications = await fetchAllPages(recruiterService.getApplications);
+        const filtered = allApplications.filter(
+          (app) => Number(app.jobOfferId) === Number(id)
+        );
+        if (!ignore) setApplications(filtered);
+      } catch (err) {
+        console.error(err);
+        if (!ignore) setErrorMsg("The applicants for this offer couldn't be loaded. Please refresh the page.");
+        if (!ignore) setShowAlert(true);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, [id, reloadKey]);
 
-      // 2. Fetch applications and filter by jobOfferId
-      const allApplications = await fetchAllPages(recruiterService.getApplications);
-      const filtered = allApplications.filter(
-        (app) => Number(app.jobOfferId) === Number(id)
-      );
-      setApplications(filtered);
-    } catch (err) {
-      console.error(err);
-      setErrorMsg("The applicants for this offer couldn't be loaded. Please refresh the page.");
-      setShowAlert(true);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Only rejecting happens inline; accepting needs an interview date (evaluation page).
   const handleStatusChange = async (appId, status) => {

@@ -4,7 +4,7 @@ import com.hirehub.entity.Notification;
 import com.hirehub.entity.User;
 import com.hirehub.repository.NotificationRepository;
 import com.hirehub.security.CurrentUserProvider;
-import com.hirehub.exception.BadRequestException;
+import com.hirehub.exception.ForbiddenException;
 import com.hirehub.exception.ResourceNotFoundException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -38,7 +38,7 @@ public class NotificationController {
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
 
         if (!notification.getUser().getId().equals(user.getId())) {
-            throw new BadRequestException("You are not allowed to modify this notification.");
+            throw new ForbiddenException("You are not allowed to modify this notification.");
         }
 
         notification.setRead(true);

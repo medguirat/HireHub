@@ -1,6 +1,5 @@
 package com.hirehub.controller;
 
-import com.hirehub.dto.PageResponseDto;
 import com.hirehub.dto.UpdateBasicInfoDto;
 import com.hirehub.dto.UserRequestDto;
 import com.hirehub.dto.UserResponseDto;
@@ -8,8 +7,6 @@ import com.hirehub.entity.User;
 import com.hirehub.security.CurrentUserProvider;
 import com.hirehub.service.UserService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -26,17 +23,8 @@ public class UserController {
         this.currentUserProvider = currentUserProvider;
     }
 
-    @GetMapping
-    public PageResponseDto<UserResponseDto> getAllUsers(
-            @PageableDefault(size = 10, sort = "id") Pageable pageable
-    ) {
-        return PageResponseDto.from(userService.getAllUsers(pageable));
-    }
-
-    @GetMapping("/{id}")
-    public UserResponseDto getUserById(@PathVariable Long id) {
-        return userService.getUserById(id);
-    }
+    // No endpoint lists users or looks one up by ID: that exposed every account's name, email and
+    // role to any signed-in user, and no screen needs it (there is no admin role).
 
 
     @GetMapping("/me")

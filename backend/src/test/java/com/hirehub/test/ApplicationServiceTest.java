@@ -1,5 +1,6 @@
 package com.hirehub.test;
 
+import com.hirehub.exception.ForbiddenException;
 import com.hirehub.service.ApplicationService;
 
 import com.hirehub.dto.ApplicationRequestDto;
@@ -198,7 +199,7 @@ class ApplicationServiceTest {
 
         when(applicationRepository.findById(50L)).thenReturn(Optional.of(app));
 
-        assertThrows(BadRequestException.class,
+        assertThrows(ForbiddenException.class,
                 () -> applicationService.getApplicationById(50L, stranger));
     }
 
@@ -231,7 +232,7 @@ class ApplicationServiceTest {
 
         when(applicationRepository.findById(50L)).thenReturn(Optional.of(app));
 
-        assertThrows(BadRequestException.class,
+        assertThrows(ForbiddenException.class,
                 () -> applicationService.updateApplicationStatus(50L, dto, otherRecruiter));
     }
 
@@ -339,7 +340,7 @@ class ApplicationServiceTest {
 
         when(applicationRepository.findById(50L)).thenReturn(Optional.of(app));
 
-        assertThrows(BadRequestException.class,
+        assertThrows(ForbiddenException.class,
                 () -> applicationService.deleteApplication(50L, stranger));
     }
 }

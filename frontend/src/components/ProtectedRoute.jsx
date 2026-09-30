@@ -1,23 +1,17 @@
 import { Navigate, Outlet } from "react-router-dom";
+import readStoredUser from "../utils/storedUser";
 
+// Client-side routing guard only: the API checks the token and role on every request.
 export default function ProtectedRoute({ allowedRole }) {
   const token = localStorage.getItem("token");
-  const storedUser = localStorage.getItem("user");
+  const user = token ? readStoredUser() : null;
 
-  if (!token || !storedUser) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
-
-  try {
-    const user = JSON.parse(storedUser);
-    if (allowedRole && user.role !== allowedRole) {
-      const redirectPath = user.role === "RECRUITER" ? "/recruiter-dashboard" : "/candidate-dashboard";
-      return <Navigate to={redirectPath} replace />;
-    }
-  } catch (e) {
-    localStorage.clear();
-    return <Navigate to="/login" replace />;
+  if (allowedRole && user.role !== allowedRole) {
+    const home = user.role === "RECRUITER" ? "/recruiter-dashboard" : "/candidate-dashboard";
+    return <Navigate to={home} replace />;
   }
-
   return <Outlet />;
 }

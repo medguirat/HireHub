@@ -1,8 +1,9 @@
 package com.hirehub.security;
 
+import com.hirehub.exception.ForbiddenException;
+
 import com.hirehub.entity.Role;
 import com.hirehub.entity.User;
-import com.hirehub.exception.BadRequestException;
 import com.hirehub.exception.ResourceNotFoundException;
 import com.hirehub.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -27,9 +28,9 @@ public class CurrentUserProvider {
         User user = getAuthenticatedUser(userDetails);
 
         if (user.getRole() != expectedRole) {
-            throw new BadRequestException(
-                    "This action requires the " + expectedRole + " role."
-            );
+            throw new ForbiddenException(expectedRole == Role.RECRUITER
+                    ? "Only recruiters can do this."
+                    : "Only candidates can do this.");
         }
 
         return user;

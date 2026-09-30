@@ -61,13 +61,14 @@ export default function RecruiterStats() {
   const stats = computeStats(offers, applications, months);
   const chart = chartGeometry(stats.monthly);
 
-  let donutStart = 0;
-  const rings = stats.outcomes.map((o) => {
-    const length = stats.totalApplications ? (o.count / stats.totalApplications) * DONUT_LENGTH : 0;
-    const ring = { status: o.status, length, start: donutStart };
-    donutStart += length;
-    return ring;
-  }).filter((r) => r.length > 0);
+  // Each outcome's arc starts where the previous ones end.
+  const rings = stats.outcomes
+    .map((o, i) => {
+      const lengthOf = (x) => (stats.totalApplications ? (x.count / stats.totalApplications) * DONUT_LENGTH : 0);
+      const start = stats.outcomes.slice(0, i).reduce((sum, prev) => sum + lengthOf(prev), 0);
+      return { status: o.status, length: lengthOf(o), start };
+    })
+    .filter((r) => r.length > 0);
 
   const maxPerOffer = Math.max(1, ...stats.perOffer.map((o) => o.total));
 

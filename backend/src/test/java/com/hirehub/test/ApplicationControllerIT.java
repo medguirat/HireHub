@@ -109,7 +109,7 @@ class ApplicationControllerIT {
     }
 
     @Test
-    void createApplication_returns400WhenRecruiterTriesToApply() throws Exception {
+    void createApplication_returns403WhenRecruiterTriesToApply() throws Exception {
         User recruiter = persistUser("rec3@test.com", Role.RECRUITER);
         JobOffer offer = persistOffer(recruiter, LocalDate.now().plusDays(10));
         String token = jwtService.generateToken(recruiter.getEmail());
@@ -122,7 +122,7 @@ class ApplicationControllerIT {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -175,7 +175,7 @@ class ApplicationControllerIT {
     }
 
     @Test
-    void getApplicationById_returns400WhenStrangerAccesses() throws Exception {
+    void getApplicationById_returns403WhenStrangerAccesses() throws Exception {
         User recruiter = persistUser("rec6@test.com", Role.RECRUITER);
         User candidate = persistUser("cand6@test.com", Role.CANDIDATE);
         User stranger = persistUser("stranger6@test.com", Role.CANDIDATE);
@@ -190,11 +190,11 @@ class ApplicationControllerIT {
 
         mockMvc.perform(get("/api/applications/" + app.getId())
                         .header("Authorization", "Bearer " + strangerToken))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
     }
 
     @Test
-    void updateStatus_returns400WhenNonRecruiterTries() throws Exception {
+    void updateStatus_returns403WhenNonRecruiterTries() throws Exception {
         User recruiter = persistUser("rec7@test.com", Role.RECRUITER);
         User candidate = persistUser("cand7@test.com", Role.CANDIDATE);
         JobOffer offer = persistOffer(recruiter, LocalDate.now().plusDays(10));
@@ -213,7 +213,7 @@ class ApplicationControllerIT {
                         .header("Authorization", "Bearer " + candidateToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
     }
 
     @Test

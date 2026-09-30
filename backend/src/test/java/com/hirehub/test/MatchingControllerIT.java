@@ -109,7 +109,7 @@ class MatchingControllerIT {
         mockMvc.perform(get("/api/candidates/me/cv/file").header("Authorization", token(candidate)))
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/candidates/me/cv/file").header("Authorization", token(recruiter)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/candidates/me/cv/file")).andExpect(status().isUnauthorized());
     }
 
@@ -225,9 +225,9 @@ class MatchingControllerIT {
         JobOffer offer = persistOffer(recruiter);
 
         mockMvc.perform(get("/api/candidates/offers/" + offer.getId() + "/match").header("Authorization", token(recruiter)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
         mockMvc.perform(uploadCv(recruiter, "cv.pdf", "%PDF".getBytes()))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/candidates/offers/" + offer.getId() + "/match"))
                 .andExpect(status().isUnauthorized());
     }

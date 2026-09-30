@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import candidateService from "../services/candidateService";
 import AlertModal from "../components/AlertModal";
 import ApplyModal from "../components/ApplyModal";
@@ -6,7 +6,7 @@ import CvMatchModal from "../components/CvMatchModal";
 import EmptyState from "../components/EmptyState";
 import Pagination from "../components/Pagination";
 import { SkeletonCards } from "../components/Skeleton";
-import { useToast } from "../components/Toast";
+import { useToast } from "../components/toastContext";
 import { formatDate } from "../utils/format";
 
 const EMPTY_FILTERS = { keyword: "", location: "", contractType: "" };
@@ -33,7 +33,32 @@ export default function CandidateOffers() {
   const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
-    fetchOffers();
+    // Ignore a response that arrives after a newer load started or the page closed.
+    let ignore = false;
+    (async () => {
+      const requestId = ++latestRequest.current;
+      try {
+        const data = await candidateService.browseOffers({
+          ...appliedFilters,
+          page,
+          size: 10
+        });
+        if (requestId !== latestRequest.current) return;
+        const content = data.content || [];
+        if (!ignore) setOffers(content);
+        if (!ignore) setTotalPages(data.totalPages || 0);
+        // Keep the selected offer if it's still in the list, else select the first one.
+        if (!ignore) setSelectedOffer((current) => content.find((o) => o.id === current?.id) || content[0] || null);
+      } catch (err) {
+        if (requestId !== latestRequest.current) return;
+        console.error(err);
+        if (!ignore) setErrorMsg("Job offers couldn't be loaded. Please try again.");
+        if (!ignore) setShowAlert(true);
+      } finally {
+        if (requestId === latestRequest.current) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
   }, [page, appliedFilters]);
 
   const handleOpenMatch = (offer) => {
@@ -44,33 +69,10 @@ export default function CandidateOffers() {
 
   // Only the latest search may update the list: an older, slower response
   // arriving afterwards must not overwrite newer results.
-  const fetchOffers = async () => {
-    const requestId = ++latestRequest.current;
-    setLoading(true);
-    try {
-      const data = await candidateService.browseOffers({
-        ...appliedFilters,
-        page,
-        size: 10
-      });
-      if (requestId !== latestRequest.current) return;
-      const content = data.content || [];
-      setOffers(content);
-      setTotalPages(data.totalPages || 0);
-      // Keep the selected offer if it's still in the list, else select the first one.
-      setSelectedOffer((current) => content.find((o) => o.id === current?.id) || content[0] || null);
-    } catch (err) {
-      if (requestId !== latestRequest.current) return;
-      console.error(err);
-      setErrorMsg("Job offers couldn't be loaded. Please try again.");
-      setShowAlert(true);
-    } finally {
-      if (requestId === latestRequest.current) setLoading(false);
-    }
-  };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
+    setLoading(true);
     setPage(0);
     setAppliedFilters({ ...filters });
   };
@@ -78,6 +80,7 @@ export default function CandidateOffers() {
   const hasFilters = Object.values(appliedFilters).some(Boolean);
 
   const clearFilters = () => {
+    setLoading(true);
     setFilters(EMPTY_FILTERS);
     setPage(0);
     setAppliedFilters(EMPTY_FILTERS);
@@ -95,7 +98,6 @@ export default function CandidateOffers() {
     setOffers((all) => all.map((o) => (o.id === offer.id ? updated : o)));
   };
 
-  const defaultLogo = "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3";
 
   return (
     <div className="candidate-offers-page">
@@ -132,8 +134,9 @@ export default function CandidateOffers() {
             <option value="STAGE">Stage (Internship)</option>
           </select>
         </div>
-        <button className="search-btn" type="submit" disabled={loading}>
-          {loading ? "Searching…" : "Search"}
+        {/* Never disabled: a newer search replaces one still running (stale answers are ignored). */}
+        <button className="search-btn" type="submit" aria-busy={loading}>
+          Search
         </button>
       </form>
 
@@ -188,7 +191,7 @@ export default function CandidateOffers() {
               </div>
             ))}
 
-            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+            <Pagination page={page} totalPages={totalPages} onChange={(next) => { setLoading(true); setPage(next); }} />
           </div>
 
           {/* Offer Details Panel */}

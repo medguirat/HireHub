@@ -55,6 +55,7 @@ function ScoreRing({ score }) {
 }
 
 function CategoryRow({ name, category }) {
+  if (!category) return null; // an older breakdown without this category
   if (!category.applicable) {
     return (
       <div className="match-category match-category--na">

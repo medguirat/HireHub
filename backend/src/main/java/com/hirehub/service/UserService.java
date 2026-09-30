@@ -1,5 +1,7 @@
 package com.hirehub.service;
 
+import com.hirehub.exception.ForbiddenException;
+
 import com.hirehub.dto.*;
 import com.hirehub.entity.CandidateProfile;
 import com.hirehub.entity.RecruiterProfile;
@@ -98,16 +100,7 @@ public class UserService {
         return builder.build();
     }
 
-    public Page<UserResponseDto> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable).map(this::toDto);
-    }
 
-    public UserResponseDto getUserById(Long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        return toDto(user);
-    }
 
     /**
      * Profil de l'utilisateur authentifié, quel que soit son rôle.
@@ -161,7 +154,7 @@ public class UserService {
 
     public void deleteUser(Long id, User currentUser) {
         if (!currentUser.getId().equals(id)) {
-            throw new BadRequestException("You can only delete your own account.");
+            throw new ForbiddenException("You can only delete your own account.");
         }
 
         if (!userRepository.existsById(id)) {

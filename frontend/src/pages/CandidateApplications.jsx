@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import candidateService from "../services/candidateService";
 import AlertModal from "../components/AlertModal";
 import EmptyState from "../components/EmptyState";
 import Pagination from "../components/Pagination";
 import { SkeletonRows } from "../components/Skeleton";
-import { useToast } from "../components/Toast";
+import { useToast } from "../components/toastContext";
 import { formatDateTime } from "../utils/format";
 
 export default function CandidateApplications() {
@@ -24,24 +24,29 @@ export default function CandidateApplications() {
   // Expanded application details (for showing interview letter)
   const [selectedApp, setSelectedApp] = useState(null);
 
-  useEffect(() => {
-    fetchApplications();
-  }, [page]);
+  // Bumped by fetchApplications() to load the data again (e.g. after an action on this page).
+  const [reloadKey, setReloadKey] = useState(0);
+  const fetchApplications = () => setReloadKey((k) => k + 1);
 
-  const fetchApplications = async () => {
-    setLoading(true);
-    try {
-      const data = await candidateService.getApplications(page, 10);
-      setApplications(data.content || []);
-      setTotalPages(data.totalPages || 0);
-    } catch (err) {
-      console.error(err);
-      setErrorMsg("Your applications couldn't be loaded. Please refresh the page.");
-      setShowAlert(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    // Ignore a response that arrives after a newer load started or the page closed.
+    let ignore = false;
+    (async () => {
+      try {
+        const data = await candidateService.getApplications(page, 10);
+        if (!ignore) setApplications(data.content || []);
+        if (!ignore) setTotalPages(data.totalPages || 0);
+      } catch (err) {
+        console.error(err);
+        if (!ignore) setErrorMsg("Your applications couldn't be loaded. Please refresh the page.");
+        if (!ignore) setShowAlert(true);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, [page, reloadKey]);
+
 
   const handleCancelApplication = async (id, title) => {
     if (!window.confirm(`Withdraw your application for "${title}"? This can't be undone.`)) {
@@ -142,7 +147,7 @@ export default function CandidateApplications() {
                 </tbody>
               </table>
             </div>
-            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+            <Pagination page={page} totalPages={totalPages} onChange={(next) => { setLoading(true); setPage(next); }} />
           </>
         )}
       </div>

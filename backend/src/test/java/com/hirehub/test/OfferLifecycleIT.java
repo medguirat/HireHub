@@ -154,7 +154,7 @@ class OfferLifecycleIT {
         JobOffer offer = offer(owner, "Owned offer", LocalDate.now(), LocalDate.now().plusDays(10), OfferStatus.OPEN);
 
         mockMvc.perform(delete("/api/recruiters/offers/" + offer.getId()).header("Authorization", token(other)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
         assertThat(jobOfferRepository.findById(offer.getId())).isPresent();
     }
 }

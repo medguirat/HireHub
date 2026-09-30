@@ -8,9 +8,10 @@ Recruitment platform with two roles, recruiters and candidates.
 | `backend/` | Spring Boot (Java 17+), MySQL | 8081 |
 | `ai-service/` | Python FastAPI: CV text extraction, CV/offer matching, company website import | 8000 |
 
-## Run everything
+## Install and run (one command)
 
-Prerequisites: Node 18+, Python 3.11+, JDK 17+, MySQL 8 running on `localhost:3306`.
+Prerequisites (all free): Node 18+, Python 3.11+, JDK 17+, and MySQL 8 running on `localhost:3306`
+with the credentials from `backend/src/main/resources/application.properties` (the database is created automatically).
 
 ```bash
 npm run dev
@@ -22,15 +23,22 @@ This single command:
 - waits for each one to pass its health check,
 - restarts a service if it crashes or fails 3 health checks in a row.
 
-Open http://localhost:5173. Press Ctrl+C to stop everything.
+Open http://localhost:5173. Stop everything with Ctrl+C, or from another terminal with:
+
+```bash
+npm run stop
+```
+
+If the launcher is closed or killed abruptly, a small watchdog stops the three services by itself, and the next
+`npm run dev` cleans up anything left over. Only processes the launcher started are ever stopped.
 
 The first start downloads the multilingual embedding model (about 470 MB), so it needs internet once.
 
 Health endpoints:
 - `GET http://localhost:8081/api/health` reports the backend and the status of the ai-service.
-- `GET http://localhost:8000/health` reports the ai-service and its scoring algorithm version.
+- `GET http://localhost:8000/health` reports the ai-service, its scoring algorithm version, and whether the optional LLM is used.
 
-## Demo data
+## Demo accounts
 
 With the stack running:
 
@@ -38,26 +46,87 @@ With the stack running:
 npm run seed
 ```
 
-This creates 3 fictional companies, 8 offers, 5 candidates with PDF CVs and a few applications. It is safe to run repeatedly. Every demo account uses the `@demo.hirehub.test` domain and the password `Demo1234!` (override with `DEMO_PASSWORD`), for example:
+This creates 3 fictional companies, 9 offers (one in French), 6 candidates with PDF CVs (one French CV) and a few
+applications. It is safe to run again: nothing is duplicated. Every demo account uses the password `Demo1234!`
+(override with `DEMO_PASSWORD`).
 
-| Role | Email |
-|---|---|
-| Recruiter | `leila.mansour@demo.hirehub.test` |
-| Candidate | `amine.trabelsi@demo.hirehub.test` |
+| Role | Email | Company / profile |
+|---|---|---|
+| Recruiter | `leila.mansour@demo.hirehub.test` | Novatech Solutions (software) |
+| Recruiter | `omar.khelifi@demo.hirehub.test` | DataSphere Analytics |
+| Recruiter | `nadia.bouazizi@demo.hirehub.test` | Atlas Retail Group |
+| Candidate | `amine.trabelsi@demo.hirehub.test` | Senior Java backend engineer |
+| Candidate | `sarra.bensalah@demo.hirehub.test` | Java developer |
+| Candidate | `yasmine.gharbi@demo.hirehub.test` | Data analyst |
+| Candidate | `mehdi.jaziri@demo.hirehub.test` | Frontend developer |
+| Candidate | `nour.hammami@demo.hirehub.test` | Développeuse Java (French CV) |
+| Candidate | `ines.chaabane@demo.hirehub.test` | Digital marketing |
 
 ## Tests
+
+Everything except the browser tests, in one command:
 
 ```bash
 npm test
 ```
 
-This runs the ai-service suite (pytest), the backend suite (unit tests and MockMvc integration tests) and a frontend build.
+| Suite | What it covers | Run it alone |
+|---|---|---|
+| ai-service (pytest) | CV text extraction, parsing (English and French), scoring, recommendations, company website import (incl. SSRF protection), profile drafts | `cd ai-service && python -m pytest` |
+| backend (JUnit + MockMvc) | Every endpoint: access rules for both roles (401 / 403), validation errors, happy paths; services, matching and company import with the ai-service mocked | `cd backend && ./mvnw test` |
+| frontend lint (ESLint) | JavaScript and React Hooks rules | `cd frontend && npm run lint` |
+| frontend unit (Vitest + React Testing Library) | Forms and validation, CV match dialog, search, statistics periods, routing guard, dialogs, utilities | `cd frontend && npm test` |
+| frontend build | The production build compiles | `cd frontend && npm run build` |
 
-Backend integration tests use their own database, `hirehub_test`, which is created automatically. They never touch `hirehub_db`.
+End-to-end tests in a real browser (Playwright, Chromium):
 
-Run each part separately:
-- `cd ai-service && python -m pytest`
-- `cd backend && ./mvnw test`
+```bash
+npm run test:e2e
+```
+
+They cover the full recruiter journey (signup with a company website and automatic profile import, publishing an
+offer, seeing and accepting an application, statistics), the full candidate journey (signup, profile, CV upload,
+the new offer at the top of the feed, a real CV match, applying, "My applications"), the error paths (applying
+twice, an invalid CV file, an expired session, the matching service being unavailable) and the "building your
+company profile" banner during a slow import.
+
+`npm run test:e2e` starts the whole stack itself (with `COMPANY_SCRAPER_ALLOW_PRIVATE=1`, a test-only setting that
+lets the ai-service import the local fixture website), so stop `npm run dev` first with `npm run stop`. The first
+run installs nothing extra if Playwright's Chromium is already on the machine; otherwise run
+`npx playwright install chromium` once. Every account the E2E tests create starts with `qa-e2e-` and is deleted at
+the end of the run (`npm run e2e:cleanup` does the same by hand). Nothing else in the database is touched.
+
+Backend integration tests use their own database, `hirehub_test`, created automatically. They never touch `hirehub_db`.
+
+## Optional: a local AI model with Ollama
+
+HireHub works fully without any AI model or API key. Two features can use a local model if you have one:
+- the improvement suggestions shown with a CV match,
+- the rewording of the "Draft a description" / "Draft my bio" texts.
+
+The score itself never depends on it. To use [Ollama](https://ollama.com) (free, runs on your machine):
+
+1. Install Ollama, then download a model: `ollama pull llama3.1:8b`
+2. Set these variables in the terminal before `npm run dev`:
+
+   ```bash
+   # macOS / Linux
+   export LLM_BASE_URL=http://localhost:11434/v1
+   export LLM_MODEL=llama3.1:8b
+   ```
+
+   ```powershell
+   # Windows PowerShell
+   $env:LLM_BASE_URL = "http://localhost:11434/v1"
+   $env:LLM_MODEL = "llama3.1:8b"
+   ```
+
+   Any OpenAI-compatible server works the same way (`LLM_API_KEY` if it needs one, `LLM_TIMEOUT_SECONDS`, default 20).
+3. Check `http://localhost:8000/health`: `"drafts": "llm"` and `"recommendations": "llm (fallback: rules)"`.
+
+Safeguards: if the model is unreachable, slow or answers badly, the rule-based suggestions and the plain templates
+are used instead. A reworded draft that adds a number, a link or praise that isn't in your data is discarded. The
+page says "AI-assisted" only when the model's text was actually used, and you always review a draft before saving.
 
 ## CV matching
 
@@ -77,18 +146,6 @@ A category the offer doesn't mention is left out, and the other weights are resc
 
 If the ai-service is unavailable, the app says so and offers a retry. It never shows an estimated score.
 
-### Optional LLM for recommendations
-
-By default, improvement suggestions are rule-based. To have a local LLM write them instead, point the ai-service at any OpenAI-compatible endpoint, for example [Ollama](https://ollama.com):
-
-```bash
-LLM_BASE_URL=http://localhost:11434/v1
-LLM_MODEL=llama3.1:8b
-# LLM_API_KEY=...          only if your server requires one
-```
-
-The LLM only writes the suggestions. The score never depends on it, and if the LLM fails the rule-based suggestions are used.
-
 ## Configuration
 
 | Variable | Used by | Default |
@@ -97,6 +154,8 @@ The LLM only writes the suggestions. The score never depends on it, and if the L
 | `CV_STORAGE_DIR` | backend: private CV files, never served publicly | `cv-store` |
 | `VITE_API_URL` | frontend | `http://localhost:8081/api` |
 | `EMBEDDING_MODEL` | ai-service | `paraphrase-multilingual-MiniLM-L12-v2` (French, English, Arabic and 50+ other languages) |
+| `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`, `LLM_TIMEOUT_SECONDS` | ai-service, optional | unset: no LLM (see Ollama above) |
+| `COMPANY_SCRAPER_ALLOW_PRIVATE` | ai-service, E2E tests only | unset: local and private addresses are refused |
 
 ## Database changes to apply by hand
 

@@ -1,41 +1,21 @@
-import { useState, useEffect } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import readStoredUser from "../utils/storedUser";
 import pageTitle from "./pageTitles";
 import "../styles/recruiterDashboard.css";
 import "../styles/candidateDashboard.css";
 
 export default function CandidateLayout() {
-  const navigate = useNavigate();
   const { pathname } = useLocation();
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (!storedUser) {
-      navigate("/login", { replace: true });
-      return;
-    }
-
-    try {
-      const parsedUser = JSON.parse(storedUser);
-      if (parsedUser.role !== "CANDIDATE") {
-        navigate("/login", { replace: true }); 
-        return;
-      }
-      setUser(parsedUser);
-    } catch (e) {
-      localStorage.clear();
-      navigate("/login", { replace: true });
-    }
-  }, [navigate]);
+  // Read once; ProtectedRoute has already checked the role.
+  const [user, setUser] = useState(() => {
+    const stored = readStoredUser();
+    return stored?.role === "CANDIDATE" ? stored : null;
+  });
 
   if (!user) {
-    return (
-      <div className="loading-container full-screen-loading">
-        <div>Loading candidate context...</div>
-      </div>
-    );
+    return <Navigate to="/login" replace />;
   }
 
   const displayName = `${user.firstName} ${user.lastName}`;

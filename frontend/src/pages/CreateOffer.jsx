@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import AlertModal from "../components/AlertModal";
-import OfferForm, { serverFieldErrors, validateOffer } from "../components/OfferForm";
-import { useToast } from "../components/Toast";
+import OfferForm from "../components/OfferForm";
+import { serverFieldErrors, validateOffer } from "../utils/offerValidation";
+import { useToast } from "../components/toastContext";
 
 export default function CreateOffer() {
   const navigate = useNavigate();

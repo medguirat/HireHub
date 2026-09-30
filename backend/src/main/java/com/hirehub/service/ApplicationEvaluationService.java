@@ -1,5 +1,7 @@
 package com.hirehub.service;
 
+import com.hirehub.exception.ForbiddenException;
+
 import com.hirehub.dto.ApplicationEvaluationRequestDto;
 import com.hirehub.dto.ApplicationEvaluationResponseDto;
 import com.hirehub.entity.Application;
@@ -62,7 +64,7 @@ public class ApplicationEvaluationService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found."));
         if (!application.getJobOffer().getRecruiter().getId().equals(recruiter.getId())) {
-            throw new BadRequestException("You can only evaluate applications to your own offers.");
+            throw new ForbiddenException("You can only evaluate applications to your own offers.");
         }
         return application;
     }

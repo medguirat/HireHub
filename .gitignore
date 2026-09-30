@@ -51,3 +51,10 @@ __pycache__/
 ### User uploads (CVs, cover letters, logos — personal data, never commit) ###
 backend/uploads/
 backend/cv-store/
+
+# Dev launcher state (PIDs of running services)
+.hirehub-dev/
+
+# Playwright
+e2e-report/
+test-results/

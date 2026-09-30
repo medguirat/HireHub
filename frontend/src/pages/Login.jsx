@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import authService from "../services/authService";
 import AlertModal from "../components/AlertModal";
 import "../styles/login.css";
@@ -13,20 +13,11 @@ export default function Login() {
   const [errorMsg, setErrorMsg] = useState("");
   const [showAlert, setShowAlert] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [sessionNotice, setSessionNotice] = useState("");
-
-  useEffect(() => {
-    setEmail("");
-    setPassword("");
-    setErrorMsg("");
-    if (location.state?.notice) {
-      setSessionNotice(location.state.notice);
-    }
-    if (sessionStorage.getItem("hirehub.sessionExpired")) {
-      sessionStorage.removeItem("hirehub.sessionExpired");
-      setSessionNotice("Your session has expired. Please log in again.");
-    }
-  }, []);
+  // A notice passed by the signup page, or the flag left by an expired session.
+  const [sessionNotice] = useState(() => {
+    if (location.state?.notice) return location.state.notice;
+    return sessionStorage.getItem("hirehub.sessionExpired") ? "Your session has expired. Please log in again." : "";
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,6 +25,8 @@ export default function Login() {
     setLoading(true);
     try {
       await authService.login(email, password);
+      // The "session expired" notice stays (even across reloads) until the user signs in again.
+      sessionStorage.removeItem("hirehub.sessionExpired");
       const user = await authService.getMe();
       localStorage.setItem("user", JSON.stringify(user));
 
@@ -46,9 +39,10 @@ export default function Login() {
       }
     } catch (err) {
       console.error(err);
-      const msg = err.response?.data?.message || 
-                  err.response?.data || 
-                  "Invalid email or password";
+      const data = err.response?.data;
+      const msg = (typeof data === "string" && data) || data?.message ||
+                  (data && typeof data === "object" ? Object.values(data).join(" ") : "") ||
+                  "Invalid email or password.";
       setErrorMsg(msg);
       setShowAlert(true);
     } finally {

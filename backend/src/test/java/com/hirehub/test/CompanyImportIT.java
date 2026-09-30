@@ -252,7 +252,7 @@ class CompanyImportIT {
                                 + "\"password\":\"password123\",\"role\":\"CANDIDATE\",\"companyWebsite\":\"acme.example.com\"}"))
                 .andExpect(status().isOk());
         mockMvc.perform(post("/api/recruiters/profile/import").header("Authorization", token("import-cand@test.com")))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
         verify(scraperClient, never()).scrape(anyString());
     }
 }

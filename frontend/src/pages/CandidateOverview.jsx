@@ -1,17 +1,15 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import candidateService from "../services/candidateService";
-import AlertModal from "../components/AlertModal";
 import Avatar from "../components/Avatar";
 import ApplyModal from "../components/ApplyModal";
 import CvMatchModal from "../components/CvMatchModal";
 import EmptyState from "../components/EmptyState";
 import { SkeletonRows } from "../components/Skeleton";
-import { useToast } from "../components/Toast";
+import { useToast } from "../components/toastContext";
 
 export default function CandidateOverview() {
   const navigate = useNavigate();
-  const { user } = useOutletContext();
   const [stats, setStats] = useState({
     totalApplications: 0,
     pendingApplications: 0,
@@ -21,8 +19,6 @@ export default function CandidateOverview() {
   const [recentOffers, setRecentOffers] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [showAlert, setShowAlert] = useState(false);
 
   // Detail Modal State
   const [selectedOffer, setSelectedOffer] = useState(null);
@@ -33,49 +29,53 @@ export default function CandidateOverview() {
   // Notification Modal State
   const [activeNotification, setActiveNotification] = useState(null);
 
+  // Bumped by fetchData() to load the data again (e.g. after an action on this page).
+  const [reloadKey, setReloadKey] = useState(0);
+  const fetchData = () => setReloadKey((k) => k + 1);
+
   useEffect(() => {
-    fetchData();
-  }, []);
+    // Ignore a response that arrives after a newer load started or the page closed.
+    let ignore = false;
+    (async () => {
 
-  const fetchData = async () => {
-    setLoading(true);
-    let hasCriticalError = false;
+      // 1. Fetch dashboard stats
+      try {
+        const statsData = await candidateService.getDashboard();
+        if (statsData) setStats(statsData);
+      } catch (err) {
+        console.warn("Could not load candidate dashboard stats:", err);
+        // Default fallback stats if backend endpoint is initializing
+        if (!ignore) setStats({
+          totalApplications: 0,
+          pendingApplications: 0,
+          acceptedApplications: 0,
+          rejectedApplications: 0
+        });
+      }
 
-    // 1. Fetch dashboard stats
-    try {
-      const statsData = await candidateService.getDashboard();
-      if (statsData) setStats(statsData);
-    } catch (err) {
-      console.warn("Could not load candidate dashboard stats:", err);
-      // Default fallback stats if backend endpoint is initializing
-      setStats({
-        totalApplications: 0,
-        pendingApplications: 0,
-        acceptedApplications: 0,
-        rejectedApplications: 0
-      });
-    }
+      // 2. Fetch recent offers
+      try {
+        const offersData = await candidateService.browseOffers({ page: 0, size: 3 });
+        if (!ignore) setRecentOffers(offersData?.content || []);
+      } catch (err) {
+        console.warn("Could not load recent offers for candidate overview:", err);
+        if (!ignore) setRecentOffers([]);
+      }
 
-    // 2. Fetch recent offers
-    try {
-      const offersData = await candidateService.browseOffers({ page: 0, size: 3 });
-      setRecentOffers(offersData?.content || []);
-    } catch (err) {
-      console.warn("Could not load recent offers for candidate overview:", err);
-      setRecentOffers([]);
-    }
+      // 3. Fetch notifications
+      try {
+        const notifData = await candidateService.getNotifications();
+        if (!ignore) setNotifications(notifData || []);
+      } catch (err) {
+        console.warn("Could not load notifications for candidate overview:", err);
+        if (!ignore) setNotifications([]);
+      }
 
-    // 3. Fetch notifications
-    try {
-      const notifData = await candidateService.getNotifications();
-      setNotifications(notifData || []);
-    } catch (err) {
-      console.warn("Could not load notifications for candidate overview:", err);
-      setNotifications([]);
-    }
+      if (!ignore) setLoading(false);
+    })();
+    return () => { ignore = true; };
+  }, [reloadKey]);
 
-    setLoading(false);
-  };
 
   const handleNotificationClick = async (notif) => {
     setActiveNotification(notif);
@@ -289,13 +289,6 @@ export default function CandidateOverview() {
         </div>
       )}
 
-      <AlertModal
-        isOpen={showAlert}
-        type="error"
-        title="Something went wrong"
-        message={errorMsg}
-        onClose={() => setShowAlert(false)}
-      />
     </div>
   );
 }

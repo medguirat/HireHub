@@ -5,11 +5,10 @@ import aiService from "../services/aiService";
 import AlertModal from "../components/AlertModal";
 import Avatar from "../components/Avatar";
 import { SkeletonCards } from "../components/Skeleton";
-import { useToast } from "../components/Toast";
-import { validateFile, MAX_FILE_SIZE_MB } from "../components/ApplyModal";
-import {
-  DraftNote, Missing, ProfileCompleteness, SectionCard, focusField, isValidUrl, normalizeUrl
-} from "../components/ProfileParts";
+import { useToast } from "../components/toastContext";
+import { MAX_FILE_SIZE_MB, validateFile } from "../utils/files";
+import { DraftNote, Missing, ProfileCompleteness, SectionCard } from "../components/ProfileParts";
+import { focusField, isValidUrl, normalizeUrl } from "../utils/profile";
 import "../styles/profile.css";
 import { formatDate, formatMonthYear } from "../utils/format";
 
@@ -100,6 +99,34 @@ export default function CandidateProfile() {
   const [cvUploading, setCvUploading] = useState(false);
   const [cvError, setCvError] = useState("");
 
+  // The stored CV and its preview; loadCv() loads them again after an upload.
+  const [cvReloadKey, setCvReloadKey] = useState(0);
+  const loadCv = () => setCvReloadKey((k) => k + 1);
+
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const meta = await candidateService.getMyCv();
+        if (!ignore) setCv(meta);
+        if (meta.fileName?.toLowerCase().endsWith(".pdf")) {
+          const blob = new Blob([await candidateService.getMyCvFile()], { type: "application/pdf" });
+          if (!ignore) setCvBlob(blob);
+          if (!ignore) setCvUrl(URL.createObjectURL(blob));
+        } else {
+          if (!ignore) setCvBlob(null);
+          if (!ignore) setCvUrl("");
+        }
+      } catch (err) {
+        if (err.response?.status !== 404) console.error(err);
+        if (!ignore) setCv(null);
+        if (!ignore) setCvBlob(null);
+        if (!ignore) setCvUrl("");
+      }
+    })();
+    return () => { ignore = true; };
+  }, [cvReloadKey]);
+
   useEffect(() => {
     let active = true;
     (async () => {
@@ -113,32 +140,12 @@ export default function CandidateProfile() {
         setErrorMsg("Your profile couldn't be loaded. Please refresh the page.");
       }
     })();
-    loadCv();
     return () => { active = false; };
   }, []);
 
   // The object URL of the CV preview is freed when it changes or the page closes.
   useEffect(() => () => { if (cvUrl) URL.revokeObjectURL(cvUrl); }, [cvUrl]);
 
-  const loadCv = async () => {
-    try {
-      const meta = await candidateService.getMyCv();
-      setCv(meta);
-      if (meta.fileName?.toLowerCase().endsWith(".pdf")) {
-        const blob = new Blob([await candidateService.getMyCvFile()], { type: "application/pdf" });
-        setCvBlob(blob);
-        setCvUrl(URL.createObjectURL(blob));
-      } else {
-        setCvBlob(null);
-        setCvUrl("");
-      }
-    } catch (err) {
-      if (err.response?.status !== 404) console.error(err);
-      setCv(null);
-      setCvBlob(null);
-      setCvUrl("");
-    }
-  };
 
   const handleCvChange = async (e) => {
     const file = e.target.files[0];
@@ -150,7 +157,7 @@ export default function CandidateProfile() {
     setCvUploading(true);
     try {
       await candidateService.uploadMyCv(file);
-      await loadCv();
+      loadCv();
       toast("Your CV is updated. Match scores will use it from now on.");
     } catch (err) {
       setCvError(err.response?.data?.message || "Your CV couldn't be uploaded. Please try again.");

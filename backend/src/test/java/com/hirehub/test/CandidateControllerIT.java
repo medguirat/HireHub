@@ -54,13 +54,13 @@ class CandidateControllerIT {
     }
 
     @Test
-    void browseOffers_returns400WhenRecruiterCalls() throws Exception {
+    void browseOffers_returns403WhenRecruiterCalls() throws Exception {
         User recruiter = persistUser("rec1@test.com", Role.RECRUITER);
         String token = jwtService.generateToken(recruiter.getEmail());
 
         mockMvc.perform(get("/api/candidates/offers")
                         .header("Authorization", "Bearer " + token))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
     }
 
     @Test

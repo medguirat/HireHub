@@ -47,6 +47,10 @@ def _allow_private():
     return os.getenv("COMPANY_SCRAPER_ALLOW_PRIVATE") == "1"
 
 
+def allows_local_sites():
+    return _allow_private()
+
+
 def normalize_url(raw):
     """Validated absolute http(s) URL, or ScrapeError("invalid_url")."""
     url = (raw or "").strip()

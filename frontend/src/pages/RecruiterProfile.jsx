@@ -1,14 +1,13 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import recruiterService from "../services/recruiterService";
 import aiService from "../services/aiService";
 import AlertModal from "../components/AlertModal";
 import Avatar from "../components/Avatar";
 import { SkeletonCards } from "../components/Skeleton";
-import { useToast } from "../components/Toast";
-import {
-  DraftNote, Missing, ProfileCompleteness, SectionCard, focusField, isValidUrl, normalizeUrl
-} from "../components/ProfileParts";
+import { useToast } from "../components/toastContext";
+import { DraftNote, Missing, ProfileCompleteness, SectionCard } from "../components/ProfileParts";
+import { focusField, isValidUrl, normalizeUrl } from "../utils/profile";
 import "../styles/profile.css";
 
 const COMPANY_FIELDS = [
@@ -69,18 +68,18 @@ export default function RecruiterProfile() {
   const [autoFilled, setAutoFilled] = useState(() => new Set());
   const [startingImport, setStartingImport] = useState(false);
 
-  const applyImportState = (p) => {
+  const applyImportState = useCallback((p) => {
     setImportStatus(p.companyImportStatus || "NOT_REQUESTED");
     setImportMessage(p.companyImportMessage || "");
     setAutoFilled(new Set(p.autoFilledFields || []));
-  };
+  }, []);
 
-  const applyProfile = (p) => {
+  const applyProfile = useCallback((p) => {
     setProfile(p);
     setForm(toCompanyForm(p));
     setBasic({ firstName: p.firstName || "", lastName: p.lastName || "" });
     applyImportState(p);
-  };
+  }, [applyImportState]);
 
   useEffect(() => {
     let active = true;
@@ -96,7 +95,7 @@ export default function RecruiterProfile() {
       }
     })();
     return () => { active = false; };
-  }, [setUser]);
+  }, [setUser, applyProfile]);
 
   useEffect(() => {
     if (importStatus !== "IN_PROGRESS") return undefined;
@@ -119,7 +118,7 @@ export default function RecruiterProfile() {
       }
     }, IMPORT_POLL_MS);
     return () => clearInterval(timer);
-  }, [importStatus]);
+  }, [importStatus, applyImportState]);
 
   if (!profile || !form) {
     return (

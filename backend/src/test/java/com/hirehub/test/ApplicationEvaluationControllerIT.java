@@ -120,9 +120,9 @@ class ApplicationEvaluationControllerIT {
         String url = "/api/applications/" + app.getId() + "/evaluation";
 
         mockMvc.perform(put(url).header("Authorization", token(otherRecruiter))
-                .contentType(MediaType.APPLICATION_JSON).content(EVALUATION)).andExpect(status().isBadRequest());
+                .contentType(MediaType.APPLICATION_JSON).content(EVALUATION)).andExpect(status().isForbidden());
         mockMvc.perform(put(url).header("Authorization", token(candidate))
-                .contentType(MediaType.APPLICATION_JSON).content(EVALUATION)).andExpect(status().isBadRequest());
+                .contentType(MediaType.APPLICATION_JSON).content(EVALUATION)).andExpect(status().isForbidden());
         mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
     }
 }

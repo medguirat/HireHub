@@ -1,5 +1,7 @@
 package com.hirehub.service;
 
+import com.hirehub.exception.ForbiddenException;
+
 import com.hirehub.dto.ApplicationRequestDto;
 import com.hirehub.dto.ApplicationResponseDto;
 import com.hirehub.dto.ApplicationStatusUpdateDto;
@@ -91,7 +93,7 @@ public class ApplicationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
 
         if (!isOwnerCandidate(application, currentUser) && !isOwnerRecruiter(application, currentUser)) {
-            throw new BadRequestException("You are not allowed to access this application.");
+            throw new ForbiddenException("You are not allowed to access this application.");
         }
 
         return toDto(application);
@@ -135,7 +137,7 @@ public class ApplicationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
 
         if (currentUser.getRole() != Role.RECRUITER || !isOwnerRecruiter(existingApp, currentUser)) {
-            throw new BadRequestException("You are not allowed to update this application.");
+            throw new ForbiddenException("You are not allowed to update this application.");
         }
 
         if (dto.getStatus() == ApplicationStatus.PENDING) {
@@ -208,7 +210,7 @@ public class ApplicationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
 
         if (currentUser.getRole() != Role.RECRUITER || !isOwnerRecruiter(existingApp, currentUser)) {
-            throw new BadRequestException("You are not allowed to update this application.");
+            throw new ForbiddenException("You are not allowed to update this application.");
         }
 
         if (app.getStatus() == null) {
@@ -233,13 +235,14 @@ public class ApplicationService {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found."));
 
-        boolean candidateWithdraws = isOwnerCandidate(application, currentUser)
-                && application.getStatus() == ApplicationStatus.PENDING;
-
+        boolean ownerCandidate = isOwnerCandidate(application, currentUser);
         boolean recruiterManages = isOwnerRecruiter(application, currentUser);
 
-        if (!candidateWithdraws && !recruiterManages) {
-            throw new BadRequestException("You are not allowed to delete this application.");
+        if (!ownerCandidate && !recruiterManages) {
+            throw new ForbiddenException("You are not allowed to delete this application.");
+        }
+        if (ownerCandidate && !recruiterManages && application.getStatus() != ApplicationStatus.PENDING) {
+            throw new BadRequestException("This application has already been reviewed, so it can no longer be withdrawn.");
         }
 
         applicationRepository.delete(application);

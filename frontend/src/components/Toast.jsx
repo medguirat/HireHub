@@ -1,9 +1,8 @@
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { ToastContext } from "./toastContext";
 
 // Non-blocking confirmations ("Offer published", "Profile saved"...).
 // Errors that need the user's attention still use AlertModal.
-const ToastContext = createContext(() => {});
-
 const DURATION_MS = 4000;
 
 export function ToastProvider({ children }) {
@@ -31,8 +30,4 @@ export function ToastProvider({ children }) {
       </div>
     </ToastContext.Provider>
   );
-}
-
-export function useToast() {
-  return useContext(ToastContext);
 }

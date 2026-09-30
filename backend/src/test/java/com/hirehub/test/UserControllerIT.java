@@ -82,14 +82,14 @@ class UserControllerIT {
     }
 
     @Test
-    void deleteUser_returns400WhenDeletingSomeoneElsesAccount() throws Exception {
+    void deleteUser_returns403WhenDeletingSomeoneElsesAccount() throws Exception {
         User me = persistUser("me@test.com", Role.CANDIDATE);
         User other = persistUser("other@test.com", Role.CANDIDATE);
         String token = jwtService.generateToken(me.getEmail());
 
         mockMvc.perform(delete("/api/users/" + other.getId())
                         .header("Authorization", "Bearer " + token))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -128,12 +128,23 @@ class UserControllerIT {
     }
 
     @Test
-    void getUserById_returns404WhenNotFound() throws Exception {
+    void otherUsersCannotBeListedOrLookedUp() throws Exception {
         User me = persistUser("lookup@test.com", Role.CANDIDATE);
+        persistUser("someone-else@test.com", Role.RECRUITER);
         String token = jwtService.generateToken(me.getEmail());
 
-        mockMvc.perform(get("/api/users/999999")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isNotFound());
+        // No endpoint exposes other accounts (names, emails, roles).
+        mockMvc.perform(get("/api/users").header("Authorization", "Bearer " + token))
+                .andExpect(status().isMethodNotAllowed());
+        mockMvc.perform(get("/api/users/" + me.getId()).header("Authorization", "Bearer " + token))
+                .andExpect(status().isMethodNotAllowed());
+    }
+
+    @Test
+    void unknownRoutesAre404NotServerErrors() throws Exception {
+        User me = persistUser("route@test.com", Role.CANDIDATE);
+        mockMvc.perform(get("/api/does-not-exist").header("Authorization", "Bearer " + jwtService.generateToken(me.getEmail())))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Not found."));
     }
 }

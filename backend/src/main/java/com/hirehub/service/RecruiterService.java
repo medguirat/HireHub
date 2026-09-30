@@ -1,5 +1,7 @@
 package com.hirehub.service;
 
+import com.hirehub.exception.ForbiddenException;
+
 import com.hirehub.dto.JobOfferRequestDto;
 import com.hirehub.dto.JobOfferResponseDto;
 import com.hirehub.dto.OfferDeletionResultDto;
@@ -48,7 +50,7 @@ public class RecruiterService {
                 .orElseThrow(() -> new ResourceNotFoundException("Job offer not found"));
 
         if (!offer.getRecruiter().getId().equals(recruiterId)) {
-            throw new BadRequestException("You are not allowed to access this offer");
+            throw new ForbiddenException("You are not allowed to access this offer");
         }
 
         return jobOfferMapper.toResponseDto(offer);
@@ -75,7 +77,7 @@ public class RecruiterService {
                 .orElseThrow(() -> new ResourceNotFoundException("Offer not found"));
 
         if (!existingOffer.getRecruiter().getId().equals(recruiterId)) {
-            throw new BadRequestException("You cannot modify this offer");
+            throw new ForbiddenException("You cannot modify this offer.");
         }
 
         if (dto.getDeadline().isBefore(LocalDate.now())) {
@@ -102,7 +104,7 @@ public class RecruiterService {
                 .orElseThrow(() -> new ResourceNotFoundException("Offer not found"));
 
         if (!offer.getRecruiter().getId().equals(recruiterId)) {
-            throw new BadRequestException("You cannot delete this offer");
+            throw new ForbiddenException("You cannot delete this offer.");
         }
 
         long applications = applicationRepository.countByJobOfferId(offerId);

@@ -1,5 +1,6 @@
 package com.hirehub.test;
 
+import com.hirehub.exception.ForbiddenException;
 import com.hirehub.service.UserService;
 
 import com.hirehub.dto.UpdateBasicInfoDto;
@@ -115,7 +116,7 @@ class UserServiceTest {
     void deleteUser_throwsWhenNotOwnAccount() {
         User currentUser = User.builder().id(1L).build();
 
-        BadRequestException ex = assertThrows(BadRequestException.class,
+        ForbiddenException ex = assertThrows(ForbiddenException.class,
                 () -> userService.deleteUser(2L, currentUser));
 
         assertThat(ex.getMessage()).contains("your own account");
@@ -175,10 +176,4 @@ class UserServiceTest {
         assertThat(result.getLastName()).isEqualTo("Value");
     }
 
-    @Test
-    void getUserById_throwsWhenNotFound() {
-        when(userRepository.findById(42L)).thenReturn(Optional.empty());
-
-        assertThrows(ResourceNotFoundException.class, () -> userService.getUserById(42L));
-    }
 }

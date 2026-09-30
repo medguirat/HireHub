@@ -16,13 +16,19 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+// A page often fires several requests at once; when the session has expired they all
+// come back 401. Only the first one redirects, otherwise a second full reload of the
+// login page would lose the "session expired" notice.
+let redirectingToLogin = false;
+
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
             const hadSession = !!localStorage.getItem("token");
             localStorage.clear();
-            if (!window.location.pathname.includes("/login")) {
+            if (!redirectingToLogin && !window.location.pathname.includes("/login")) {
+                redirectingToLogin = true;
                 // A wrong password on the login page is also a 401; only a user
                 // who was signed in and got bounced should see "session expired".
                 if (hadSession) {

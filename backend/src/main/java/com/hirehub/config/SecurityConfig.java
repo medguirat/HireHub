@@ -55,6 +55,13 @@ public class SecurityConfig {
                             response.getWriter().write(
                                     "{\"message\":\"Your session has expired or you are not signed in. Please log in again.\"}");
                         })
+                        // Signed in, but with the wrong role for this URL (see the role rules below).
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write(
+                                    "{\"message\":\"Your account type can't use this feature.\"}");
+                        })
                 )
 
                 .authorizeHttpRequests(auth -> auth
@@ -68,8 +75,13 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.GET, "/api/joboffers/**").permitAll()
 
-                        .requestMatchers("/api/recruiters/**").authenticated()
-                        .requestMatchers("/api/candidates/**").authenticated()
+                        // Role rules, checked before any request body is read or validated. The
+                        // controllers check the role too (CurrentUserProvider.requireRole).
+                        .requestMatchers("/api/recruiters/**").hasRole("RECRUITER")
+                        .requestMatchers("/api/candidates/**").hasRole("CANDIDATE")
+                        .requestMatchers(HttpMethod.POST, "/api/applications").hasRole("CANDIDATE")
+                        .requestMatchers(HttpMethod.PATCH, "/api/applications/*/status").hasRole("RECRUITER")
+                        .requestMatchers("/api/applications/*/evaluation").hasRole("RECRUITER")
                         .requestMatchers("/api/applications/**").authenticated()
 
                         .anyRequest().authenticated()

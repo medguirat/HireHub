@@ -1,5 +1,6 @@
 package com.hirehub.test;
 
+import com.hirehub.exception.ForbiddenException;
 import com.hirehub.service.RecruiterService;
 
 import com.hirehub.dto.JobOfferRequestDto;
@@ -89,7 +90,7 @@ class RecruiterServiceTest {
 
         when(jobOfferRepository.findById(1L)).thenReturn(Optional.of(offer));
 
-        assertThrows(BadRequestException.class,
+        assertThrows(ForbiddenException.class,
                 () -> recruiterService.getRecruiterOfferById(1L, 99L));
     }
 
@@ -103,7 +104,7 @@ class RecruiterServiceTest {
 
         when(jobOfferRepository.findById(1L)).thenReturn(Optional.of(offer));
 
-        assertThrows(BadRequestException.class,
+        assertThrows(ForbiddenException.class,
                 () -> recruiterService.updateOffer(1L, dto, 99L));
     }
 
@@ -126,7 +127,7 @@ class RecruiterServiceTest {
 
         when(jobOfferRepository.findById(1L)).thenReturn(Optional.of(offer));
 
-        assertThrows(BadRequestException.class,
+        assertThrows(ForbiddenException.class,
                 () -> recruiterService.deleteOffer(1L, 99L));
     }
 
