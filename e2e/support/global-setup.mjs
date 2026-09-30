@@ -22,9 +22,10 @@ export default async function globalSetup() {
       );
     }
     const backend = await json("http://localhost:8081/api/health");
-    if (ai?.body?.status === "ok" && backend?.status === 200) return;
+    const mailpit = await fetch("http://localhost:8025/livez", { signal: AbortSignal.timeout(3000) }).then((r) => r.ok, () => false);
+    if (ai?.body?.status === "ok" && backend?.status === 200 && mailpit) return;
     if (Date.now() > deadline) {
-      throw new Error("The stack didn't become ready within 10 minutes (ai-service on :8000, backend on :8081).");
+      throw new Error("The stack didn't become ready within 10 minutes (ai-service on :8000, backend on :8081, Mailpit on :8025).");
     }
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }

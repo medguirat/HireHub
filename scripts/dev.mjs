@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Runs HireHub locally with one command: ai-service, backend and frontend.
+// Runs HireHub locally with one command: ai-service, backend, frontend, and Mailpit (a local
+// inbox that receives the emails the app sends: http://localhost:8025).
 // Each service is health-checked and restarted if it crashes or stops
 // answering. Ctrl+C stops everything; so does closing the terminal or killing
 // this process (a small watchdog stops the services then). `npm run stop`
@@ -14,6 +15,7 @@ import { existsSync } from "node:fs";
 import net from "node:net";
 import path from "node:path";
 import { ENV_FILE, configurationProblems, createEnvFileIfMissing, loadEnv } from "./lib/env.mjs";
+import { MAILPIT_SMTP, MAILPIT_UI, ensureMailpit } from "./lib/mailpit.mjs";
 import {
   IS_WINDOWS, ROOT, clearState, descendantsOf, isAlive, killTree, processSnapshot, readState,
   stopRecordedChildren, writeState
@@ -114,6 +116,19 @@ async function preflight() {
   }
   if (!(await portInUse(3306))) {
     info(paint(31, "MySQL doesn't seem to be running on port 3306; the backend will fail to start without it."));
+  }
+  // Optional: without it the app runs, but emails (password reset) aren't delivered anywhere.
+  const mailpit = await ensureMailpit((message) => info(message));
+  if (mailpit) {
+    SERVICES.unshift({
+      name: "mailpit",
+      color: 34,
+      cwd: ".",
+      command: `"${mailpit}" --smtp ${MAILPIT_SMTP} --listen 127.0.0.1:8025`,
+      health: `${MAILPIT_UI}/livez`,
+      port: 8025,
+      startupTimeoutMs: 30_000,
+    });
   }
 }
 
@@ -264,6 +279,7 @@ try {
     info(`  App         http://localhost:5173`);
     info(`  API health  http://localhost:8081/api/health`);
     info(`  AI service  http://localhost:8000/health`);
+    if (SERVICES.some((s) => s.name === "mailpit")) info(`  Emails      ${MAILPIT_UI}`);
     info("Press Ctrl+C to stop everything.");
   })();
   await Promise.all(watchers);

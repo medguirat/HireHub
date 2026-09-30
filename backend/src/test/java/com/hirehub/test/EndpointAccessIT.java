@@ -93,6 +93,9 @@ class EndpointAccessIT extends ApiTestSupport {
                 Arguments.of("GET", "/api/joboffers"),
                 Arguments.of("POST", "/api/auth/login"),
                 Arguments.of("POST", "/api/auth/register"),
+                Arguments.of("POST", "/api/auth/password-reset"),
+                Arguments.of("POST", "/api/auth/password-reset/check"),
+                Arguments.of("POST", "/api/auth/password-reset/confirm"),
                 Arguments.of("POST", "/api/users")
         );
     }

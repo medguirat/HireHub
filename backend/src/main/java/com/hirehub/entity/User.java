@@ -35,6 +35,13 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
+    /**
+     * When the password was last changed (e.g. by a reset). Login tokens issued before this moment
+     * are refused, which signs the user out everywhere. Null if it never changed.
+     */
+    @JsonIgnore
+    private java.time.Instant credentialsChangedAt;
+
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private CandidateProfile candidateProfile;

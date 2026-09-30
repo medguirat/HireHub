@@ -21,4 +21,16 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    /** Outgoing emails: sending never delays (or reveals anything through) an API answer. */
+    @Bean(name = "mailExecutor")
+    public Executor mailExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("mail-");
+        executor.initialize();
+        return executor;
+    }
 }

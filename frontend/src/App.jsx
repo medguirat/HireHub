@@ -4,6 +4,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import SplashScreen from "./pages/SplashScreen";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import CreateAccount from "./pages/CreateAccount";
 import RecruiterLayout from "./layouts/RecruiterLayout";
 import RecruiterOverview from "./pages/RecruiterOverview";
@@ -30,6 +31,7 @@ function App() {
         <Route path="/" element={<SplashScreen />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/create-account" element={<CreateAccount />} />
         
         {/* Recruiter Dashboard Nested Layout */}

@@ -21,7 +21,14 @@ const authService = {
 
   logout: () => {
     localStorage.clear();
-  }
+  },
+
+  // "Forgot password": the answer is the same whether or not the email has an account.
+  requestPasswordReset: async (email) => (await api.post("/auth/password-reset", { email })).data,
+
+  checkResetLink: async (token) => (await api.post("/auth/password-reset/check", { token })).data,
+
+  resetPassword: async (token, password) => (await api.post("/auth/password-reset/confirm", { token, password })).data,
 };
 
 export default authService;

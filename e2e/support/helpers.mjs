@@ -8,6 +8,8 @@ export const API = "http://localhost:8081/api";
 export const PASSWORD = "Password123!";
 export const FIXTURES = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "fixtures");
 export const COMPANY_SITE = "http://127.0.0.1:4599";
+/** Mailpit, the local inbox `npm run dev` starts: every email the app sends lands there. */
+export const MAILPIT = "http://localhost:8025";
 
 const RUN = Date.now().toString(36);
 export const email = (who) => `qa-e2e-${RUN}-${who}@qa.hirehub.test`;
@@ -64,4 +66,29 @@ export function dateIn(days) {
   const d = new Date();
   d.setDate(d.getDate() + days);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Mailpit search for the emails sent to one address. */
+const mailpitQuery = (address) => encodeURIComponent(`to:"${address}"`);
+
+/** Waits for the newest email sent to this address and returns it (subject, text, html). */
+export async function waitForEmail(address, { timeoutMs = 30_000, after = 0 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const found = await (await fetch(`${MAILPIT}/api/v1/search?query=${mailpitQuery(address)}`)).json();
+    const newest = (found.messages || []).find((m) => new Date(m.Created).getTime() >= after);
+    if (newest) return (await fetch(`${MAILPIT}/api/v1/message/${newest.ID}`)).json();
+    if (Date.now() > deadline) throw new Error(`No email to ${address} within ${timeoutMs / 1000}s`);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+}
+
+export async function countEmails(address) {
+  const found = await (await fetch(`${MAILPIT}/api/v1/search?query=${mailpitQuery(address)}`)).json();
+  return found.messages_count ?? 0;
+}
+
+/** Deletes the test run's emails from Mailpit (only those sent to qa-e2e addresses). */
+export async function deleteQaEmails() {
+  await fetch(`${MAILPIT}/api/v1/search?query=${encodeURIComponent('to:"@qa.hirehub.test"')}`, { method: "DELETE" }).catch(() => {});
 }

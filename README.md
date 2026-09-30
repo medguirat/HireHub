@@ -23,7 +23,7 @@ password in it. Run `npm run dev` again after that.
 
 This single command:
 - installs missing Python and frontend dependencies,
-- starts the ai-service, the backend and the frontend,
+- starts the ai-service, the backend, the frontend and Mailpit (a local inbox for the emails the app sends),
 - waits for each one to pass its health check,
 - restarts a service if it crashes or fails 3 health checks in a row.
 
@@ -37,6 +37,9 @@ If the launcher is closed or killed abruptly, a small watchdog stops the three s
 `npm run dev` cleans up anything left over. Only processes the launcher started are ever stopped.
 
 The first start downloads the multilingual embedding model (about 470 MB), so it needs internet once.
+
+Emails sent by the app (for example "reset your password") don't go to real mailboxes in development: open
+**http://localhost:8025** to read them in Mailpit. See [Password reset and emails](#password-reset-and-emails).
 
 Health endpoints:
 - `GET http://localhost:8081/api/health` reports the backend and the status of the ai-service.
@@ -91,7 +94,8 @@ npm run test:e2e
 They cover the full recruiter journey (signup with a company website and automatic profile import, publishing an
 offer, seeing and accepting an application, statistics), the full candidate journey (signup, profile, CV upload,
 the new offer at the top of the feed, a real CV match, applying, "My applications"), the error paths (applying
-twice, an invalid CV file, an expired session, the matching service being unavailable) and the "building your
+twice, an invalid CV file, an expired session, the matching service being unavailable), password reset with
+the email read from Mailpit, access to private CVs and the "building your
 company profile" banner during a slow import.
 
 `npm run test:e2e` starts the whole stack itself (with `COMPANY_SCRAPER_ALLOW_PRIVATE=1`, a test-only setting that
@@ -163,7 +167,9 @@ in your environment wins over `.env`.
 | `DB_USERNAME` | MySQL user | no (default `root`) |
 | `DB_PASSWORD` | MySQL password; leave the value empty if the account has none | **yes** |
 | `JWT_SECRET` | Key that signs login tokens: base64, at least 32 bytes (256 bits) | **yes**: the backend refuses to start without a valid one |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_AUTH`, `SMTP_STARTTLS` | Outgoing email server | no |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_AUTH`, `SMTP_STARTTLS` | Outgoing email server | no (default: Mailpit on `localhost:1025`) |
+| `MAIL_FROM` | Sender of the app's emails | no (default `HireHub <no-reply@hirehub.local>`) |
+| `APP_FRONTEND_URL` | Address of the frontend, used in links sent by email | no (default `http://localhost:5173`) |
 
 Changing a value:
 1. Open `.env` in a text editor (create it with `cp .env.example .env` if it doesn't exist). Write `KEY=value` with
@@ -187,6 +193,33 @@ Other settings (not secret), as environment variables or in `.env`:
 | `EMBEDDING_MODEL` | ai-service | `paraphrase-multilingual-MiniLM-L12-v2` (French, English, Arabic and 50+ other languages) |
 | `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`, `LLM_TIMEOUT_SECONDS` | ai-service, optional | unset: no LLM (see Ollama above) |
 | `COMPANY_SCRAPER_ALLOW_PRIVATE` | ai-service, E2E tests only | unset: local and private addresses are refused |
+
+## Password reset and emails
+
+"Forgot password?" on the login page sends a link by email:
+
+1. The user enters their email. The answer is always the same ("If an account exists for this email, we've sent a
+   link…"), whether or not the address has an account, and the email is sent in the background, so the page never
+   reveals who is registered. At most one email per account per minute.
+2. The link (`/reset-password#token=…`) contains 256 random bits. Only their SHA-256 is stored in the database; the
+   part after `#` is never sent to a server, so the token doesn't appear in any log. It works **once** and expires
+   after **45 minutes**; asking again replaces the previous link.
+3. The reset page checks the link first, then asks for the new password twice (at least 8 characters, the signup
+   rule). After the change, every session of that user is signed out (login tokens issued before are refused) and
+   the page returns to the login screen.
+
+**Mailpit** ([mailpit.axllent.org](https://mailpit.axllent.org), free and open source, MIT licence) receives the emails
+in development: SMTP on `localhost:1025`, web inbox on **http://localhost:8025**. `npm run dev` starts it. The first
+time, it downloads the official Mailpit release (v1.31.3, about 10 MB) into `.hirehub-dev/bin/` and checks its
+SHA-256 before using it; a `mailpit` already on your PATH, or `MAILPIT_BIN=/path/to/mailpit`, is used instead. If
+Mailpit can't be started, the app still runs, but emails aren't delivered anywhere (the backend logs a warning).
+
+To show the flow in a demo: open http://localhost:5173/forgot-password, enter `amine.trabelsi@demo.hirehub.test`,
+then open the email in http://localhost:8025 and click the link. Choose `Demo1234!` again as the new password, so the
+demo accounts keep the password `npm run seed` expects.
+
+For real emails, point `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_AUTH`, `SMTP_STARTTLS` and
+`MAIL_FROM` in `.env` at your mail provider, and set `APP_FRONTEND_URL` to the address users open the app at.
 
 ## Files and who can see them
 

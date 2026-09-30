@@ -53,11 +53,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         try {
-            String email = jwtService.extractUsername(token);
+            JwtService.TokenClaims claims = jwtService.parse(token);
+            String email = claims.email();
 
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+                // Issued before the password was last changed (e.g. reset): this session is over.
+                if (userDetails instanceof CustomUserDetailsService.AppUserDetails user
+                        && !user.acceptsTokenIssuedAt(claims.issuedAt())) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(

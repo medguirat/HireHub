@@ -1,5 +1,6 @@
 package com.hirehub.security;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -7,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
 
@@ -56,11 +58,19 @@ public class JwtService {
     }
 
     public String extractUsername(String token) {
-        return Jwts.parserBuilder()
+        return parse(token).email();
+    }
+
+    /** Verifies the signature and expiry; throws JwtException otherwise. */
+    public TokenClaims parse(String token) {
+        Claims claims = Jwts.parserBuilder()
                 .setSigningKey(signingKey)
                 .build()
                 .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+                .getBody();
+        return new TokenClaims(claims.getSubject(), claims.getIssuedAt() == null ? null : claims.getIssuedAt().toInstant());
+    }
+
+    public record TokenClaims(String email, Instant issuedAt) {
     }
 }
