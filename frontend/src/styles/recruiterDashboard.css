@@ -1,23 +1,27 @@
 /* Tokens live in styles/tokens.css. */
 
+/* App shell: the layout is exactly one screen high and never scrolls. The navigation (sidebar on
+   desktop, top bar on phones) stays put; only <main> scrolls, so no content can slide under the
+   navigation and anchors or focused fields always land in view. */
 .recruiter-layout {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   background: radial-gradient(circle at 15% 20%, rgba(var(--navy-rgb), 0.55) 0%, transparent 50%),
               radial-gradient(circle at 85% 80%, rgba(var(--cyan-rgb), 0.2) 0%, transparent 50%),
               var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-family);
-  overflow-x: hidden;
 }
 
 /* Sidebar Styling */
-/* The sidebar column stretches with the page (its background never stops midway);
-   its contents stay in view while the page scrolls. */
+/* Full height; scrolls on its own only if the window is too short for the menu. */
 .recruiter-sidebar {
   position: relative;
   z-index: 10;
   flex-shrink: 0;
+  overflow-y: auto;
   width: var(--sidebar-width);
   background: rgba(var(--bg-rgb), 0.85);
   backdrop-filter: blur(20px);
@@ -25,9 +29,7 @@
 }
 
 .sidebar-inner {
-  position: sticky;
-  top: 0;
-  height: 100vh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   padding: 30px 16px 24px;
@@ -108,8 +110,11 @@
 .recruiter-content {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   padding: 40px;
-  min-height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  outline: none; /* tabIndex -1: focusable for keyboard scrolling, without a focus ring on click */
 }
 
 .content-header {
@@ -686,6 +691,13 @@
 
 /* Official Document Style for PDF Printing */
 @media print {
+  /* Back to the normal page flow, so nothing is cut at the screen's height. */
+  .recruiter-layout,
+  .recruiter-content {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
   body * {
     visibility: hidden;
   }
@@ -780,20 +792,19 @@
 .sidebar-toggle { display: none; }
 
 @media (max-width: 900px) {
+  /* Phone: the top bar stays at the top; an open menu may scroll inside it. */
   .recruiter-layout {
     flex-direction: column;
   }
   .recruiter-sidebar {
-    position: sticky;
-    top: 0;
     width: 100%;
+    max-height: 70dvh;
     border-right: none;
     border-bottom: 1px solid var(--line);
     z-index: 50;
   }
   .sidebar-inner {
-    position: static;
-    height: auto;
+    min-height: 0;
     padding: 10px 16px;
   }
   .sidebar-brand {

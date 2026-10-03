@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import readStoredUser from "../utils/storedUser";
@@ -7,11 +7,17 @@ import "../styles/recruiterDashboard.css";
 
 export default function RecruiterLayout() {
   const { pathname } = useLocation();
+  const mainRef = useRef(null);
   // Read once; ProtectedRoute has already checked the role.
   const [user, setUser] = useState(() => {
     const stored = readStoredUser();
     return stored?.role === "RECRUITER" ? stored : null;
   });
+
+  // Only <main> scrolls (see .recruiter-layout): a new page opens at its top.
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0);
+  }, [pathname]);
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -24,8 +30,8 @@ export default function RecruiterLayout() {
   return (
     <div className="recruiter-layout">
       <Sidebar />
-      
-      <div className="recruiter-content">
+
+      <main className="recruiter-content" id="main-content" ref={mainRef} tabIndex={-1}>
         <div className="content-header">
           <div>
             <h1>{title}</h1>
@@ -35,7 +41,7 @@ export default function RecruiterLayout() {
         </div>
 
         <Outlet context={{ user, setUser }} />
-      </div>
+      </main>
     </div>
   );
 }
