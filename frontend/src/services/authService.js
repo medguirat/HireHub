@@ -1,17 +1,46 @@
 import api from "./api";
 
+/** Where each role lands after signing in (login or signup). */
+export function dashboardFor(role) {
+  if (role === "RECRUITER") return "/recruiter-dashboard";
+  if (role === "CANDIDATE") return "/candidate-dashboard";
+  return "/";
+}
+
+/**
+ * Starts a session from a login token: stores it, loads the signed-in user (with their profile)
+ * and stores it too. Login and signup both end here, so the dashboards see the same session.
+ */
+async function startSession(token) {
+  localStorage.setItem("token", token);
+  // The "session expired" notice stays (even across reloads) until the user signs in again.
+  sessionStorage.removeItem("hirehub.sessionExpired");
+  const user = (await api.get("/users/me")).data;
+  localStorage.setItem("user", JSON.stringify(user));
+  return user;
+}
+
 const authService = {
+  /** Signs in and returns the user. */
   login: async (email, password) => {
-    const response = await api.post("/auth/login", { email, password });
-    if (response.data && response.data.token) {
-      localStorage.setItem("token", response.data.token);
-    }
-    return response.data;
+    const { data } = await api.post("/auth/login", { email, password });
+    return startSession(data.token);
   },
 
+  /**
+   * Creates the account, already signed in (the answer carries a login token). Returns the user,
+   * or `{ accountCreated: true, user: null }` if the account exists but the session couldn't start
+   * (the page then asks to log in instead of reporting a failed signup).
+   */
   register: async (userData) => {
-    const response = await api.post("/auth/register", userData);
-    return response.data;
+    const { data } = await api.post("/auth/register", userData);
+    try {
+      return { accountCreated: true, user: await startSession(data.token) };
+    } catch (err) {
+      console.error("Signed up, but the session couldn't start:", err);
+      localStorage.removeItem("token");
+      return { accountCreated: true, user: null };
+    }
   },
 
   getMe: async () => {

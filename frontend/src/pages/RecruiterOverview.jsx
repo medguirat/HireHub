@@ -8,11 +8,14 @@ import { useToast } from "../components/toastContext";
 import fetchAllPages from "../utils/fetchAllPages";
 import { errorMessage } from "../utils/apiError";
 import DocumentButton from "../components/DocumentButton";
+import CompanyImportNotice from "../components/CompanyImportNotice";
+import useJustSignedUp from "../utils/useJustSignedUp";
 
 export default function RecruiterOverview() {
   const navigate = useNavigate();
   useOutletContext();
   const toast = useToast();
+  const justSignedUp = useJustSignedUp();
   const [busyAppId, setBusyAppId] = useState(null);
   const [offers, setOffers] = useState([]);
   const [applications, setApplications] = useState([]);
@@ -71,6 +74,7 @@ export default function RecruiterOverview() {
 
   return (
     <div>
+      <CompanyImportNotice justSignedUp={justSignedUp} />
       {loading ? (
         <SkeletonRows rows={6} />
       ) : (

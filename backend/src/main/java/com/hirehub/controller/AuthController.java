@@ -3,6 +3,7 @@ package com.hirehub.controller;
 import com.hirehub.dto.LoginRequestDto;
 import com.hirehub.dto.LoginResponseDto;
 import com.hirehub.dto.PasswordResetDtos;
+import com.hirehub.dto.RegisterResponseDto;
 import com.hirehub.dto.UserRequestDto;
 import com.hirehub.dto.UserResponseDto;
 import com.hirehub.exception.BadRequestException;
@@ -40,9 +41,11 @@ public class AuthController {
         return authService.login(request);
     }
 
+    /** Creates the account and signs it in: the answer carries a login token, so no second login is needed. */
     @PostMapping("/register")
-    public UserResponseDto register(@Valid @RequestBody UserRequestDto request) {
-        return authService.register(request);
+    public RegisterResponseDto register(@Valid @RequestBody UserRequestDto request) {
+        UserResponseDto user = authService.register(request);
+        return new RegisterResponseDto(authService.issueToken(user.getEmail()), user);
     }
 
     /**

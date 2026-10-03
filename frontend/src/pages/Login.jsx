@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import authService from "../services/authService";
+import authService, { dashboardFor } from "../services/authService";
 import AlertModal from "../components/AlertModal";
 import "../styles/login.css";
 import jobOfferLogin from "../images/JobOfferLogin.png";
@@ -25,19 +25,8 @@ export default function Login() {
     setErrorMsg("");
     setLoading(true);
     try {
-      await authService.login(email, password);
-      // The "session expired" notice stays (even across reloads) until the user signs in again.
-      sessionStorage.removeItem("hirehub.sessionExpired");
-      const user = await authService.getMe();
-      localStorage.setItem("user", JSON.stringify(user));
-
-      if (user.role === "RECRUITER") {
-        navigate("/recruiter-dashboard", { replace: true });
-      } else if (user.role === "CANDIDATE") {
-        navigate("/candidate-dashboard", { replace: true });
-      } else {
-        navigate("/", { replace: true });
-      }
+      const user = await authService.login(email, password);
+      navigate(dashboardFor(user.role), { replace: true });
     } catch (err) {
       console.error(err);
       setErrorMsg(errorMessage(err, "Invalid email or password."));

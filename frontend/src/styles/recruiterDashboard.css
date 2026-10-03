@@ -922,6 +922,16 @@
 
 .import-banner > div {
   flex: 1;
+  min-width: 200px;
+}
+
+.import-banner {
+  flex-wrap: wrap;
+}
+
+.import-banner a.secondary-btn {
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .import-banner p {

@@ -17,11 +17,16 @@ test("recruiter signs up with the company website and the profile is filled from
     who: "recruiter", role: "RECRUITER", firstName: "Rania", lastName: "Recruiter",
     company: "QA Robotics", website: COMPANY_SITE,
   });
-  await expect(page.locator(".session-notice")).toContainText("We're building your company profile from your website");
-
-  await logIn(page, "recruiter");
-  await page.goto("/recruiter-dashboard/profile");
-  await expect(page.locator(".import-banner", { hasText: "from your website. Please review" })).toBeVisible({ timeout: 60_000 });
+  // Signed in right away, on the overview: the import runs in the background and its banner shows
+  // there (in progress, or already done for this small site), with a way to the profile.
+  await expect(page).toHaveURL(/\/recruiter-dashboard$/);
+  await expect(toast(page, "Welcome to HireHub! Your account is ready.")).toBeVisible();
+  const review = page.getByRole("link", { name: "Review my company profile" });
+  await expect(review).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator(".import-banner", { hasText: "from your website. Please review" })).toBeVisible();
+  await review.click();
+  await expect(page).toHaveURL(/\/recruiter-dashboard\/profile$/);
+  await expect(page.locator(".import-banner", { hasText: "from your website. Please review" })).toBeVisible();
   await page.reload();
 
   // Only what the site states; the typed company name is kept.
@@ -52,8 +57,13 @@ test("recruiter publishes an offer", async ({ page }) => {
 
 test("candidate signs up, fills the profile and uploads a CV", async ({ page }) => {
   await signUpInUi(page, { who: "candidate", role: "CANDIDATE", firstName: "Cyrine", lastName: "Candidate" });
-  await logIn(page, "candidate");
-  await page.goto("/candidate-dashboard/profile");
+  // Signed in right away, on the overview; the session survives a reload.
+  await expect(page).toHaveURL(/\/candidate-dashboard$/);
+  await expect(toast(page, "Welcome to HireHub! Your account is ready.")).toBeVisible();
+  await page.reload();
+  await expect(page).toHaveURL(/\/candidate-dashboard$/);
+  await expect(toast(page, "Welcome to HireHub!")).toHaveCount(0); // greeted once only
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "My profile" }).click();
 
   await page.getByRole("button", { name: "Edit profile" }).click();
   await page.fill("#profile-headline", "Java backend developer");

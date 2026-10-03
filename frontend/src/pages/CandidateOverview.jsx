@@ -7,6 +7,7 @@ import CvMatchModal from "../components/CvMatchModal";
 import EmptyState from "../components/EmptyState";
 import { SkeletonRows } from "../components/Skeleton";
 import { useToast } from "../components/toastContext";
+import useJustSignedUp from "../utils/useJustSignedUp";
 
 export default function CandidateOverview() {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ export default function CandidateOverview() {
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [showMatchModal, setShowMatchModal] = useState(false);
   const toast = useToast();
+  useJustSignedUp();
 
   // Notification Modal State
   const [activeNotification, setActiveNotification] = useState(null);

@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
 import "../styles/authFlow.css";
 import { useState } from "react";
-import api from "../services/api";
+import authService, { dashboardFor } from "../services/authService";
 import { errorMessage } from "../utils/apiError";
 
 export default function CreateAccount() {
@@ -23,7 +23,6 @@ export default function CreateAccount() {
 
   const isRecruiter = form.role === "RECRUITER";
 
-  // The API answers with {message} or, for invalid fields, {field: message}.
   const handleRegister = async () => {
     if (isRecruiter && !form.companyName.trim()) {
       setError("Please enter your company name.");
@@ -35,11 +34,14 @@ export default function CreateAccount() {
       ? { ...form, companyName: form.companyName.trim(), companyWebsite: form.companyWebsite.trim() || null }
       : { firstName: form.firstName, lastName: form.lastName, email: form.email, password: form.password, role: form.role };
     try {
-      await api.post("/auth/register", payload);
-      const notice = isRecruiter && payload.companyWebsite
-        ? "Account created. We're building your company profile from your website… Log in to review it."
-        : "Account created. You can now log in.";
-      navigate("/login", { replace: true, state: { notice } });
+      // The new account is signed in right away and lands on its overview. For a recruiter with a
+      // website, the company import runs in the background and the overview shows its progress.
+      const { user } = await authService.register(payload);
+      if (user) {
+        navigate(dashboardFor(user.role), { replace: true, state: { justSignedUp: true } });
+      } else {
+        navigate("/login", { replace: true, state: { notice: "Your account was created. Please log in." } });
+      }
     } catch(error){
       setError(errorMessage(error, "Registration failed. Please try again."));
     } finally {

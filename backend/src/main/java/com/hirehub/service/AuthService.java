@@ -56,8 +56,13 @@ public class AuthService {
                 )
         );
         return LoginResponseDto.builder()
-                .token(jwtService.generateToken(request.getEmail()))
+                .token(issueToken(request.getEmail()))
                 .build();
+    }
+
+    /** A login token for an account whose identity is already established (login or signup). */
+    public String issueToken(String email) {
+        return jwtService.generateToken(email);
     }
 
     @Transactional

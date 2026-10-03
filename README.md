@@ -346,7 +346,7 @@ The test database (`hirehub_test`) is recreated on every test run, so it needs n
 
 ## Company profile import
 
-A recruiter can give their company website at signup. The account is created immediately; the import runs in the background and fills the company profile with what the website states. The profile page shows "We're building your company profile from your website…" while it runs.
+A recruiter can give their company website at signup. The account is created immediately and signed in (signup returns a login token, so there is no second login; candidates too), and the recruiter lands on the overview. The import runs in the background and fills the company profile with what the website states. The overview and the profile page show "We're building your company profile from your website…" while it runs; when it ends, the overview shows the result with a "Review my company profile" link.
 
 - Only public pages are read: the homepage and up to 4 same-site "about" / "contact" pages. Sources are structured data (schema.org), meta tags, links (social networks, Google Maps, phone) and sections titled Mission, Vision, Values (English and French).
 - A field the website doesn't state stays empty. Industry and company type are never guessed.

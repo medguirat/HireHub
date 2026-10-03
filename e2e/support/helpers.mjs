@@ -14,7 +14,7 @@ export const MAILPIT = "http://localhost:8025";
 const RUN = Date.now().toString(36);
 export const email = (who) => `qa-e2e-${RUN}-${who}@qa.hirehub.test`;
 
-/** Signs up through the real signup page. */
+/** Signs up through the real signup page, which signs the new account in and opens its overview. */
 export async function signUpInUi(page, { who, role, firstName, lastName, company, website }) {
   await page.goto("/create-account");
   await page.getByPlaceholder("Enter your first name").fill(firstName);
@@ -27,7 +27,7 @@ export async function signUpInUi(page, { who, role, firstName, lastName, company
     if (website) await page.getByPlaceholder("www.yourcompany.com").fill(website);
   }
   await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL(/\/login$/);
+  await page.waitForURL(role === "RECRUITER" ? /\/recruiter-dashboard$/ : /\/candidate-dashboard$/);
 }
 
 export async function logIn(page, who) {

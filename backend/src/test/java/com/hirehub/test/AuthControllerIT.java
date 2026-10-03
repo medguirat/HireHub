@@ -2,6 +2,7 @@ package com.hirehub.test;
 
 import com.hirehub.entity.Role;
 import com.hirehub.service.EmailService;
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -26,14 +27,42 @@ class AuthControllerIT extends ApiTestSupport {
         mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content(signup("ada@test.com", "password123", "CANDIDATE")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("ada@test.com"))
-                .andExpect(jsonPath("$.role").value("CANDIDATE"))
+                .andExpect(jsonPath("$.user.email").value("ada@test.com"))
+                .andExpect(jsonPath("$.user.role").value("CANDIDATE"))
+                .andExpect(jsonPath("$.user.password").doesNotExist())
                 .andExpect(jsonPath("$.password").doesNotExist());
 
         mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"ada@test.com\",\"password\":\"password123\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token", not(emptyOrNullString())));
+    }
+
+    @Test
+    void signingUpSignsTheNewAccountIn() throws Exception {
+        String body = mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content(signup("auto@test.com", "password123", "RECRUITER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token", not(emptyOrNullString())))
+                .andReturn().getResponse().getContentAsString();
+        String token = JsonPath.read(body, "$.token");
+
+        // The token works right away, for the new account and its role.
+        mockMvc.perform(get("/api/users/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("auto@test.com"))
+                .andExpect(jsonPath("$.role").value("RECRUITER"));
+        mockMvc.perform(get("/api/recruiters/profile").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void aFailedSignupGivesNoToken() throws Exception {
+        user("already@test.com", Role.CANDIDATE);
+        mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content(signup("already@test.com", "password123", "CANDIDATE")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.token").doesNotExist());
     }
 
     @Test
