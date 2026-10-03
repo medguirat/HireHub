@@ -88,9 +88,13 @@ test("an invalid CV file is refused with a clear message", async ({ page }) => {
 
 test("an expired session sends the user back to the login page with an explanation", async ({ page }) => {
   await logIn(page, "err-candidate");
+  // Let the overview finish loading first: a request still waiting to be sent would pick up the
+  // bad token and redirect before the test acts.
+  await page.waitForLoadState("networkidle");
   await page.evaluate(() => localStorage.setItem("token", "expired.or.tampered.token"));
-  // The app answers the 401 by redirecting to the login page, which replaces this navigation.
-  await page.goto("/candidate-dashboard/applications").catch(() => {});
+  // Move inside the app: its request gets a 401 and the app sends the browser to the login page.
+  // (A page.goto here would race that redirect, and the browser connection could be lost.)
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "My applications" }).click();
   await page.waitForURL(/\/login$/);
   await expect(page.locator(".session-notice")).toHaveText("Your session has expired. Please log in again.");
 });
