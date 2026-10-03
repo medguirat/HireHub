@@ -1,14 +1,16 @@
 package com.hirehub.controller;
 
-import com.hirehub.exception.BadRequestException;
-
 import com.hirehub.dto.LoginRequestDto;
 import com.hirehub.dto.LoginResponseDto;
 import com.hirehub.dto.PasswordResetDtos;
 import com.hirehub.dto.UserRequestDto;
 import com.hirehub.dto.UserResponseDto;
+import com.hirehub.exception.BadRequestException;
+import com.hirehub.ratelimit.RateLimiter;
+import com.hirehub.ratelimit.RateLimits;
 import com.hirehub.service.AuthService;
 import com.hirehub.service.PasswordResetService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,10 +20,15 @@ public class AuthController {
 
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
+    private final RateLimiter rateLimiter;
+    private final RateLimits rateLimits;
 
-    public AuthController(AuthService authService, PasswordResetService passwordResetService) {
+    public AuthController(AuthService authService, PasswordResetService passwordResetService,
+                          RateLimiter rateLimiter, RateLimits rateLimits) {
         this.authService = authService;
         this.passwordResetService = passwordResetService;
+        this.rateLimiter = rateLimiter;
+        this.rateLimits = rateLimits;
     }
 
     @PostMapping("/login")
@@ -38,9 +45,17 @@ public class AuthController {
         return authService.register(request);
     }
 
-    /** Sends a reset link if the email has an account. The answer is the same either way. */
+    /**
+     * Sends a reset link if the email has an account. The answer is the same either way.
+     * Too many requests from one IP address: 429. Too many for one email: same answer, no email.
+     */
     @PostMapping("/password-reset")
-    public PasswordResetDtos.Answer requestPasswordReset(@Valid @RequestBody PasswordResetDtos.Request request) {
+    public PasswordResetDtos.Answer requestPasswordReset(@Valid @RequestBody PasswordResetDtos.Request request,
+                                                         HttpServletRequest http) {
+        rateLimiter.check(rateLimits.passwordResetPerIp(), http.getRemoteAddr());
+        if (rateLimiter.tryConsume(rateLimits.passwordResetPerEmail(), request.email()) > 0) {
+            return new PasswordResetDtos.Answer(passwordResetService.requestAnswer());
+        }
         return new PasswordResetDtos.Answer(passwordResetService.requestReset(request.email()));
     }
 

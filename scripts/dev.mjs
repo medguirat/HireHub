@@ -14,7 +14,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import net from "node:net";
 import path from "node:path";
-import { ENV_FILE, configurationProblems, createEnvFileIfMissing, loadEnv } from "./lib/env.mjs";
+import { ENV_FILE, configurationProblems, createEnvFileIfMissing, loadEnv, mailMode } from "./lib/env.mjs";
 import { MAILPIT_SMTP, MAILPIT_UI, ensureMailpit } from "./lib/mailpit.mjs";
 import {
   IS_WINDOWS, ROOT, clearState, descendantsOf, isAlive, killTree, processSnapshot, readState,
@@ -117,7 +117,8 @@ async function preflight() {
   if (!(await portInUse(3306))) {
     info(paint(31, "MySQL doesn't seem to be running on port 3306; the backend will fail to start without it."));
   }
-  // Optional: without it the app runs, but emails (password reset) aren't delivered anywhere.
+  // Started in both email modes (the E2E tests always read Mailpit). Optional: without it, in
+  // MAIL_MODE=mailpit, the app runs but its emails aren't delivered anywhere.
   const mailpit = await ensureMailpit((message) => info(message));
   if (mailpit) {
     SERVICES.unshift({
@@ -279,7 +280,11 @@ try {
     info(`  App         http://localhost:5173`);
     info(`  API health  http://localhost:8081/api/health`);
     info(`  AI service  http://localhost:8000/health`);
-    if (SERVICES.some((s) => s.name === "mailpit")) info(`  Emails      ${MAILPIT_UI}`);
+    if (mailMode(serviceEnv) === "smtp") {
+      info(`  Emails      sent for real through ${serviceEnv.SMTP_HOST} (MAIL_MODE=smtp)`);
+    } else if (SERVICES.some((s) => s.name === "mailpit")) {
+      info(`  Emails      ${MAILPIT_UI} (local test inbox; MAIL_MODE=smtp sends real emails, see README)`);
+    }
     info("Press Ctrl+C to stop everything.");
   })();
   await Promise.all(watchers);

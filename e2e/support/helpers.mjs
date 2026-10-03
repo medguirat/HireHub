@@ -71,12 +71,16 @@ export function dateIn(days) {
 /** Mailpit search for the emails sent to one address. */
 const mailpitQuery = (address) => encodeURIComponent(`to:"${address}"`);
 
-/** Waits for the newest email sent to this address and returns it (subject, text, html). */
-export async function waitForEmail(address, { timeoutMs = 30_000, after = 0 } = {}) {
+/**
+ * Waits for the newest email sent to this address and returns it (subject, text, html). Every
+ * account also gets a welcome email at signup, so pass `subject` to wait for a specific one.
+ */
+export async function waitForEmail(address, { timeoutMs = 30_000, after = 0, subject = null } = {}) {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const found = await (await fetch(`${MAILPIT}/api/v1/search?query=${mailpitQuery(address)}`)).json();
-    const newest = (found.messages || []).find((m) => new Date(m.Created).getTime() >= after);
+    const newest = (found.messages || []).find((m) =>
+      new Date(m.Created).getTime() >= after && (subject === null || m.Subject === subject));
     if (newest) return (await fetch(`${MAILPIT}/api/v1/message/${newest.ID}`)).json();
     if (Date.now() > deadline) throw new Error(`No email to ${address} within ${timeoutMs / 1000}s`);
     await new Promise((resolve) => setTimeout(resolve, 500));

@@ -103,7 +103,7 @@ class AuthServiceTest {
         assertThat(result.getEmail()).isEqualTo("ali@test.com");
         verify(candidateProfileRepository).save(any(CandidateProfile.class));
         verify(recruiterProfileRepository, never()).save(any());
-        verify(emailService).sendWelcomeEmail("ali@test.com", "Ali", "CANDIDATE");
+        verify(emailService).sendWelcomeEmail("ali@test.com", "Ali", Role.CANDIDATE);
     }
 
     @Test
@@ -123,7 +123,7 @@ class AuthServiceTest {
 
         verify(recruiterProfileRepository).save(any(RecruiterProfile.class));
         verify(candidateProfileRepository, never()).save(any());
-        verify(emailService).sendWelcomeEmail("rec@test.com", "Rec", "RECRUITER");
+        verify(emailService).sendWelcomeEmail("rec@test.com", "Rec", Role.RECRUITER);
         verify(companyProfileImporter, never()).requestImport(any(), any());
     }
 

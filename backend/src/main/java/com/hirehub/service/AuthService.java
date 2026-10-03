@@ -95,7 +95,8 @@ public class AuthService {
             }
         }
 
-        emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getFirstName(), savedUser.getRole().name());
+        // Sent once the signup is committed, in the background: a mail server problem never fails a signup.
+        emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getFirstName(), savedUser.getRole());
 
         return UserResponseDto.builder()
                 .id(savedUser.getId())

@@ -43,6 +43,22 @@ export function jwtSecretProblem(secret) {
   return null;
 }
 
+/** "mailpit" (default: the local test inbox) or "smtp" (real delivery), as the backend reads MAIL_MODE. */
+export function mailMode(env) {
+  return (env.MAIL_MODE || "mailpit").trim().toLowerCase();
+}
+
+/** Mirrors the backend's own check (MailConfig): what MAIL_MODE=smtp still needs. */
+export function mailProblem(env) {
+  const mode = mailMode(env);
+  if (mode === "mailpit") return null;
+  if (mode !== "smtp") return `MAIL_MODE must be "mailpit" or "smtp", not "${env.MAIL_MODE}".`;
+  const missing = ["SMTP_HOST", "SMTP_USERNAME", "SMTP_PASSWORD"].filter((key) => !(env[key] || "").trim());
+  return missing.length
+    ? `MAIL_MODE=smtp needs ${missing.join(", ")} (see the README, "Emails"), or set MAIL_MODE=mailpit.`
+    : null;
+}
+
 /** Everything that stops the stack from starting, as sentences a person can act on. */
 export function configurationProblems(env) {
   const problems = [];
@@ -51,6 +67,8 @@ export function configurationProblems(env) {
   }
   const jwt = jwtSecretProblem(env.JWT_SECRET);
   if (jwt) problems.push(`${jwt} Generate one with "npm run secret" and paste it into .env.`);
+  const mail = mailProblem(env);
+  if (mail) problems.push(mail);
   return problems;
 }
 

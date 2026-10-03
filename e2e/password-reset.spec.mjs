@@ -20,10 +20,11 @@ test("a user resets a forgotten password with the emailed link", async ({ page }
   await expect(page.getByText(GENERIC)).toBeVisible();
 
   // 2. The email arrives in Mailpit.
-  const message = await waitForEmail(address, { after: startedAt });
-  expect(message.Subject).toBe("Reset your HireHub password");
+  const message = await waitForEmail(address, { after: startedAt, subject: "Reset your HireHub password" });
   expect(message.Text).toContain("expires in 45 minutes");
   const link = message.Text.match(/http:\/\/localhost:5173\/reset-password#token=[\w-]+/)[0];
+  expect(message.HTML).toContain(`href="${link}"`); // the button, in the branded HTML version
+  expect(message.HTML).toContain("Choose a new password");
 
   // 3. Open it: the token leaves the address bar; the password is checked before saving.
   await page.goto(link);
@@ -53,7 +54,9 @@ test("a user resets a forgotten password with the emailed link", async ({ page }
   await page.locator('button[type="submit"]').click();
   await page.waitForURL(/candidate-dashboard/);
 
-  // 5. The link worked once.
+  // 5. The link worked once. (Signed out from the login page: on the dashboard, its requests
+  // without a session would send the browser to /login in the middle of the next navigation.)
+  await page.goto("/login");
   await page.evaluate(() => localStorage.clear());
   await page.goto(link);
   await expect(page.getByRole("alert")).toContainText("has already been used or has expired");
@@ -70,7 +73,7 @@ test("the answer doesn't reveal whether an email has an account", async ({ page 
   expect(known.status).toBe(unknown.status);
   expect(await known.text()).toBe(await unknown.text());
 
-  await waitForEmail(email("reset-known"));
+  await waitForEmail(email("reset-known"), { subject: "Reset your HireHub password" });
   await page.waitForTimeout(1500);
   expect(await countEmails(email("reset-nobody"))).toBe(0);
 

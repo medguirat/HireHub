@@ -39,7 +39,7 @@ If the launcher is closed or killed abruptly, a small watchdog stops the three s
 The first start downloads the multilingual embedding model (about 470 MB), so it needs internet once.
 
 Emails sent by the app (for example "reset your password") don't go to real mailboxes in development: open
-**http://localhost:8025** to read them in Mailpit. See [Password reset and emails](#password-reset-and-emails).
+**http://localhost:8025** to read them in Mailpit. See [Emails](#emails), which also explains how to send real emails with Gmail.
 
 Health endpoints:
 - `GET http://localhost:8081/api/health` reports the backend and the status of the ai-service.
@@ -167,8 +167,9 @@ in your environment wins over `.env`.
 | `DB_USERNAME` | MySQL user | no (default `root`) |
 | `DB_PASSWORD` | MySQL password; leave the value empty if the account has none | **yes** |
 | `JWT_SECRET` | Key that signs login tokens: base64, at least 32 bytes (256 bits) | **yes**: the backend refuses to start without a valid one |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_AUTH`, `SMTP_STARTTLS` | Outgoing email server | no (default: Mailpit on `localhost:1025`) |
-| `MAIL_FROM` | Sender of the app's emails | no (default `HireHub <no-reply@hirehub.local>`) |
+| `MAIL_MODE` | `mailpit` (local test inbox) or `smtp` (real emails, see [Emails](#emails)) | no (default `mailpit`) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` | Outgoing mail server, used when `MAIL_MODE=smtp` | only with `MAIL_MODE=smtp`: the backend refuses to start without them |
+| `MAIL_FROM` | Sender of the app's emails | no (default `HireHub <SMTP_USERNAME>` with `smtp`, `HireHub <no-reply@hirehub.local>` with Mailpit) |
 | `APP_FRONTEND_URL` | Address of the frontend, used in links sent by email | no (default `http://localhost:5173`) |
 
 Changing a value:
@@ -194,13 +195,70 @@ Other settings (not secret), as environment variables or in `.env`:
 | `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`, `LLM_TIMEOUT_SECONDS` | ai-service, optional | unset: no LLM (see Ollama above) |
 | `COMPANY_SCRAPER_ALLOW_PRIVATE` | ai-service, E2E tests only | unset: local and private addresses are refused |
 
-## Password reset and emails
+## Emails
 
-"Forgot password?" on the login page sends a link by email:
+The app sends two emails, each with an HTML version (HireHub layout and colors) and a plain-text version with the
+same content:
+
+| Email | When | Content |
+|---|---|---|
+| Welcome to HireHub | right after signup | what to do first for the role, button to the candidate or recruiter dashboard |
+| Reset your HireHub password | "Forgot password?" on the login page | single-use link, valid 45 minutes |
+
+Emails are sent **in the background, once the database change is committed**: a signup that fails sends nothing,
+and the user never waits for the mail server. If the mail server fails, the signup or reset request still succeeds;
+the backend logs the error (with the address masked, e.g. `r***@gmail.com`) and nothing else changes.
+
+### Where emails go: `MAIL_MODE`
+
+| `MAIL_MODE` | Emails go to | Use it for |
+|---|---|---|
+| `mailpit` (default) | **Mailpit**, a local inbox at **http://localhost:8025**. Nothing leaves your machine. | development, demos, automated tests |
+| `smtp` | people's real mailboxes, through the `SMTP_*` server (Gmail below) | testing with your own mailbox, production |
+
+The E2E tests always run with `MAIL_MODE=mailpit` (they read the emails through Mailpit's API) and refuse to run
+against a backend sending real emails. `GET /api/health` reports the mode (`"mail": "mailpit"` or `"smtp"`), never
+the server or account.
+
+### Sending real emails with Gmail (free)
+
+Gmail lets an app send emails through `smtp.gmail.com` with an **app password**: a 16-letter password that only
+works for this, that you can revoke at any time, and that is not your Google password. Gmail sends up to about 500
+emails a day this way, far more than the app needs.
+
+1. **Turn on 2-Step Verification** on the Google account (required for app passwords): open
+   https://myaccount.google.com/security, then "2-Step Verification", and follow the steps.
+2. **Create the app password**: open https://myaccount.google.com/apppasswords (sign in again if asked), type a name
+   such as `HireHub`, then **Create**. Google shows 16 letters in four groups (`abcd efgh ijkl mnop`). Copy them now:
+   Google won't show them again. (If the page says app passwords aren't available, 2-Step Verification isn't on yet,
+   or the account is managed by a school or company that disabled them; use a personal Gmail account.)
+3. **Fill `.env`** at the root of the repository:
+   ```
+   MAIL_MODE=smtp
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USERNAME=your.address@gmail.com
+   SMTP_PASSWORD=abcdefghijklmnop
+   MAIL_FROM=
+   ```
+   The spaces in the app password may be kept or removed. Leave `MAIL_FROM` empty: the sender becomes
+   `HireHub <your.address@gmail.com>` (Gmail replaces any other sender address with yours anyway).
+4. **Restart**: `npm run stop`, then `npm run dev`. The launcher prints `Emails  sent for real through smtp.gmail.com`,
+   and the backend log shows `Emails: smtp (smtp.gmail.com:587)`.
+5. **Try it**: create an account with an address you can read (the welcome email arrives within seconds), or use
+   "Forgot password?" on the login page with an existing account. Check the spam folder the first time.
+
+If nothing arrives, the backend log says why, for example `Could not send the welcome email to y***@gmail.com:
+535 Authentication failed` (wrong username or app password). `.env` is ignored by git, so the app password is never
+committed; to revoke it, delete it on https://myaccount.google.com/apppasswords.
+
+Back to the local inbox: `MAIL_MODE=mailpit`, then restart.
+
+### "Forgot password"
 
 1. The user enters their email. The answer is always the same ("If an account exists for this email, we've sent a
-   link…"), whether or not the address has an account, and the email is sent in the background, so the page never
-   reveals who is registered. At most one email per account per minute.
+   link…"), whether or not the address has an account, and the email is sent in the background, so neither the page
+   nor its timing reveals who is registered.
 2. The link (`/reset-password#token=…`) contains 256 random bits. Only their SHA-256 is stored in the database; the
    part after `#` is never sent to a server, so the token doesn't appear in any log. It works **once** and expires
    after **45 minutes**; asking again replaces the previous link.
@@ -208,18 +266,28 @@ Other settings (not secret), as environment variables or in `.env`:
    rule). After the change, every session of that user is signed out (login tokens issued before are refused) and
    the page returns to the login screen.
 
+Limits against abuse (in memory, per backend instance):
+
+| Limit | Over it |
+|---|---|
+| 10 requests per IP address per 15 minutes (`RATE_LIMIT_PASSWORD_RESET_PER_IP`) | `429 TOO_MANY_REQUESTS` with a `Retry-After` header and "Too many attempts. Please wait … and try again." |
+| 5 requests per email per hour (`RATE_LIMIT_PASSWORD_RESET_PER_EMAIL`) | the same answer as usual, but no email is sent (so the limit reveals nothing about who has an account) |
+| 1 email per account per minute | same answer, no new email |
+
+### Mailpit
+
 **Mailpit** ([mailpit.axllent.org](https://mailpit.axllent.org), free and open source, MIT licence) receives the emails
-in development: SMTP on `localhost:1025`, web inbox on **http://localhost:8025**. `npm run dev` starts it. The first
-time, it downloads the official Mailpit release (v1.31.3, about 10 MB) into `.hirehub-dev/bin/` and checks its
-SHA-256 before using it; a `mailpit` already on your PATH, or `MAILPIT_BIN=/path/to/mailpit`, is used instead. If
-Mailpit can't be started, the app still runs, but emails aren't delivered anywhere (the backend logs a warning).
+in development: SMTP on `localhost:1025`, web inbox on **http://localhost:8025**. `npm run dev` starts it in both
+modes. The first time, it downloads the official Mailpit release (v1.31.3, about 10 MB) into `.hirehub-dev/bin/` and
+checks its SHA-256 before using it; a `mailpit` already on your PATH, or `MAILPIT_BIN=/path/to/mailpit`, is used
+instead. If Mailpit can't be started, the app still runs, but with `MAIL_MODE=mailpit` emails aren't delivered
+anywhere (the backend logs a warning).
 
 To show the flow in a demo: open http://localhost:5173/forgot-password, enter `amine.trabelsi@demo.hirehub.test`,
 then open the email in http://localhost:8025 and click the link. Choose `Demo1234!` again as the new password, so the
 demo accounts keep the password `npm run seed` expects.
 
-For real emails, point `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_AUTH`, `SMTP_STARTTLS` and
-`MAIL_FROM` in `.env` at your mail provider, and set `APP_FRONTEND_URL` to the address users open the app at.
+In production, also set `APP_FRONTEND_URL` to the address users open the app at, so the links in emails point there.
 
 ## Files and who can see them
 

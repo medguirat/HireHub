@@ -5,13 +5,10 @@ import com.hirehub.entity.User;
 import com.hirehub.exception.BadRequestException;
 import com.hirehub.repository.PasswordResetTokenRepository;
 import com.hirehub.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -23,14 +20,15 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
-import java.util.concurrent.Executor;
 
 /**
  * "Forgot password": a single-use link, valid for a limited time, sent by email.
  * <ul>
  *   <li>The token is 256 random bits; only its SHA-256 is stored.</li>
  *   <li>Asking for a link answers the same way whether or not the email has an account, and the
- *       email is sent in the background, so the answer doesn't reveal who is registered.</li>
+ *       email is sent in the background after commit ({@link EmailService}), so neither the answer
+ *       nor its timing reveals who is registered. Requests are also rate-limited per IP address
+ *       and per email (AuthController).</li>
  *   <li>A new link retires the previous ones; changing the password retires them all and signs
  *       the user out everywhere (login tokens issued before are refused).</li>
  * </ul>
@@ -48,21 +46,18 @@ public class PasswordResetService {
     private final PasswordResetTokenRepository tokens;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
-    private final Executor mailExecutor;
     private final Clock clock;
     private final String frontendUrl;
     private final int validityMinutes;
 
     public PasswordResetService(UserRepository userRepository, PasswordResetTokenRepository tokens,
-                                PasswordEncoder passwordEncoder, EmailService emailService,
-                                @Qualifier("mailExecutor") Executor mailExecutor, Clock clock,
+                                PasswordEncoder passwordEncoder, EmailService emailService, Clock clock,
                                 @Value("${app.frontend-url:http://localhost:5173}") String frontendUrl,
                                 @Value("${app.password-reset.validity-minutes:45}") int validityMinutes) {
         this.userRepository = userRepository;
         this.tokens = tokens;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
-        this.mailExecutor = mailExecutor;
         this.clock = clock;
         this.frontendUrl = frontendUrl.replaceAll("/+$", "");
         this.validityMinutes = validityMinutes;
@@ -102,9 +97,7 @@ public class PasswordResetService {
 
         // After "#", the token is never sent to any server (no logs, no Referer); the page reads it.
         String link = frontendUrl + "/reset-password#token=" + token;
-        String to = user.getEmail();
-        String firstName = user.getFirstName();
-        afterCommit(() -> mailExecutor.execute(() -> emailService.sendPasswordResetEmail(to, firstName, link, validityMinutes)));
+        emailService.sendPasswordResetEmail(user.getEmail(), user.getFirstName(), link, validityMinutes);
     }
 
     /** Lets the reset page say "this link has expired" before the user types a new password. */
@@ -137,19 +130,6 @@ public class PasswordResetService {
             return HexFormat.of().formatHex(digest);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
-        }
-    }
-
-    private static void afterCommit(Runnable action) {
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    action.run();
-                }
-            });
-        } else {
-            action.run();
         }
     }
 }

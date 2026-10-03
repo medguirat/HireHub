@@ -1,5 +1,5 @@
 // Before any E2E test: waits until the whole stack is ready, and checks it was
-// started for E2E (so the recruiter's fixture website can be imported).
+// started for E2E (the recruiter's fixture website can be imported, emails go to Mailpit).
 const TIMEOUT_MS = 600_000;
 
 async function json(url) {
@@ -22,6 +22,12 @@ export default async function globalSetup() {
       );
     }
     const backend = await json("http://localhost:8081/api/health");
+    if (backend?.body?.mail && backend.body.mail !== "mailpit") {
+      throw new Error(
+        "The backend is sending real emails (MAIL_MODE=smtp); the E2E tests read Mailpit and would email made-up " +
+        "addresses. Run `npm run stop`, then `npm run test:e2e` (it starts the stack with MAIL_MODE=mailpit)."
+      );
+    }
     const mailpit = await fetch("http://localhost:8025/livez", { signal: AbortSignal.timeout(3000) }).then((r) => r.ok, () => false);
     if (ai?.body?.status === "ok" && backend?.status === 200 && mailpit) return;
     if (Date.now() > deadline) {

@@ -27,11 +27,12 @@ export default defineConfig({
       timeout: 20_000,
     },
     {
-      // The whole stack. The flag lets the ai-service import the local fixture site;
-      // it is for tests only and never set by `npm run dev`.
+      // The whole stack, for tests: the ai-service may import the local fixture site, emails always
+      // go to Mailpit (even if .env sends real ones), and the "forgot password" limit per IP address
+      // is raised because every test request comes from 127.0.0.1 (RateLimitIT tests the limits).
       command: "node scripts/dev.mjs",
       url: "http://localhost:5173",
-      env: { COMPANY_SCRAPER_ALLOW_PRIVATE: "1" },
+      env: { COMPANY_SCRAPER_ALLOW_PRIVATE: "1", MAIL_MODE: "mailpit", RATE_LIMIT_PASSWORD_RESET_PER_IP: "1000" },
       reuseExistingServer: true,
       timeout: 600_000,
       stdout: "ignore",
