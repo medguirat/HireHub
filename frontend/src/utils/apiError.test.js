@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import api from "../services/api";
 import { NETWORK_ERROR, apiError, errorCode, errorMessage, fieldErrors } from "./apiError";
 
 
@@ -40,7 +41,6 @@ describe("reading API errors ({ code, message, correlationId, fieldErrors? })", 
 
 describe("the API client", () => {
   it("reads the JSON error body of a failed file download (a Blob) back into an object", async () => {
-    const { default: api } = await import("../services/api");
     const rejected = api.interceptors.response.handlers[0].rejected;
     const body = { code: "FORBIDDEN", message: "You can't open this CV.", correlationId: "c" };
     const err = failure(403, new Blob([JSON.stringify(body)], { type: "application/json" }));
