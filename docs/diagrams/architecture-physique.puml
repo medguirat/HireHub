@@ -27,7 +27,7 @@ cloud "Internet" as internet {
   node "Sites web\ndes entreprises" as sites
 }
 
-browser --> nginx : HTTPS :8080\n(cookie de session)
+browser --> nginx : HTTP :8080 (HTTPS derrière\nun proxy TLS), cookie de session
 nginx --> backend : HTTP :8081\n/api, /uploads
 backend --> mysql : JDBC :3306
 backend --> ai : HTTP :8000\nclé interne
