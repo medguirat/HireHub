@@ -1,0 +1,48 @@
+@startuml sequence-compatibilite-cv
+!include _style.puml
+autonumber
+title Diagramme de séquence objet : « Consulter sa compatibilité CV / offre »
+
+actor "Candidat" as C
+participant ":CandidateOffers\n(React)" as UI
+participant ":CandidateController" as CTRL
+participant ":MatchingService" as MS
+participant ":MatchScoreRepository" as REPO
+participant ":CandidateCvService" as CVS
+participant ":AiServiceClient" as AIC
+participant "ai-service\n(FastAPI)" as AI
+database "MySQL" as DB
+
+C -> UI : « Check my CV match »
+UI -> CTRL : GET /api/candidates/offers/{id}/match\n(cookie de session)
+CTRL -> MS : match(candidat, offerId)
+MS -> DB : offre et CV du candidat
+alt pas de CV déposé
+  MS --> CTRL : 409 CV_REQUIRED
+  CTRL --> UI : « Upload your CV to see how well you match »
+else CV présent
+  MS -> REPO : findByCandidateIdAndJobOfferId()
+  REPO --> MS : score en cache (ou rien)
+  alt cache valide (même SHA-256 du CV, même texte d'offre, même version d'algorithme)
+    MS --> CTRL : résultat en cache
+  else calcul nécessaire
+    MS -> CVS : ensureText(cv)
+    CVS --> MS : texte du CV (extrait au dépôt)
+    MS -> AIC : match(texteCV, titre, description)
+    AIC -> AI : POST /match\nX-Internal-Key, X-Request-Id
+    alt ai-service disponible
+      AI -> AI : analyse (compétences, expérience,\nétudes, langues) + similarité sémantique
+      AI --> AIC : score global, détail pondéré, conseils
+      AIC --> MS : résultat
+      MS -> REPO : save(MatchScore)
+      MS --> CTRL : résultat
+    else indisponible ou en erreur
+      AIC --> MS : AiServiceUnavailableException
+      MS --> CTRL : 503 MATCHING_UNAVAILABLE
+      CTRL --> UI : message + « Réessayer »\n(jamais de score inventé)
+    end
+  end
+  CTRL --> UI : 200 MatchResponseDto
+  UI --> C : score /100, détail par catégorie, conseils
+end
+@enduml

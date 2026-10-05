@@ -1,0 +1,32 @@
+' Common look of every HireHub diagram (included by each .puml file).
+' Rendered by `npm run diagrams` (PlantUML, no Graphviz needed: smetana layout).
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 13
+skinparam roundCorner 8
+skinparam ArrowColor #132B64
+skinparam ArrowFontSize 11
+skinparam ActorBorderColor #132B64
+skinparam ActorBackgroundColor #FFFFFF
+skinparam UsecaseBorderColor #132B64
+skinparam UsecaseBackgroundColor #EEF2FA
+skinparam RectangleBorderColor #132B64
+skinparam PackageBorderColor #132B64
+skinparam ClassBorderColor #132B64
+skinparam ClassBackgroundColor #FFFFFF
+skinparam ClassHeaderBackgroundColor #EEF2FA
+skinparam NoteBorderColor #E81B6B
+skinparam NoteBackgroundColor #FFF4F8
+skinparam ParticipantBorderColor #132B64
+skinparam ParticipantBackgroundColor #EEF2FA
+skinparam DatabaseBorderColor #132B64
+skinparam DatabaseBackgroundColor #EEF2FA
+skinparam NodeBorderColor #132B64
+skinparam NodeBackgroundColor #FFFFFF
+skinparam ComponentBorderColor #132B64
+skinparam ComponentBackgroundColor #EEF2FA
+skinparam SequenceLifeLineBorderColor #8C8E90
+skinparam SequenceGroupBorderColor #8C8E90
+skinparam SequenceBoxBorderColor #8C8E90
+skinparam TitleFontSize 15

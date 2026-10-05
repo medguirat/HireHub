@@ -1,0 +1,104 @@
+@startuml classes-recrutement
+!pragma layout smetana
+!include _style.puml
+hide empty methods
+title Diagramme de classes : offres et candidatures
+
+enum OfferStatus {
+  OPEN
+  CLOSED
+}
+
+enum ContractType {
+  CDI
+  CDD
+  STAGE
+  FREELANCE
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum InterviewType {
+  ONSITE
+  REMOTE
+}
+
+class User {
+  - id : Long
+  - role : Role
+}
+
+class JobOffer {
+  - id : Long
+  - title : String
+  - description : String
+  - location : String
+  - contractType : ContractType
+  - publishedAt : LocalDateTime
+  - deadline : LocalDate
+  - status : OfferStatus
+  - closedAt : LocalDateTime
+}
+
+class Application {
+  - id : Long
+  - applicationDate : LocalDate
+  - status : ApplicationStatus
+  - coverLetter : String
+  - interviewDate : LocalDateTime
+  - interviewLetter : String
+}
+
+class ApplicationEvaluation {
+  - technicalSkills : int
+  - experience : int
+  - communication : int
+  - culturalFit : int
+  - hasDegree : boolean
+  - passedTest : boolean
+  - availableNow : boolean
+  - interviewType : InterviewType
+  - score : double
+  - notes : String
+}
+
+class StoredFile {
+  - id : String <<UUID>>
+  - originalName : String
+  - storedName : String
+  - contentType : String
+  - sizeBytes : long
+}
+
+class MatchScore {
+  - overallScore : int
+  - cvSha256 : String
+  - offerFingerprint : String
+  - algorithmVersion : String
+  - resultJson : String
+  - computedAt : LocalDateTime
+}
+
+class Notification {
+  - message : String
+  - createdAt : LocalDateTime
+  - isRead : boolean
+}
+
+User "1" -- "0..*" JobOffer : publie >
+User "1" -- "0..*" Application : dépose >
+JobOffer "1" -- "0..*" Application : reçoit >
+Application "1" -- "0..1" ApplicationEvaluation : évaluation
+ApplicationEvaluation "0..*" -- "1" User : evaluatedBy >
+Application "0..*" --> "1" StoredFile : cvFile
+Application "0..*" --> "0..1" StoredFile : coverLetterFile
+User "1" -- "0..*" StoredFile : owner >
+User "1" -- "0..*" MatchScore : candidat >
+JobOffer "1" -- "0..*" MatchScore
+User "1" -- "0..*" Notification : destinataire >
+Notification "0..*" --> "0..1" Application
+@enduml

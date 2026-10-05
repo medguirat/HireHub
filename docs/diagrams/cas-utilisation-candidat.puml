@@ -1,0 +1,43 @@
+@startuml cas-utilisation-candidat
+!pragma layout smetana
+!include _style.puml
+left to right direction
+title Raffinement des cas d'utilisation du Candidat
+
+actor "Candidat" as C
+actor "Service IA" as IA <<système>>
+
+rectangle "Espace candidat" {
+  usecase "Rechercher des offres\n(mot-clé, lieu, contrat)" as UC_search
+  usecase "Consulter le détail\nd'une offre" as UC_detail
+  usecase "Consulter sa compatibilité\nCV / offre" as UC_match
+  usecase "Lire le détail du score\net les conseils" as UC_breakdown
+  usecase "Postuler à une offre" as UC_apply
+  usecase "Joindre une lettre\nde motivation" as UC_letter
+  usecase "Suivre ses candidatures" as UC_track
+  usecase "Retirer une candidature\nnon traitée" as UC_withdraw
+  usecase "Consulter ses notifications\n(invitations à un entretien)" as UC_notif
+  usecase "Modifier son profil" as UC_profile
+  usecase "Rédiger une bio\nà partir du profil" as UC_bio
+  usecase "Déposer / remplacer son CV" as UC_cv
+}
+
+C --> UC_search
+C --> UC_detail
+C --> UC_match
+C --> UC_apply
+C --> UC_track
+C --> UC_notif
+C --> UC_profile
+C --> UC_cv
+
+UC_breakdown .> UC_match : <<extend>>
+UC_letter .> UC_apply : <<extend>>
+UC_withdraw .> UC_track : <<extend>>
+UC_bio .> UC_profile : <<extend>>
+UC_match ..> UC_cv : <<include>>
+
+UC_match --> IA
+UC_cv --> IA
+UC_bio --> IA
+@enduml

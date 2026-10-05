@@ -1,0 +1,45 @@
+@startuml cas-utilisation-recruteur
+!pragma layout smetana
+!include _style.puml
+left to right direction
+title Raffinement des cas d'utilisation du Recruteur
+
+actor "Recruteur" as R
+actor "Service IA" as IA <<système>>
+actor "Site web\nde l'entreprise" as W <<système>>
+
+rectangle "Espace recruteur" {
+  usecase "Publier une offre" as UC_publish
+  usecase "Modifier une offre" as UC_edit
+  usecase "Clôturer une offre\n(garde les candidats)" as UC_close
+  usecase "Supprimer une offre\nsans candidature" as UC_delete
+  usecase "Consulter les candidatures" as UC_apps
+  usecase "Consulter le CV\net la lettre" as UC_docs
+  usecase "Accepter avec\nune date d'entretien" as UC_accept
+  usecase "Refuser une candidature" as UC_reject
+  usecase "Évaluer un candidat\n(4 critères, 3 contrôles)" as UC_eval
+  usecase "Consulter les statistiques" as UC_stats
+  usecase "Modifier le profil entreprise" as UC_profile
+  usecase "Importer le profil\ndepuis le site web" as UC_import
+  usecase "Rédiger une description\nà partir du profil" as UC_draft
+}
+
+R --> UC_publish
+R --> UC_edit
+R --> UC_close
+R --> UC_delete
+R --> UC_apps
+R --> UC_eval
+R --> UC_stats
+R --> UC_profile
+
+UC_docs .> UC_apps : <<extend>>
+UC_accept .> UC_apps : <<extend>>
+UC_reject .> UC_apps : <<extend>>
+UC_import .> UC_profile : <<extend>>
+UC_draft .> UC_profile : <<extend>>
+
+UC_import --> IA
+UC_draft --> IA
+IA --> W : lecture des pages\npubliques
+@enduml

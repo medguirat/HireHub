@@ -1,0 +1,36 @@
+@startuml sequence-candidature
+!include _style.puml
+autonumber
+title Diagramme de séquence objet : « Postuler à une offre »
+
+actor "Candidat" as C
+participant ":ApplyModal\n(React)" as UI
+participant ":CandidateDocumentController" as DOC
+participant ":ApplicationController" as CTRL
+participant ":ApplicationService" as AS
+participant ":ApplicationDocumentService" as FILES
+database "MySQL" as DB
+collections "Stockage privé\n(cv-store)" as STORE
+
+C -> UI : choisit le CV (PDF), écrit la lettre,\n« Send application »
+UI -> DOC : POST /api/candidates/documents\n(multipart, cookie + X-XSRF-TOKEN)
+DOC -> FILES : vérifie le contenu (vrai PDF, ≤ 10 Mo)
+FILES -> STORE : enregistre sous un nom aléatoire
+FILES -> DB : StoredFile (propriétaire = candidat)
+DOC --> UI : { id, fileName, size }
+UI -> CTRL : POST /api/applications\n{ jobOfferId, cvFileId, coverLetter }
+CTRL -> AS : createApplication(dto, candidat)
+AS -> DB : offre
+alt offre clôturée ou date limite dépassée
+  AS --> CTRL : 400 (« no longer accepts applications »)
+else déjà postulé
+  AS --> CTRL : 400 « You have already applied for this job offer. »
+else
+  AS -> FILES : attachable(cvFileId, candidat)
+  note right : le fichier doit appartenir\nau candidat
+  AS -> DB : save(Application, statut PENDING)
+  AS --> CTRL : ApplicationResponseDto
+  CTRL --> UI : 200
+  UI --> C : « Your application for … was sent. »
+end
+@enduml

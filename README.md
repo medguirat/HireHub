@@ -85,6 +85,10 @@ flowchart LR
 | MySQL | MySQL 8 | 3306 | Data; schema versioned with Flyway |
 | Mailpit | Mailpit | 8025 | Local inbox in development (Gmail SMTP for real emails) |
 
+UML diagrams (use cases, classes, sequences, physical and logical architecture) are in
+[`docs/diagrams`](docs/diagrams): PlantUML sources and their PNG / SVG exports in `docs/diagrams/out`, rendered again
+with `npm run diagrams`.
+
 How a CV match flows: the browser asks the backend (`GET /api/candidates/offers/{id}/match`); the backend returns
 the cached result if the CV, the offer text and the algorithm version are unchanged, otherwise it sends the CV text
 and the offer to the ai-service (`POST /match`), stores the result and returns it.

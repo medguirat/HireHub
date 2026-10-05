@@ -1,0 +1,39 @@
+@startuml sequence-mot-de-passe-oublie
+!include _style.puml
+autonumber
+title Diagramme de séquence objet : « Réinitialiser le mot de passe »
+
+actor "Utilisateur" as U
+participant ":ForgotPassword /\n:ResetPassword (React)" as UI
+participant ":AuthController" as CTRL
+participant ":RateLimiter" as RL
+participant ":PasswordResetService" as PRS
+participant ":EmailService" as MAIL
+database "MySQL" as DB
+participant "Boîte e-mail" as BOX
+
+U -> UI : saisit son e-mail
+UI -> CTRL : POST /api/auth/password-reset
+CTRL -> RL : limite par adresse IP
+alt plus de 10 demandes en 15 min
+  CTRL --> UI : 429 + Retry-After
+else
+  CTRL -> RL : limite par e-mail
+  CTRL -> PRS : requestReset(email)
+  opt le compte existe (et pas d'e-mail depuis 1 min)
+    PRS -> DB : retire les anciens liens\nsave(hash SHA-256 d'un jeton de 256 bits, expire dans 45 min)
+    PRS -> MAIL : lien /reset-password#token=…
+    MAIL -> BOX : après le commit, en arrière-plan
+  end
+  CTRL --> UI : 200, même réponse que le compte existe ou non
+end
+U -> BOX : clique sur le lien
+BOX -> UI : ouvre /reset-password#token=…\n(le jeton n'est jamais envoyé dans l'URL au serveur)
+UI -> CTRL : POST /password-reset/check { token }
+UI -> CTRL : POST /password-reset/confirm { token, nouveau mot de passe }
+CTRL -> PRS : resetPassword()
+PRS -> DB : mot de passe BCrypt, credentialsChangedAt = maintenant,\nlien utilisé (usage unique)
+note right of PRS : toutes les sessions émises\navant ce moment sont refusées
+CTRL --> UI : 200
+UI --> U : page de connexion « Your password has been changed »
+@enduml

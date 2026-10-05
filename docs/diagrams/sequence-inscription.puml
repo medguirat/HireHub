@@ -1,0 +1,42 @@
+@startuml sequence-inscription
+!include _style.puml
+autonumber
+title Diagramme de séquence objet : « Créer un compte » (recruteur avec site web)
+
+actor "Visiteur" as V
+participant ":CreateAccount\n(React)" as UI
+participant ":AuthController" as CTRL
+participant ":AuthService" as AS
+participant ":CompanyProfileImporter" as IMP
+participant ":EmailService" as MAIL
+database "MySQL" as DB
+participant "ai-service" as AI
+participant "Serveur SMTP" as SMTP
+
+V -> UI : nom, e-mail, mot de passe,\nrôle, entreprise, site web
+UI -> CTRL : POST /api/auth/register
+CTRL -> AS : register(dto)
+AS -> DB : e-mail déjà utilisé ?
+alt e-mail existant
+  AS --> CTRL : 400 « An account with this email already exists. »
+else
+  AS -> DB : save(User, mot de passe BCrypt)\nsave(RecruiterProfile)
+  AS -> IMP : requestImport(profil, site web)
+  note right of IMP : statut IN_PROGRESS ;\nlancé après le commit,\nen arrière-plan
+  AS -> MAIL : sendWelcomeEmail()
+  note right of MAIL : envoyé après le commit,\nen arrière-plan
+  AS --> CTRL : UserResponseDto
+  CTRL --> UI : 200 + Set-Cookie hirehub_session\n(JWT, HttpOnly, SameSite=Strict)
+  UI -> CTRL : GET /api/users/me
+  UI --> V : vue d'ensemble recruteur\n+ bannière « We're building your company profile… »
+  par en arrière-plan
+    IMP -> AI : POST /company/profile { url }
+    AI --> IMP : champs trouvés sur le site
+    IMP -> DB : remplit les champs vides, statut COMPLETED
+  else
+    MAIL -> SMTP : e-mail « Welcome to HireHub » (HTML + texte)
+  end
+  UI -> CTRL : GET /api/recruiters/profile (toutes les 3 s)
+  UI --> V : « We filled N fields from your website » + lien vers le profil
+end
+@enduml

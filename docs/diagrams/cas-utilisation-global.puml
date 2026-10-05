@@ -1,0 +1,62 @@
+@startuml cas-utilisation-global
+!pragma layout smetana
+!include _style.puml
+left to right direction
+title Diagramme de cas d'utilisation global de HireHub
+
+actor "Visiteur" as V
+actor "Candidat" as C
+actor "Recruteur" as R
+
+rectangle "HireHub" {
+  usecase "Créer un compte" as UC_signup
+  usecase "S'authentifier" as UC_login
+  usecase "Réinitialiser le mot de passe" as UC_reset
+  usecase "Consulter les offres" as UC_browse
+
+  usecase "Gérer son profil" as UC_cprofile
+  usecase "Gérer son CV" as UC_cv
+  usecase "Consulter sa compatibilité\nCV / offre" as UC_match
+  usecase "Postuler à une offre" as UC_apply
+  usecase "Suivre ses candidatures" as UC_track
+
+  usecase "Gérer les offres" as UC_offers
+  usecase "Gérer les candidatures" as UC_apps
+  usecase "Évaluer un candidat" as UC_eval
+  usecase "Consulter les statistiques" as UC_stats
+  usecase "Gérer le profil entreprise" as UC_rprofile
+}
+
+V --> UC_signup
+V --> UC_login
+V --> UC_reset
+V --> UC_browse
+
+C --> UC_cprofile
+C --> UC_cv
+C --> UC_match
+C --> UC_apply
+C --> UC_track
+
+R --> UC_offers
+R --> UC_apps
+R --> UC_eval
+R --> UC_stats
+R --> UC_rprofile
+
+UC_cprofile ..> UC_login : <<include>>
+UC_match ..> UC_login : <<include>>
+UC_apply ..> UC_login : <<include>>
+UC_offers ..> UC_login : <<include>>
+UC_apps ..> UC_login : <<include>>
+UC_rprofile ..> UC_login : <<include>>
+
+
+note bottom of C
+  Le Candidat et le Recruteur sont des
+  visiteurs authentifiés (rôle CANDIDATE
+  ou RECRUITER). Les acteurs secondaires
+  (service IA, serveur e-mail, sites web)
+  figurent dans les diagrammes raffinés.
+end note
+@enduml

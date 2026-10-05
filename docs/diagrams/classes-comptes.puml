@@ -1,0 +1,98 @@
+@startuml classes-comptes
+!pragma layout smetana
+!include _style.puml
+hide empty methods
+title Diagramme de classes : comptes et profils
+
+enum Role {
+  CANDIDATE
+  RECRUITER
+}
+
+enum LanguageLevel {
+  NATIVE
+  FLUENT
+  PROFESSIONAL
+  INTERMEDIATE
+  BASIC
+}
+
+enum CompanyImportStatus {
+  NOT_REQUESTED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+class User {
+  - id : Long
+  - firstName : String
+  - lastName : String
+  - email : String
+  - password : String <<BCrypt>>
+  - role : Role
+  - credentialsChangedAt : Instant
+}
+
+class CandidateProfile {
+  - headline : String
+  - bio : String
+  - education : String
+  - picture : String
+  - urlLinkedin : String
+  - urlGithub : String
+  - urlPortfolio : String
+  - skills : List<String>
+}
+
+class CandidateLanguage {
+  - language : String
+  - level : LanguageLevel
+}
+
+class Experience {
+  - id : Long
+  - position : String
+  - company : String
+  - startDate : LocalDate
+  - endDate : LocalDate
+}
+
+class CandidateCv {
+  - id : Long
+  - originalFileName : String
+  - storedFileName : String
+  - sizeBytes : long
+  - sha256 : String
+  - extractedText : String
+  - uploadedAt : LocalDateTime
+}
+
+class RecruiterProfile {
+  - companyName : String
+  - website : String
+  - logo : String
+  - description : String
+  - industry : String
+  - headquarters : String
+  - foundedYear : Integer
+  - mission / vision / companyValues : String
+  - technologies : String
+  - companyImportStatus : CompanyImportStatus
+  - autoFilledFields : String
+}
+
+class PasswordResetToken {
+  - tokenHash : String <<SHA-256>>
+  - createdAt : LocalDateTime
+  - expiresAt : LocalDateTime
+  - usedAt : LocalDateTime
+}
+
+User "1" -- "0..1" CandidateProfile : profil candidat
+User "1" -- "0..1" RecruiterProfile : recruteur >
+CandidateProfile "1" *-- "0..*" Experience
+CandidateProfile "1" *-- "0..*" CandidateLanguage
+User "1" -- "0..1" CandidateCv : CV de matching >
+User "1" -- "0..*" PasswordResetToken
+@enduml
