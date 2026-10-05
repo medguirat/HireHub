@@ -2,13 +2,106 @@
 
 [![CI](https://github.com/medguirat/HireHub/actions/workflows/ci.yml/badge.svg)](https://github.com/medguirat/HireHub/actions/workflows/ci.yml)
 
-Recruitment platform with two roles, recruiters and candidates.
+Recruitment platform with two roles: **recruiters** publish offers and follow applications, **candidates** find
+offers, see how well their CV matches each one, and apply. CV matching is explainable (every point of the score
+comes from the CV and the offer), and the AI only ever works from what the user entered.
 
-| Part | Stack | Port |
-|---|---|---|
-| `frontend/` | React + Vite | 5173 |
-| `backend/` | Spring Boot (Java 17+), MySQL | 8081 |
-| `ai-service/` | Python FastAPI: CV text extraction, CV/offer matching, company website import, profile drafts. Internal: only the backend calls it, with a shared key | 8000 |
+## Features
+
+**Candidates**
+- Search open offers (keyword, location, contract type); newest first.
+- **CV match** for any offer: a 0–100 score with a breakdown (skills, experience, education, languages, relevance)
+  and concrete advice, in French or English. No made-up score: if the matching service is down, the page says so.
+- Apply with the stored CV (or another PDF) and a cover letter; follow each application and interview invitation.
+- Profile with photo, headline, experience, skills, languages, links, a completeness checklist and a "Draft my
+  bio" helper that only uses the profile's own data.
+
+**Recruiters**
+- Publish, edit, **close** (keeps the applicants) or delete offers.
+- See applications with the candidate's CV in the page, accept with an interview date and type (on site / remote),
+  reject, and evaluate candidates (four criteria rated 1–5, three checks, notes, a score out of 20).
+- Statistics computed from real data (offers, applications, outcomes per period and per offer).
+- Company profile **imported from the company website** at signup (schema.org, meta tags, Mission / Vision /
+  Values sections), with SSRF protection; imported fields are marked until reviewed.
+
+**Platform**
+- Signup signs in straight away; welcome and "forgot password" emails (HTML + text) through Gmail or Mailpit.
+- HttpOnly cookie session with CSRF protection, rate limits on login and password reset, private CVs.
+- One error format everywhere, with a request id that leads to the server's log lines.
+- Fixed navigation, responsive down to 390 px, labelled form fields and dialogs.
+- Docker images and compose stack, CI on every pull request, Flyway migrations, Swagger UI, health probes.
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Recruiter overview](docs/screenshots/10-recruiter-overview.jpg) | ![CV match](docs/screenshots/22-candidate-cv-match.jpg) |
+| Recruiter overview | A candidate's CV match for an offer |
+| ![Recruiter statistics](docs/screenshots/15-recruiter-statistics.jpg) | ![Company profile](docs/screenshots/16-recruiter-company-profile.jpg) |
+| Statistics from real data | Company profile, imported from the website |
+| ![Candidate offers](docs/screenshots/21-candidate-offers.jpg) | ![Candidate profile](docs/screenshots/24-candidate-profile.jpg) |
+| Offer search | Candidate profile with completeness |
+
+<p align="center">
+  <img src="docs/screenshots/30-phone-candidate-overview.jpg" width="200" alt="Candidate overview on a phone">
+  <img src="docs/screenshots/31-phone-candidate-offers.jpg" width="200" alt="Offers on a phone">
+  <img src="docs/screenshots/33-phone-recruiter-statistics.jpg" width="200" alt="Statistics on a phone">
+</p>
+
+All screenshots are in [`docs/screenshots`](docs/screenshots); `npm run screenshots` takes them again from the demo
+data (with the stack running and `npm run seed` done).
+
+## Architecture
+
+```mermaid
+flowchart LR
+    browser["Browser<br/>React 19 + Vite"]
+    subgraph server["Server (Docker network, or localhost with npm run dev)"]
+        nginx["nginx / Vite dev server<br/>serves the app, forwards /api"]
+        backend["Backend<br/>Spring Boot 3.5, Java 17<br/>REST API, security, business rules"]
+        ai["ai-service<br/>FastAPI, Python 3.12<br/>CV parsing, matching, website import, drafts"]
+        db[("MySQL 8<br/>schema by Flyway")]
+        files[("Files<br/>public images / private CVs")]
+        mail["Mailpit (dev)<br/>or SMTP (Gmail)"]
+    end
+    llm["Optional LLM<br/>(Ollama, OpenAI-compatible)"]
+    site["Company websites"]
+
+    browser -- "HTTPS, session cookie + CSRF header" --> nginx
+    nginx -- "/api, /uploads" --> backend
+    backend -- "JPA" --> db
+    backend --> files
+    backend -- "X-Internal-Key + X-Request-Id" --> ai
+    backend -- "SMTP" --> mail
+    ai -. "rewording only" .-> llm
+    ai -- "public pages only (SSRF checks)" --> site
+```
+
+| Part | Stack | Port (dev) | Role |
+|---|---|---|---|
+| `frontend/` | React 19, Vite, axios | 5173 | The single-page app; same origin as the API (Vite proxy in dev, nginx in Docker) |
+| `backend/` | Spring Boot 3.5, Spring Security, JPA/Hibernate, Flyway, MySQL | 8081 | REST API, authentication, roles, applications, files, emails, statistics |
+| `ai-service/` | FastAPI, sentence-transformers, pypdf, python-docx, BeautifulSoup | 8000 | Text extraction, CV/offer matching, company website import, profile drafts. Internal: only the backend calls it |
+| MySQL | MySQL 8 | 3306 | Data; schema versioned with Flyway |
+| Mailpit | Mailpit | 8025 | Local inbox in development (Gmail SMTP for real emails) |
+
+How a CV match flows: the browser asks the backend (`GET /api/candidates/offers/{id}/match`); the backend returns
+the cached result if the CV, the offer text and the algorithm version are unchanged, otherwise it sends the CV text
+and the offer to the ai-service (`POST /match`), stores the result and returns it.
+
+## Technical choices
+
+| Choice | Why |
+|---|---|
+| Three services instead of one | The matching uses Python's NLP ecosystem (sentence-transformers, pypdf); the business logic, security and data stay in a typed, tested Spring Boot backend. The ai-service holds no data and answers only the backend. |
+| Deterministic, explainable score | A weighted score from parsed skills, years, degree, languages and semantic relevance: the same inputs always give the same score and each point can be justified to a candidate or a recruiter. An LLM may only write advice, never the score. |
+| Multilingual embeddings (`paraphrase-multilingual-MiniLM-L12-v2`) | CVs and offers are in French, English or both; the model compares them across languages and runs on a CPU. |
+| No fake fallback | When the ai-service is down, the app says so and offers a retry, instead of showing an invented percentage. |
+| HttpOnly cookie session + CSRF token | Scripts can't read the session, so an XSS flaw can't steal it; SameSite=Strict and the CSRF header block forged requests. Stateless: no session table. |
+| Flyway + `ddl-auto=validate` | Every schema change is a reviewed, versioned SQL file; Hibernate checks the entities match and never changes the database on its own. |
+| One error format, request ids | The UI always gets a sentence it can show; a user's error reference leads to the exact log lines, across both services. |
+| Testcontainers, Playwright, CI | Tests run on a real MySQL and in a real browser; every pull request runs all suites. |
+| Free and open-source stack | Every tool used is free and open source (Mailpit, Bucket4j, Flyway, nginx, MySQL, Ollama...), and Gmail's free SMTP for real emails. |
 
 ## Install and run (one command)
 
