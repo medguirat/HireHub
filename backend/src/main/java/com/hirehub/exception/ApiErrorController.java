@@ -35,7 +35,8 @@ public class ApiErrorController implements ErrorController {
                     : ApiError.of(ErrorCodes.INTERNAL_ERROR, "An unexpected error occurred. Please try again later.");
         };
         Object failure = request.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
-        log.warn("[{}] {} on {}: {}", error.correlationId(), status.value(),
+        // The correlation id is the request id, already on every log line (RequestIdFilter).
+        log.warn("{} on {}: {}", status.value(),
                 request.getAttribute(RequestDispatcher.ERROR_REQUEST_URI), failure != null ? failure : error.message());
         return ResponseEntity.status(status).body(error);
     }

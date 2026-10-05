@@ -333,6 +333,26 @@ Every error from the backend and from the ai-service has the same JSON body:
 
 The frontend reads errors only through `frontend/src/utils/apiError.js`.
 
+## API documentation, health and logs
+
+- **Swagger UI**: http://localhost:8081/swagger-ui.html (OpenAPI 3 description at `/v3/api-docs`). Every `/api`
+  endpoint, with its request and answer formats. To call protected endpoints, log in with `POST /api/auth/login`,
+  then **Authorize** with the token. On by default in development, off in production unless `API_DOCS_ENABLED=true`.
+- **Actuator** (Spring Boot):
+
+  | Endpoint | Who | What |
+  |---|---|---|
+  | `/actuator/health` | anyone | `UP`/`DOWN` with the status of each part: database, disk, ai-service (no details) |
+  | `/actuator/health/liveness`, `/actuator/health/readiness` | anyone | probes for Docker: ready = the database answers. The ai-service never makes the app "not ready": without it, only CV matching answers 503 |
+  | `/actuator/info` | anyone | build name, version and time, Java version |
+  | `/actuator/metrics` | this machine or a private network only (403 otherwise) | JVM, HTTP, database pool metrics |
+
+- **Request ids**: every answer has an `X-Request-Id` header (an id sent by a proxy is kept), every log line of the
+  request carries it, and an error's `correlationId` is the same id. A user's error report ("Reference: 3f2a9c1e")
+  leads straight to the log lines of that request.
+- **Logs**: readable lines in development; in production (`prod` profile), one JSON object per line in the Elastic
+  Common Schema (ECS), ready for a log collector.
+
 ## Database schema (Flyway)
 
 The schema is versioned with **Flyway**: SQL files in

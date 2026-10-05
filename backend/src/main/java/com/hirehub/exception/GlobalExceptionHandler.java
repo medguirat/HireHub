@@ -173,7 +173,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex) {
         ApiError error = ApiError.of(ErrorCodes.INTERNAL_ERROR, "An unexpected error occurred. Please try again later.");
-        log.error("[{}] Unhandled exception on {}", error.correlationId(), currentRequest(), ex);
+        log.error("Unhandled exception on {}", currentRequest(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 
@@ -181,10 +181,13 @@ public class GlobalExceptionHandler {
         return respond(status, error, null);
     }
 
-    /** Logs one line per error (with the correlation id the client receives), then answers. */
+    /**
+     * Logs one line per error, then answers. The correlation id the client receives is the request
+     * id, which the log pattern already puts on every line (RequestIdFilter).
+     */
     private ResponseEntity<ApiError> respond(HttpStatus status, ApiError error, String detail) {
-        String line = "[{}] {} {} on {}: {}{}";
-        Object[] args = {error.correlationId(), status.value(), error.code(), currentRequest(), error.message(),
+        String line = "{} {} on {}: {}{}";
+        Object[] args = {status.value(), error.code(), currentRequest(), error.message(),
                 detail == null ? "" : " (" + detail + ")"};
         if (status.is5xxServerError()) {
             log.warn(line, args);

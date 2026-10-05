@@ -1,6 +1,8 @@
 package com.hirehub.exception;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.hirehub.config.RequestIdFilter;
+import org.slf4j.MDC;
 
 import java.util.Map;
 import java.util.UUID;
@@ -10,7 +12,8 @@ import java.util.UUID;
  * Spring Security, unknown routes):
  * <pre>{ "code": "VALIDATION_FAILED", "message": "...", "correlationId": "...", "fieldErrors": {...} }</pre>
  * {@code message} is a complete sentence the UI can show as is; {@code code} is stable and meant for
- * programs; {@code correlationId} appears in the server log line for the same error;
+ * programs; {@code correlationId} is the request's id (X-Request-Id header, "requestId" in
+ * every log line of the request);
  * {@code fieldErrors} (field -> message) is present only for validation errors.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -25,6 +28,7 @@ public record ApiError(String code, String message, String correlationId, Map<St
     }
 
     private static String newCorrelationId() {
-        return UUID.randomUUID().toString();
+        String requestId = MDC.get(RequestIdFilter.MDC_KEY);
+        return requestId != null ? requestId : UUID.randomUUID().toString();
     }
 }
