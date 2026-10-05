@@ -16,12 +16,13 @@ const companySite = {
 
 const devStack = {
   // The whole stack, for tests: the ai-service may import the local fixture site, emails always
-  // go to Mailpit (even if .env sends real ones), and the login and "forgot password" limits per
-  // IP address are raised because every test request comes from 127.0.0.1 (the backend's
-  // RateLimitIT and LoginRateLimitIT test the limits).
+  // go to Mailpit and link to localhost (whatever .env says: real emails, phone access...), and the
+  // login and "forgot password" limits per IP address are raised because every test request comes
+  // from 127.0.0.1 (the backend's RateLimitIT and LoginRateLimitIT test the limits).
   command: "node scripts/dev.mjs",
   url: "http://localhost:5173",
   env: { COMPANY_SCRAPER_ALLOW_PRIVATE: "1", MAIL_MODE: "mailpit",
+    APP_FRONTEND_URL: "http://localhost:5173", APP_BASE_URL: "http://localhost:8081", DEV_LAN_ACCESS: "false",
     RATE_LIMIT_PASSWORD_RESET_PER_IP: "1000", RATE_LIMIT_LOGIN_PER_IP: "1000" },
   reuseExistingServer: true,
   timeout: 600_000,
