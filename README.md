@@ -333,16 +333,27 @@ Every error from the backend and from the ai-service has the same JSON body:
 
 The frontend reads errors only through `frontend/src/utils/apiError.js`.
 
-## Database changes to apply by hand
+## Database schema (Flyway)
 
-The backend uses `spring.jpa.hibernate.ddl-auto=update`, which adds new tables and columns by itself but never changes an existing column. Run this once on an existing database (MySQL):
+The schema is versioned with **Flyway**: SQL files in
+[`backend/src/main/resources/db/migration`](backend/src/main/resources/db/migration), applied in order when the
+backend starts. Hibernate only checks that the entities match the schema (`ddl-auto=validate`) and never changes
+it, so the database is always exactly what the migrations describe. Nothing has to be run by hand.
 
-```sql
--- Company description: from VARCHAR(255) to TEXT (max 5000 characters, checked by the API)
-ALTER TABLE recruiter_profiles MODIFY description TEXT NULL;
-```
+| Migration | What it does |
+|---|---|
+| `V1__baseline.sql` | The schema when Flyway was introduced (14 tables) |
+| `V2__recruiter_description_text.sql` | Company description `VARCHAR(255)` → `TEXT` |
 
-The test database (`hirehub_test`) is recreated on every test run, so it needs nothing.
+- **New database**: every migration runs, from V1.
+- **Database created before Flyway** (by the old `ddl-auto=update`): on the first start, Flyway marks it as version 1
+  without touching it (baseline), then applies V2 onward. Tables the app no longer uses are left as they are.
+- **Changing the schema**: add `V3__what_it_does.sql` (next number). Never edit a migration that has run: Flyway
+  checks their checksums and refuses to start if one changed.
+- **Tests**: each test context empties the test database and rebuilds it with the same migrations.
+
+Spring profiles: `dev` when none is set (`npm run dev`, an IDE; SQL statements printed), `prod` in Docker (no SQL
+in the logs, no error details in answers), `test` for the backend tests.
 
 ## Company profile import
 
