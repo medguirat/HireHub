@@ -1,7 +1,7 @@
 // "Forgot password" through the real app and the real email, read from Mailpit's API:
 // ask for a link, get the email, choose a new password, old sessions and the link stop working.
 import { expect, test } from "@playwright/test";
-import { API, PASSWORD, countEmails, email, registerByApi, tokenFor, waitForEmail } from "./support/helpers.mjs";
+import { API, BASE_URL, PASSWORD, countEmails, email, registerByApi, tokenFor, waitForEmail } from "./support/helpers.mjs";
 
 const NEW_PASSWORD = "A-new-password-2026";
 const GENERIC = "If an account exists for this email, we've sent a link to reset the password. It works once and expires in 45 minutes.";
@@ -22,7 +22,9 @@ test("a user resets a forgotten password with the emailed link", async ({ page }
   // 2. The email arrives in Mailpit.
   const message = await waitForEmail(address, { after: startedAt, subject: "Reset your HireHub password" });
   expect(message.Text).toContain("expires in 45 minutes");
-  const link = message.Text.match(/http:\/\/localhost:5173\/reset-password#token=[\w-]+/)[0];
+  const linkStart = message.Text.indexOf(`${BASE_URL}/reset-password#token=`);
+  expect(linkStart).toBeGreaterThanOrEqual(0);
+  const link = message.Text.slice(linkStart).split(/\s/)[0];
   expect(message.HTML).toContain(`href="${link}"`); // the button, in the branded HTML version
   expect(message.HTML).toContain("Choose a new password");
 

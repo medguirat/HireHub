@@ -1,7 +1,7 @@
 // The welcome email, read from Mailpit's API: sent after signup, with a text and an HTML version
 // and a button to the right dashboard. ("Forgot password" emails: password-reset.spec.mjs.)
 import { expect, test } from "@playwright/test";
-import { email, registerByApi, waitForEmail } from "./support/helpers.mjs";
+import { BASE_URL, email, registerByApi, waitForEmail } from "./support/helpers.mjs";
 
 for (const [role, dashboard, sentence] of [
   ["CANDIDATE", "candidate-dashboard", "Your HireHub candidate account is ready."],
@@ -16,8 +16,8 @@ for (const [role, dashboard, sentence] of [
     expect(message.From.Address).toBe("no-reply@hirehub.local");
     expect(message.Text).toContain(`Hello QA,`);
     expect(message.Text).toContain(sentence);
-    expect(message.Text).toContain(`http://localhost:5173/${dashboard}`);
-    expect(message.HTML).toContain(`href="http://localhost:5173/${dashboard}"`);
+    expect(message.Text).toContain(`${BASE_URL}/${dashboard}`);
+    expect(message.HTML).toContain(`href="${BASE_URL}/${dashboard}"`);
     expect(message.HTML).toContain("Open my dashboard");
   });
 }

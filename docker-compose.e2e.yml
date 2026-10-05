@@ -1,0 +1,19 @@
+# Added to docker-compose.yml for the E2E tests (npm run test:e2e:docker), as a separate project
+# ("hirehub-e2e") with its own throwaway volumes:
+# - the ai-service may import the fixture company website served on this machine,
+# - emails always go to Mailpit, and the per-IP limits are raised (every test comes from one address),
+# - MySQL is published on 127.0.0.1:3307 so the tests can delete what they created.
+services:
+  ai-service:
+    environment:
+      COMPANY_SCRAPER_ALLOW_PRIVATE: "1"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  backend:
+    environment:
+      MAIL_MODE: mailpit
+      RATE_LIMIT_LOGIN_PER_IP: "1000"
+      RATE_LIMIT_PASSWORD_RESET_PER_IP: "1000"
+  mysql:
+    ports:
+      - "127.0.0.1:3307:3306"

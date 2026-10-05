@@ -6,6 +6,9 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "company-site");
 const PORT = Number(process.env.COMPANY_SITE_PORT || 4599);
+// Docker E2E runs: the ai-service container reaches it through host.docker.internal, so it listens
+// on every interface there (COMPANY_SITE_HOST=0.0.0.0); otherwise only on this machine.
+const HOST = process.env.COMPANY_SITE_HOST || "127.0.0.1";
 
 createServer(async (req, res) => {
   const name = req.url === "/" ? "index.html" : path.basename(req.url.split("?")[0]);
@@ -17,4 +20,4 @@ createServer(async (req, res) => {
     res.writeHead(404, { "Content-Type": "text/plain" });
     res.end("Not found");
   }
-}).listen(PORT, "127.0.0.1", () => console.log(`Fixture company site on http://127.0.0.1:${PORT}`));
+}).listen(PORT, HOST, () => console.log(`Fixture company site on http://${HOST}:${PORT}`));

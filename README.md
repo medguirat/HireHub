@@ -47,6 +47,44 @@ Health endpoints:
 - `GET http://localhost:8081/api/health` reports the backend and the status of the ai-service.
 - `GET http://localhost:8000/health` reports the ai-service, its scoring algorithm version, and whether the optional LLM is used.
 
+## Run with Docker
+
+The whole stack in containers: MySQL 8.0, the backend (Java 17, `prod` profile), the ai-service (CPU-only PyTorch,
+embedding model baked into the image), the frontend served by nginx, and Mailpit.
+
+```bash
+npm run docker:up      # builds the images, starts everything, waits until it's healthy
+```
+
+Then open **http://localhost:8080** (emails: http://localhost:8025). Stop with `docker compose down` (add `-v` to
+also delete the database and uploaded files). `npm run docker:up` adds the secrets Docker needs to `.env` if
+they're missing (`AI_SERVICE_KEY`, `DOCKER_DB_PASSWORD`); `docker compose up -d --build` works too once they are set.
+
+| Container | Image | Reachable from this machine | Data |
+|---|---|---|---|
+| `frontend` | nginx 1.27 + the Vite build | **http://localhost:8080** (serves the app; forwards `/api` and `/uploads` to the backend) | – |
+| `backend` | Temurin 17 JRE | `127.0.0.1:8081` only (E2E helpers, Swagger with `API_DOCS_ENABLED=true`) | volumes `uploads`, `cv-store` |
+| `ai-service` | Python 3.12 slim | no: internal network, called only by the backend with `AI_SERVICE_KEY` | – |
+| `mysql` | MySQL 8.0 | no | volume `db-data` |
+| `mailpit` | Mailpit 1.31.3 | `127.0.0.1:8025` (inbox) | – |
+
+- Every container has a health check; the backend is "healthy" once the database answers (readiness probe),
+  and the frontend only starts after that.
+- The browser talks to one origin (nginx), so the session cookie (`HttpOnly`, `SameSite=Strict`) works as in
+  development. Behind HTTPS, set `SESSION_COOKIE_SECURE=true` and `DOCKER_PUBLIC_URL=https://your.domain`.
+- nginx passes the client's address (`X-Forwarded-For`) and a request id (`X-Request-Id`) to the backend, which
+  trusts them only from the private network: rate limits count real clients, and one id follows each request.
+- Real emails: `MAIL_MODE=smtp` and the `SMTP_*` settings in `.env`, exactly as without Docker.
+
+**End-to-end tests against Docker**: `npm run test:e2e:docker` starts a separate project (`hirehub-e2e`, with its
+own empty database and files), runs the whole Playwright suite against http://localhost:8080, then removes it
+(`--keep` leaves it running). The fixture company website runs on this machine and the ai-service container reaches
+it through `host.docker.internal`.
+
+**Prerequisite**: Docker Desktop (Windows: https://docs.docker.com/desktop/setup/install/windows-install/, with the
+WSL 2 backend it proposes; Mac and Linux: Docker Desktop or Docker Engine with the Compose plugin). The first
+build downloads the base images and the embedding model and takes several minutes.
+
 ## Demo accounts
 
 With the stack running:

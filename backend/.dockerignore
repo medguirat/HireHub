@@ -1,0 +1,6 @@
+target/
+uploads/
+cv-store/
+.idea/
+.vscode/
+*.iml

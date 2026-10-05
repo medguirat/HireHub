@@ -1,0 +1,100 @@
+# HireHub in Docker: MySQL, backend, ai-service, frontend (nginx) and Mailpit.
+#
+#   docker compose up -d --build        then open http://localhost:8080
+#
+# Settings come from .env at the root of the repository (the same file `npm run dev` uses); see
+# .env.example, section "Docker". Only the frontend (8080) and Mailpit's inbox (8025) are open to
+# this machine; the backend (8081) is published on 127.0.0.1 only, for the E2E tests and Swagger;
+# the database and the ai-service are on the internal network only.
+
+name: hirehub
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: hirehub_db
+      MYSQL_USER: hirehub
+      MYSQL_PASSWORD: ${DOCKER_DB_PASSWORD:?Set DOCKER_DB_PASSWORD in .env (see .env.example, section Docker)}
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u hirehub -p\"$$MYSQL_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  ai-service:
+    build: ./ai-service
+    restart: unless-stopped
+    environment:
+      AI_SERVICE_KEY: ${AI_SERVICE_KEY:?Set AI_SERVICE_KEY in .env (npm run dev generates one)}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      COMPANY_SCRAPER_ALLOW_PRIVATE: ${COMPANY_SCRAPER_ALLOW_PRIVATE:-}
+    # No published port: only the backend calls it.
+
+  mailpit:
+    image: axllent/mailpit:v1.31.3
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+      mailpit:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:mysql://mysql:3306/hirehub_db
+      DB_USERNAME: hirehub
+      DB_PASSWORD: ${DOCKER_DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (npm run secret prints one)}
+      AI_SERVICE_URL: http://ai-service:8000
+      AI_SERVICE_KEY: ${AI_SERVICE_KEY}
+      MAIL_MODE: ${MAIL_MODE:-mailpit}
+      MAILPIT_HOST: mailpit
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      # Links in emails and image addresses point to the app as users open it.
+      APP_FRONTEND_URL: ${DOCKER_PUBLIC_URL:-http://localhost:8080}
+      APP_BASE_URL: ${DOCKER_PUBLIC_URL:-http://localhost:8080}
+      APP_CORS_ORIGINS: ${DOCKER_PUBLIC_URL:-http://localhost:8080}
+      # Plain http on localhost: set it to true behind HTTPS.
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}
+      RATE_LIMIT_LOGIN_PER_IP: ${RATE_LIMIT_LOGIN_PER_IP:-30}
+      RATE_LIMIT_PASSWORD_RESET_PER_IP: ${RATE_LIMIT_PASSWORD_RESET_PER_IP:-10}
+    volumes:
+      - uploads:/data/uploads
+      - cv-store:/data/cv-store
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8081}:8081"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+
+volumes:
+  db-data:
+  uploads:
+  cv-store:

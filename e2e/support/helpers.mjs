@@ -4,12 +4,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "@playwright/test";
 
-export const API = "http://localhost:8081/api";
 export const PASSWORD = "Password123!";
 export const FIXTURES = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "fixtures");
-export const COMPANY_SITE = "http://127.0.0.1:4599";
-/** Mailpit, the local inbox `npm run dev` starts: every email the app sends lands there. */
-export const MAILPIT = "http://localhost:8025";
+// Mailpit is the inbox every email the app sends lands in (npm run dev and Docker both start it).
+export { API, BASE_URL, COMPANY_SITE, MAILPIT } from "./config.mjs";
+import { API, MAILPIT } from "./config.mjs";
 
 const RUN = Date.now().toString(36);
 export const email = (who) => `qa-e2e-${RUN}-${who}@qa.hirehub.test`;

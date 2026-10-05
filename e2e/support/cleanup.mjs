@@ -6,7 +6,7 @@
 //   node e2e/support/cleanup.mjs
 //
 // Database settings come from DB_URL / DB_USERNAME / DB_PASSWORD (environment or .env).
-import { rmSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import mysql from "mysql2/promise";
@@ -68,8 +68,13 @@ export async function cleanupQaData({ log = console.log } = {}) {
       .map((v) => path.join(ROOT, "backend", "uploads", path.basename(new URL(v).pathname)));
     const stored = [...ids(cvs, "stored_file_name"), ...ids(documents, "stored_name")].filter(Boolean)
       .map((f) => path.join(ROOT, "backend", "cv-store", path.basename(f)));
-    for (const file of [...uploads, ...stored]) rmSync(file, { force: true });
-    log(`  and ${uploads.length + stored.length} file(s).`);
+    // With npm run dev the files are in backend/; in Docker they are in volumes, dropped with the
+    // E2E stack (docker compose down -v).
+    const localFiles = existsSync(path.join(ROOT, "backend", "cv-store")) && process.env.E2E_TARGET !== "docker";
+    if (localFiles) {
+      for (const file of [...uploads, ...stored]) rmSync(file, { force: true });
+      log(`  and ${uploads.length + stored.length} file(s).`);
+    }
     return { users: users.length, offers: o.length, applications: a.length, files: uploads.length + stored.length };
   } catch (err) {
     await db.rollback().catch(() => {});
