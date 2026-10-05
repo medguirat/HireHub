@@ -19,8 +19,8 @@ export default function Sidebar() {
   const user = storedUser ? JSON.parse(storedUser) : null;
   const isRecruiter = user?.role === "RECRUITER";
 
-  const handleLogout = () => {
-    authService.logout();
+  const handleLogout = async () => {
+    await authService.logout();
     window.history.pushState(null, "", "/login");
     navigate("/login", { replace: true });
   };

@@ -1,20 +1,28 @@
 // src/services/api.js
 import axios from "axios";
 
+// The session is an HttpOnly cookie set by the API at login: this code never sees the login token.
+// Requests that change something also send the CSRF token: axios copies the XSRF-TOKEN cookie
+// into the X-XSRF-TOKEN header.
+const BASE_URL = import.meta.env.VITE_API_URL || "/api";
+const UNSAFE = new Set(["post", "put", "patch", "delete"]);
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || "http://localhost:8081/api"
+    baseURL: BASE_URL,
+    withCredentials: true,
+    withXSRFToken: true,
 });
 
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
+const hasCsrfCookie = () => document.cookie.split("; ").some((c) => c.startsWith("XSRF-TOKEN="));
+
+// The CSRF cookie arrives with any API answer; before the very first change (e.g. login on a fresh
+// visit), ask for it once.
+api.interceptors.request.use(async (config) => {
+    if (UNSAFE.has((config.method || "get").toLowerCase()) && !hasCsrfCookie()) {
+        await axios.get(`${BASE_URL}/auth/csrf`, { withCredentials: true });
+    }
+    return config;
+});
 
 // A page often fires several requests at once; when the session has expired they all
 // come back 401. Only the first one redirects, otherwise a second full reload of the
@@ -33,7 +41,8 @@ api.interceptors.response.use(
             } catch { /* keep the raw body */ }
         }
         if (error.response && error.response.status === 401) {
-            const hadSession = !!localStorage.getItem("token");
+            // The API has already deleted an invalid session cookie; forget the cached user.
+            const hadSession = !!localStorage.getItem("user");
             localStorage.clear();
             if (!redirectingToLogin && !window.location.pathname.includes("/login")) {
                 redirectingToLogin = true;

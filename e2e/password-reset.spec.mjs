@@ -57,6 +57,7 @@ test("a user resets a forgotten password with the emailed link", async ({ page }
   // 5. The link worked once. (Signed out from the login page: on the dashboard, its requests
   // without a session would send the browser to /login in the middle of the next navigation.)
   await page.goto("/login");
+  await page.context().clearCookies();
   await page.evaluate(() => localStorage.clear());
   await page.goto(link);
   await expect(page.getByRole("alert")).toContainText("has already been used or has expired");

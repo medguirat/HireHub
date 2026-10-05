@@ -8,11 +8,11 @@ export function dashboardFor(role) {
 }
 
 /**
- * Starts a session from a login token: stores it, loads the signed-in user (with their profile)
- * and stores it too. Login and signup both end here, so the dashboards see the same session.
+ * After login or signup (the API has set the HttpOnly session cookie): loads the signed-in user
+ * (with their profile) and keeps it for the pages. Login and signup both end here, so the
+ * dashboards see the same session.
  */
-async function startSession(token) {
-  localStorage.setItem("token", token);
+async function startSession() {
   // The "session expired" notice stays (even across reloads) until the user signs in again.
   sessionStorage.removeItem("hirehub.sessionExpired");
   const user = (await api.get("/users/me")).data;
@@ -23,22 +23,22 @@ async function startSession(token) {
 const authService = {
   /** Signs in and returns the user. */
   login: async (email, password) => {
-    const { data } = await api.post("/auth/login", { email, password });
-    return startSession(data.token);
+    await api.post("/auth/login", { email, password });
+    return startSession();
   },
 
   /**
-   * Creates the account, already signed in (the answer carries a login token). Returns the user,
+   * Creates the account, already signed in (the API sets the session cookie). Returns the user,
    * or `{ accountCreated: true, user: null }` if the account exists but the session couldn't start
    * (the page then asks to log in instead of reporting a failed signup).
    */
   register: async (userData) => {
-    const { data } = await api.post("/auth/register", userData);
+    await api.post("/auth/register", userData);
     try {
-      return { accountCreated: true, user: await startSession(data.token) };
+      return { accountCreated: true, user: await startSession() };
     } catch (err) {
       console.error("Signed up, but the session couldn't start:", err);
-      localStorage.removeItem("token");
+      localStorage.removeItem("user");
       return { accountCreated: true, user: null };
     }
   },
@@ -48,7 +48,13 @@ const authService = {
     return response.data;
   },
 
-  logout: () => {
+  /** Ends the session: the API deletes the cookie (the page can't, it's HttpOnly). */
+  logout: async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch (err) {
+      console.error("Logout request failed:", err);
+    }
     localStorage.clear();
   },
 

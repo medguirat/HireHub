@@ -5,7 +5,10 @@ import com.hirehub.exception.ApiErrorWriter;
 import com.hirehub.exception.ErrorCodes;
 import com.hirehub.security.CustomUserDetailsService;
 import com.hirehub.security.JwtAuthenticationFilter;
+import com.hirehub.security.SessionCookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpHeaders;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -24,6 +27,11 @@ import org.springframework.security.web.access.IpAddressAuthorizationManager;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.hirehub.security.SpaCsrfTokenRequestHandler;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfException;
+
+import java.util.Set;
 import java.util.stream.Stream;
 
 
@@ -57,7 +65,16 @@ public class SecurityConfig {
         http
                 .cors(cors -> {})
 
-                .csrf(csrf -> csrf.disable())
+                // CSRF: a request that carries the session cookie (sent by the browser on its own)
+                // and changes something must also send the token from the XSRF-TOKEN cookie in the
+                // X-XSRF-TOKEN header, which another site can't read. Requests without the session
+                // cookie, or with an Authorization header (which another site can't add), carry no
+                // ambient credentials and are not checked. Login and signup only accept JSON, which
+                // another site can't send without a CORS preflight this API refuses.
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(csrfCookie())
+                        .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
+                        .requireCsrfProtectionMatcher(SecurityConfig::needsCsrfToken))
 
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -71,10 +88,13 @@ public class SecurityConfig {
                         .authenticationEntryPoint((request, response, authException) ->
                                 errorWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, ApiError.of(ErrorCodes.AUTH_REQUIRED,
                                         "Your session has expired or you are not signed in. Please log in again.")))
-                        // Signed in, but with the wrong role for this URL (see the role rules below).
+                        // A missing or wrong CSRF token, or signed in with the wrong role for this URL.
                         .accessDeniedHandler((request, response, accessDeniedException) ->
-                                errorWriter.write(response, HttpServletResponse.SC_FORBIDDEN, ApiError.of(ErrorCodes.FORBIDDEN,
-                                        "Your account type can't use this feature.")))
+                                errorWriter.write(response, HttpServletResponse.SC_FORBIDDEN,
+                                        accessDeniedException instanceof CsrfException
+                                                ? ApiError.of(ErrorCodes.CSRF_INVALID,
+                                                        "This page's security check has expired. Please reload the page and try again.")
+                                                : ApiError.of(ErrorCodes.FORBIDDEN, "Your account type can't use this feature.")))
                 )
 
                 .authorizeHttpRequests(auth -> auth
@@ -116,6 +136,22 @@ public class SecurityConfig {
                 );
 
         return http.build();
+    }
+
+    private static final Set<String> SAFE_METHODS = Set.of("GET", "HEAD", "OPTIONS", "TRACE");
+
+    /** XSRF-TOKEN, readable by the app's JavaScript (that's the point), only sent to this site. */
+    private static CookieCsrfTokenRepository csrfCookie() {
+        CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        repository.setCookiePath("/");
+        repository.setCookieCustomizer(cookie -> cookie.sameSite("Strict"));
+        return repository;
+    }
+
+    static boolean needsCsrfToken(HttpServletRequest request) {
+        return !SAFE_METHODS.contains(request.getMethod())
+                && request.getHeader(HttpHeaders.AUTHORIZATION) == null
+                && SessionCookie.read(request).isPresent();
     }
 
     @Bean

@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import axios from "axios";
+import { describe, expect, it, vi } from "vitest";
 import api from "../services/api";
 import { NETWORK_ERROR, apiError, errorCode, errorMessage, fieldErrors } from "./apiError";
 
@@ -40,6 +41,27 @@ describe("reading API errors ({ code, message, correlationId, fieldErrors? })", 
 });
 
 describe("the API client", () => {
+  it("sends cookies and the CSRF header, and fetches the CSRF cookie before a first change", async () => {
+    expect(api.defaults.withCredentials).toBe(true);
+    expect(api.defaults.withXSRFToken).toBe(true);
+    expect(api.defaults.xsrfCookieName).toBe("XSRF-TOKEN");
+    expect(api.defaults.xsrfHeaderName).toBe("X-XSRF-TOKEN");
+
+    const fetchCsrf = vi.spyOn(axios, "get").mockResolvedValue({ status: 204 });
+    const prepare = api.interceptors.request.handlers[0].fulfilled;
+    await prepare({ method: "get", headers: {} });
+    expect(fetchCsrf).not.toHaveBeenCalled();
+    await prepare({ method: "post", headers: {} });
+    expect(fetchCsrf).toHaveBeenCalledWith("/api/auth/csrf", { withCredentials: true });
+
+    fetchCsrf.mockClear();
+    document.cookie = "XSRF-TOKEN=abc";
+    await prepare({ method: "put", headers: {} });
+    expect(fetchCsrf).not.toHaveBeenCalled();
+    document.cookie = "XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    fetchCsrf.mockRestore();
+  });
+
   it("reads the JSON error body of a failed file download (a Blob) back into an object", async () => {
     const rejected = api.interceptors.response.handlers[0].rejected;
     const body = { code: "FORBIDDEN", message: "You can't open this CV.", correlationId: "c" };

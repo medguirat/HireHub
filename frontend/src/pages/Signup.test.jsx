@@ -39,9 +39,9 @@ describe("Signing up signs the user in", () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => vi.restoreAllMocks());
 
-  it("stores the session from the signup answer and opens the role's overview", async () => {
+  it("keeps the signed-in user from the signup and opens the role's overview", async () => {
     const user = userEvent.setup();
-    const post = vi.spyOn(api, "post").mockResolvedValue({ data: { token: "signup-token", user: { role: "CANDIDATE" } } });
+    const post = vi.spyOn(api, "post").mockResolvedValue({ data: { id: 7, role: "CANDIDATE" } });
     const get = vi.spyOn(api, "get").mockResolvedValue({ data: { id: 7, firstName: "Cyrine", role: "CANDIDATE" } });
     renderSignup();
 
@@ -51,13 +51,13 @@ describe("Signing up signs the user in", () => {
     expect(await screen.findByText("Candidate overview (just signed up)")).toBeInTheDocument();
     expect(post).toHaveBeenCalledWith("/auth/register", expect.objectContaining({ email: "cyrine@test.com", role: "CANDIDATE" }));
     expect(get).toHaveBeenCalledWith("/users/me");
-    expect(localStorage.getItem("token")).toBe("signup-token");
     expect(JSON.parse(localStorage.getItem("user"))).toMatchObject({ id: 7, role: "CANDIDATE" });
+    expect(localStorage.getItem("token")).toBeNull(); // the session is an HttpOnly cookie
   });
 
   it("sends a recruiter to the recruiter overview", async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, "post").mockResolvedValue({ data: { token: "t", user: { role: "RECRUITER" } } });
+    vi.spyOn(api, "post").mockResolvedValue({ data: { id: 8, role: "RECRUITER" } });
     vi.spyOn(api, "get").mockResolvedValue({ data: { id: 8, role: "RECRUITER" } });
     renderSignup();
 
@@ -72,7 +72,7 @@ describe("Signing up signs the user in", () => {
   it("asks to log in if the account was created but the session couldn't start", async () => {
     const user = userEvent.setup();
     vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.spyOn(api, "post").mockResolvedValue({ data: { token: "t", user: { role: "CANDIDATE" } } });
+    vi.spyOn(api, "post").mockResolvedValue({ data: { id: 7, role: "CANDIDATE" } });
     vi.spyOn(api, "get").mockRejectedValue(new Error("Network Error"));
     renderSignup();
 
@@ -80,7 +80,7 @@ describe("Signing up signs the user in", () => {
     await user.click(screen.getByRole("button", { name: "Create account" }));
 
     expect(await screen.findByText("Login page: Your account was created. Please log in.")).toBeInTheDocument();
-    expect(localStorage.getItem("token")).toBeNull();
+    expect(localStorage.getItem("user")).toBeNull();
   });
 
   it("stays on the page with the reason when the signup is refused", async () => {
@@ -93,15 +93,24 @@ describe("Signing up signs the user in", () => {
     await user.click(screen.getByRole("button", { name: "Create account" }));
 
     expect(await screen.findByText("An account with this email already exists.")).toBeInTheDocument();
-    expect(localStorage.getItem("token")).toBeNull();
+    expect(localStorage.getItem("user")).toBeNull();
   });
 
   it("logs in through the same session start", async () => {
-    vi.spyOn(api, "post").mockResolvedValue({ data: { token: "login-token" } });
+    const post = vi.spyOn(api, "post").mockResolvedValue({ data: { id: 9, role: "RECRUITER" } });
     vi.spyOn(api, "get").mockResolvedValue({ data: { id: 9, role: "RECRUITER" } });
     const signedIn = await authService.login("rec@test.com", "pw");
+    expect(post).toHaveBeenCalledWith("/auth/login", { email: "rec@test.com", password: "pw" });
     expect(signedIn).toMatchObject({ id: 9, role: "RECRUITER" });
-    expect(localStorage.getItem("token")).toBe("login-token");
+    expect(JSON.parse(localStorage.getItem("user"))).toMatchObject({ id: 9 });
+  });
+
+  it("logs out through the API, which deletes the HttpOnly cookie", async () => {
+    localStorage.setItem("user", JSON.stringify({ id: 9 }));
+    const post = vi.spyOn(api, "post").mockResolvedValue({ status: 204 });
+    await authService.logout();
+    expect(post).toHaveBeenCalledWith("/auth/logout");
+    expect(localStorage.getItem("user")).toBeNull();
   });
 });
 

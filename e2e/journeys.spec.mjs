@@ -127,7 +127,8 @@ test("recruiter sees the application, invites the candidate, and sees it in the 
   const row = page.locator("tbody tr", { hasText: OFFER_TITLE });
   await expect(row).toContainText("Cyrine Candidate");
 
-  // The candidate's CV: previewed in the page and downloadable, without the token ever in a URL.
+  // The candidate's CV: previewed in the page and downloadable, without the token ever in a URL
+  // (the request is signed in by the HttpOnly session cookie).
   const fileRequests = [];
   page.on("request", (r) => { if (r.url().includes("/cv")) fileRequests.push(r); });
   await row.getByRole("button", { name: "Open CV" }).click();
@@ -141,7 +142,7 @@ test("recruiter sees the application, invites the candidate, and sees it in the 
   expect(fileRequests.length).toBeGreaterThan(0);
   for (const request of fileRequests) {
     expect(request.url()).not.toMatch(/token|Bearer/i);
-    expect(request.headers().authorization).toMatch(/^Bearer /);
+    expect((await request.allHeaders()).cookie).toContain("hirehub_session=");
   }
   await viewer.locator(".modal-footer").getByRole("button", { name: "Close" }).click();
 

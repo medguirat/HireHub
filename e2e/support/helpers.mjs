@@ -32,6 +32,7 @@ export async function signUpInUi(page, { who, role, firstName, lastName, company
 
 export async function logIn(page, who) {
   await page.goto("/login");
+  await page.context().clearCookies();
   await page.evaluate(() => localStorage.clear());
   await page.goto("/login");
   await page.fill('input[type="email"]', email(who));
@@ -50,8 +51,9 @@ export async function registerByApi(who, role, extra = {}) {
   expect(response.ok, `register ${who}`).toBeTruthy();
 }
 
+/** A login token for API calls ("Authorization: Bearer"), as non-browser clients get one. */
 export async function tokenFor(who) {
-  const response = await fetch(`${API}/auth/login`, {
+  const response = await fetch(`${API}/auth/token`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: email(who), password: PASSWORD }),

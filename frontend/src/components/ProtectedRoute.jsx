@@ -1,10 +1,11 @@
 import { Navigate, Outlet } from "react-router-dom";
 import readStoredUser from "../utils/storedUser";
 
-// Client-side routing guard only: the API checks the token and role on every request.
+// Client-side routing guard only: the API checks the session and the role on every request.
+// The user saved at login says who is signed in; if the session cookie has expired since, the
+// first API call answers 401 and the app goes back to the login page.
 export default function ProtectedRoute({ allowedRole }) {
-  const token = localStorage.getItem("token");
-  const user = token ? readStoredUser() : null;
+  const user = readStoredUser();
 
   if (!user) {
     return <Navigate to="/login" replace />;

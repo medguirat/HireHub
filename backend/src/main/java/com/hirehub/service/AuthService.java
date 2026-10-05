@@ -60,6 +60,19 @@ public class AuthService {
                 .build();
     }
 
+    /** The account's basic details (the full profile comes from /api/users/me). */
+    public UserResponseDto userByEmail(String email) {
+        User user = userRepository.findByEmailIgnoreCase(email.trim())
+                .orElseThrow(() -> new IllegalStateException("No account for an email that just signed in"));
+        return UserResponseDto.builder()
+                .id(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .build();
+    }
+
     /** A login token for an account whose identity is already established (login or signup). */
     public String issueToken(String email) {
         return jwtService.generateToken(email);

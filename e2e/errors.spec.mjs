@@ -91,7 +91,8 @@ test("an expired session sends the user back to the login page with an explanati
   // Let the overview finish loading first: a request still waiting to be sent would pick up the
   // bad token and redirect before the test acts.
   await page.waitForLoadState("networkidle");
-  await page.evaluate(() => localStorage.setItem("token", "expired.or.tampered.token"));
+  await page.context().addCookies([{ name: "hirehub_session", value: "expired.or.tampered.token",
+    domain: "localhost", path: "/api", httpOnly: true, sameSite: "Strict" }]);
   // Move inside the app: its request gets a 401 and the app sends the browser to the login page.
   // (A page.goto here would race that redirect, and the browser connection could be lost.)
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "My applications" }).click();

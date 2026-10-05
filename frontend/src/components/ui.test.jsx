@@ -117,7 +117,6 @@ describe("routing guard and navigation", () => {
   });
 
   it("sends a candidate who opens a recruiter page to their own dashboard", () => {
-    localStorage.setItem("token", "t");
     localStorage.setItem("user", JSON.stringify({ role: "CANDIDATE" }));
     render(
       <MemoryRouter initialEntries={["/recruiter-dashboard"]}>
@@ -133,7 +132,6 @@ describe("routing guard and navigation", () => {
   });
 
   it("treats a corrupted stored user as signed out", () => {
-    localStorage.setItem("token", "t");
     localStorage.setItem("user", "{not json");
     app("/candidate-dashboard", "CANDIDATE");
     expect(screen.getByText("Login page")).toBeInTheDocument();

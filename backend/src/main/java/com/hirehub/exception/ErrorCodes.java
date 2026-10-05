@@ -8,6 +8,7 @@ public final class ErrorCodes {
     public static final String AUTH_REQUIRED = "AUTH_REQUIRED";
     public static final String INVALID_CREDENTIALS = "INVALID_CREDENTIALS";
     public static final String FORBIDDEN = "FORBIDDEN";
+    public static final String CSRF_INVALID = "CSRF_INVALID";
     public static final String NOT_FOUND = "NOT_FOUND";
     public static final String METHOD_NOT_ALLOWED = "METHOD_NOT_ALLOWED";
     public static final String CONFLICT = "CONFLICT";

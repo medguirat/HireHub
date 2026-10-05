@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,18 +18,26 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Signs the request in from its login token: the "Authorization: Bearer" header (API clients) or,
+ * without that header, the session cookie (the browser app). A session cookie that can't sign
+ * anyone in is deleted.
+ */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final CustomUserDetailsService userDetailsService;
     private final JwtService jwtService;
+    private final SessionCookie sessionCookie;
 
     public JwtAuthenticationFilter(
             CustomUserDetailsService userDetailsService,
-            JwtService jwtService
+            JwtService jwtService,
+            SessionCookie sessionCookie
     ) {
         this.userDetailsService = userDetailsService;
         this.jwtService = jwtService;
+        this.sessionCookie = sessionCookie;
     }
 
     @Override
@@ -39,15 +48,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
+        boolean fromCookie = authHeader == null;
+        String token;
+        if (fromCookie) {
+            token = SessionCookie.read(request).orElse(null);
+        } else {
+            token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : null;
+        }
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (token == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String token = authHeader.substring(7);
-
         if (token.isBlank() || token.split("\\.").length != 3) {
+            forgetCookie(fromCookie, response);
             filterChain.doFilter(request, response);
             return;
         }
@@ -63,6 +78,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Issued before the password was last changed (e.g. reset): this session is over.
                 if (userDetails instanceof CustomUserDetailsService.AppUserDetails user
                         && !user.acceptsTokenIssuedAt(claims.issuedAt())) {
+                    forgetCookie(fromCookie, response);
                     filterChain.doFilter(request, response);
                     return;
                 }
@@ -79,15 +95,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (JwtException | IllegalArgumentException ex) {
-            // Token expiré, malformé ou signature invalide : on n'authentifie pas.
-            // Spring Security renverra 401/403 plus loin si la route est protégée.
+            // Expired, malformed or wrongly signed: not signed in. A protected route then answers 401.
             SecurityContextHolder.clearContext();
+            forgetCookie(fromCookie, response);
         } catch (UsernameNotFoundException ex) {
-            // Token valide mais utilisateur supprimé entre-temps.
+            // A valid token for an account deleted since.
             SecurityContextHolder.clearContext();
+            forgetCookie(fromCookie, response);
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void forgetCookie(boolean fromCookie, HttpServletResponse response) {
+        if (fromCookie) {
+            response.addHeader(HttpHeaders.SET_COOKIE, sessionCookie.clear().toString());
+        }
     }
 
     @Override

@@ -552,12 +552,13 @@ const note = (created, message) => {
 };
 
 async function ensureUser(user, role) {
-  let login = await call("POST", "/auth/login", { json: { email: user.email, password: PASSWORD } });
+  // A token for "Authorization: Bearer" (the browser app uses a session cookie instead).
+  let login = await call("POST", "/auth/token", { json: { email: user.email, password: PASSWORD } });
   if (login.status === 200) {
     note(false, `${role.toLowerCase()} ${user.email}`);
   } else {
     expectOk(await call("POST", "/users", { json: { ...user, password: PASSWORD, role } }), `Create ${user.email}`);
-    login = await call("POST", "/auth/login", { json: { email: user.email, password: PASSWORD } });
+    login = await call("POST", "/auth/token", { json: { email: user.email, password: PASSWORD } });
     expectOk(login, `Log in as ${user.email}`);
     note(true, `${role.toLowerCase()} ${user.email}`);
   }

@@ -190,7 +190,9 @@ Other settings (not secret), as environment variables or in `.env`:
 |---|---|---|
 | `AI_SERVICE_URL` | backend | `http://localhost:8000` |
 | `CV_STORAGE_DIR` | backend: private files (CVs, cover letters), never served publicly | `cv-store` |
-| `VITE_API_URL` | frontend | `http://localhost:8081/api` |
+| `VITE_API_URL` | frontend: where the app calls the API | `/api` (same origin; Vite forwards it in development, nginx in Docker) |
+| `VITE_BACKEND_URL` | frontend dev server: where Vite forwards `/api` and `/uploads` | `http://localhost:8081` |
+| `SESSION_COOKIE_SECURE` | backend: session cookie only over HTTPS | `false` in development, `true` with the `prod` profile |
 | `EMBEDDING_MODEL` | ai-service | `paraphrase-multilingual-MiniLM-L12-v2` (French, English, Arabic and 50+ other languages) |
 | `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`, `LLM_TIMEOUT_SECONDS` | ai-service, optional | unset: no LLM (see Ollama above) |
 | `COMPANY_SCRAPER_ALLOW_PRIVATE` | ai-service, E2E tests only | unset: local and private addresses are refused |
@@ -294,6 +296,30 @@ demo accounts keep the password `npm run seed` expects.
 
 In production, also set `APP_FRONTEND_URL` to the address users open the app at, so the links in emails point there.
 
+## Sessions, cookies and CSRF
+
+The browser never holds the login token where its JavaScript could read it:
+
+- **Login and signup** set the session in a cookie, `hirehub_session`: the JWT (signed with `JWT_SECRET`, valid one
+  hour), `HttpOnly` (scripts can't read it, so an XSS flaw can't steal it), `SameSite=Strict` (never sent with a
+  request started by another site), `Path=/api` (only sent to the API), and `Secure` (HTTPS only) in production.
+  The answer contains the user, not the token. `POST /api/auth/logout` deletes the cookie; an invalid or expired
+  one is deleted by the API on the next request (401). Changing the password still signs out every session.
+- **CSRF**: a request that carries the session cookie and changes something (`POST`, `PUT`, `PATCH`, `DELETE`) must
+  also send the `X-XSRF-TOKEN` header with the value of the `XSRF-TOKEN` cookie (Spring Security's double-submit
+  token). Another site can neither read that cookie nor add the header, so a forged request is refused with
+  `403 CSRF_INVALID`. The app does it for every request (axios); it asks `GET /api/auth/csrf` for the cookie once,
+  before its first change, if it doesn't have it yet.
+- **API clients** that aren't browsers (Swagger UI, `npm run seed`, the E2E helpers) get a token from
+  `POST /api/auth/token` (same checks and rate limits as login) and send `Authorization: Bearer <token>`. Such
+  requests carry no cookie the browser adds on its own, so they aren't CSRF-checked.
+- In development the app calls `/api` on its own origin (`:5173`) and Vite forwards it to the backend; in Docker,
+  nginx does the same. The cookies work identically in both.
+
+Why one cookie and not a short access token plus a refresh token: the risk refresh tokens reduce (a stolen access
+token stays usable) comes from JavaScript-readable storage, which the HttpOnly cookie removes. The app stays
+stateless (no token table), and the existing "password changed → every older session is refused" rule keeps working.
+
 ## Files and who can see them
 
 | File | Where it is stored | Who can read it |
@@ -341,8 +367,8 @@ The frontend reads errors only through `frontend/src/utils/apiError.js`.
 ## API documentation, health and logs
 
 - **Swagger UI**: http://localhost:8081/swagger-ui.html (OpenAPI 3 description at `/v3/api-docs`). Every `/api`
-  endpoint, with its request and answer formats. To call protected endpoints, log in with `POST /api/auth/login`,
-  then **Authorize** with the token. On by default in development, off in production unless `API_DOCS_ENABLED=true`.
+  endpoint, with its request and answer formats. To call protected endpoints, get a token with
+  `POST /api/auth/token`, then **Authorize** with it. On by default in development, off in production unless `API_DOCS_ENABLED=true`.
 - **Actuator** (Spring Boot):
 
   | Endpoint | Who | What |

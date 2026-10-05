@@ -216,7 +216,7 @@ class PasswordResetIT {
         mockMvc.perform(get("/api/users/me").header("Authorization", oldSession))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("AUTH_REQUIRED"));
-        String newSession = "Bearer " + JsonPath.read(mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+        String newSession = "Bearer " + JsonPath.read(mockMvc.perform(post("/api/auth/token").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + EMAIL + "\",\"password\":\"" + NEW_PASSWORD + "\"}"))
                 .andReturn().getResponse().getContentAsString(), "$.token");
         mockMvc.perform(get("/api/users/me").header("Authorization", newSession)).andExpect(status().isOk());
