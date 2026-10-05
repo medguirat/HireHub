@@ -47,6 +47,27 @@ Health endpoints:
 - `GET http://localhost:8081/api/health` reports the backend and the status of the ai-service.
 - `GET http://localhost:8000/health` reports the ai-service, its scoring algorithm version, and whether the optional LLM is used.
 
+## Open the app from a phone (same Wi-Fi)
+
+Links in emails point to `APP_FRONTEND_URL`, `http://localhost:5173` by default. On a phone, "localhost" is the
+phone itself, so the link doesn't open. To test on a phone connected to the same Wi-Fi as this computer:
+
+1. Find this computer's address on the Wi-Fi: `ipconfig` (Windows), line "IPv4 Address" of the Wi-Fi adapter,
+   e.g. `192.168.1.8`.
+2. In `.env`:
+   ```
+   DEV_LAN_ACCESS=true
+   APP_FRONTEND_URL=http://192.168.1.8:5173
+   APP_BASE_URL=http://192.168.1.8:5173
+   ```
+3. Restart (`npm run stop`, then `npm run dev`) and allow Node.js through the Windows firewall on **private**
+   networks when Windows asks.
+4. On the phone, open `http://192.168.1.8:5173`, or click the link in an email sent after the restart.
+
+Only the frontend (Vite) listens on the network; it forwards `/api` to the backend, which stays local. The address
+may change when the router gives the computer a new one; this is for testing at home, not a deployment. Turn it off
+by removing the three lines.
+
 ## Run with Docker
 
 The whole stack in containers: MySQL 8.0, the backend (Java 17, `prod` profile), the ai-service (CPU-only PyTorch,
