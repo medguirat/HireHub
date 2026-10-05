@@ -27,8 +27,7 @@ public class RateLimiter {
 
     /** Takes one request from the key's allowance. Returns 0 if allowed, otherwise the seconds to wait. */
     public long tryConsume(RateLimit limit, String key) {
-        String bucketKey = limit.name() + ":" + (key == null ? "" : key.trim().toLowerCase(Locale.ROOT));
-        Bucket bucket = buckets.get(bucketKey, k -> newBucket(limit));
+        Bucket bucket = buckets.get(bucketKey(limit, key), k -> newBucket(limit));
         ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
         if (probe.isConsumed()) {
             return 0;
@@ -44,9 +43,31 @@ public class RateLimiter {
         }
     }
 
+    /**
+     * Without taking anything: 0 if the key may make a request now, otherwise the seconds to wait.
+     * For limits that count only some outcomes (failed logins), consumed later with {@link #tryConsume}.
+     */
+    public long secondsUntilAllowed(RateLimit limit, String key) {
+        Bucket bucket = buckets.getIfPresent(bucketKey(limit, key));
+        if (bucket == null) {
+            return 0;
+        }
+        long nanos = bucket.estimateAbilityToConsume(1).getNanosToWaitForRefill();
+        return nanos == 0 ? 0 : Math.max(1, TimeUnit.NANOSECONDS.toSeconds(nanos) + 1);
+    }
+
+    /** Gives the key its full allowance back (e.g. failed logins after a successful one). */
+    public void forget(RateLimit limit, String key) {
+        buckets.invalidate(bucketKey(limit, key));
+    }
+
     /** Forgets every bucket (tests). */
     public void reset() {
         buckets.invalidateAll();
+    }
+
+    private static String bucketKey(RateLimit limit, String key) {
+        return limit.name() + ":" + (key == null ? "" : key.trim().toLowerCase(Locale.ROOT));
     }
 
     private static Bucket newBucket(RateLimit limit) {

@@ -9,10 +9,12 @@ import com.hirehub.dto.UserResponseDto;
 import com.hirehub.exception.BadRequestException;
 import com.hirehub.ratelimit.RateLimiter;
 import com.hirehub.ratelimit.RateLimits;
+import com.hirehub.ratelimit.TooManyRequestsException;
 import com.hirehub.service.AuthService;
 import com.hirehub.service.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -32,13 +34,27 @@ public class AuthController {
         this.rateLimits = rateLimits;
     }
 
+    /** Rate-limited per IP address, and per email after repeated failures (see {@link RateLimits}). */
     @PostMapping("/login")
-    public LoginResponseDto login(@RequestBody LoginRequestDto request) {
+    public LoginResponseDto login(@RequestBody LoginRequestDto request, HttpServletRequest http) {
         if (request.getEmail() == null || request.getEmail().isBlank()
                 || request.getPassword() == null || request.getPassword().isBlank()) {
             throw new BadRequestException("Enter your email and password.");
         }
-        return authService.login(request);
+        rateLimiter.check(rateLimits.loginPerIp(), http.getRemoteAddr());
+        String email = request.getEmail();
+        long wait = rateLimiter.secondsUntilAllowed(rateLimits.loginFailuresPerEmail(), email);
+        if (wait > 0) {
+            throw new TooManyRequestsException(wait);
+        }
+        try {
+            LoginResponseDto answer = authService.login(request);
+            rateLimiter.forget(rateLimits.loginFailuresPerEmail(), email);
+            return answer;
+        } catch (AuthenticationException e) {
+            rateLimiter.tryConsume(rateLimits.loginFailuresPerEmail(), email);
+            throw e;
+        }
     }
 
     /** Creates the account and signs it in: the answer carries a login token, so no second login is needed. */

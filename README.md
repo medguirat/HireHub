@@ -274,6 +274,11 @@ Limits against abuse (in memory, per backend instance):
 | 5 requests per email per hour (`RATE_LIMIT_PASSWORD_RESET_PER_EMAIL`) | the same answer as usual, but no email is sent (so the limit reveals nothing about who has an account) |
 | 1 email per account per minute | same answer, no new email |
 
+Login is limited too: 30 attempts per IP address per 5 minutes (`RATE_LIMIT_LOGIN_PER_IP`), and 5 failed attempts
+per email per 15 minutes (`RATE_LIMIT_LOGIN_FAILURES_PER_EMAIL`). Past the second limit, logins for that email get
+`429` even with the right password until the allowance refills (one attempt every 3 minutes); a successful login
+resets it. It counts any email typed, so it doesn't reveal which ones have an account.
+
 ### Mailpit
 
 **Mailpit** ([mailpit.axllent.org](https://mailpit.axllent.org), free and open source, MIT licence) receives the emails
