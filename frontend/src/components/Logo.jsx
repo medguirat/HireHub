@@ -1,4 +1,4 @@
-import logo from "../images/LogoHireHub.png";
+import logo from "../images/LogoHireHub.webp";
 
 export default function Logo({ width = 180 }) {
   return (

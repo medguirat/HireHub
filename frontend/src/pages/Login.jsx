@@ -3,7 +3,7 @@ import { useState } from "react";
 import authService, { dashboardFor } from "../services/authService";
 import AlertModal from "../components/AlertModal";
 import "../styles/login.css";
-import jobOfferLogin from "../images/JobOfferLogin.png";
+import jobOfferLogin from "../images/JobOfferLogin.webp";
 import { errorMessage } from "../utils/apiError";
 
 export default function Login() {
