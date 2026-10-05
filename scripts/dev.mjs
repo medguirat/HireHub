@@ -14,7 +14,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import net from "node:net";
 import path from "node:path";
-import { ENV_FILE, configurationProblems, createEnvFileIfMissing, loadEnv, mailMode } from "./lib/env.mjs";
+import { ENV_FILE, addGeneratedSecretsIfMissing, configurationProblems, createEnvFileIfMissing, loadEnv, mailMode } from "./lib/env.mjs";
 import { MAILPIT_SMTP, MAILPIT_UI, ensureMailpit } from "./lib/mailpit.mjs";
 import {
   IS_WINDOWS, ROOT, clearState, descendantsOf, isAlive, killTree, processSnapshot, readState,
@@ -92,6 +92,9 @@ function loadConfiguration() {
     info(`Created ${ENV_FILE} with a new JWT_SECRET.`);
     info("Set DB_PASSWORD in it to your MySQL password (leave it empty if there is none), then run npm run dev again.");
     throw new Error("Configuration needed: set DB_PASSWORD in .env.");
+  }
+  if (addGeneratedSecretsIfMissing()) {
+    info(`Added a generated AI_SERVICE_KEY to ${ENV_FILE} (the backend and the ai-service share it).`);
   }
   const env = loadEnv();
   const problems = configurationProblems(env);

@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from drafts import NotEnoughData, draft_bio, draft_company, introduces_new_facts
+from tests.conftest import TEST_KEY
 
 TODAY = date(2026, 9, 29)
 
@@ -115,7 +116,7 @@ def test_new_facts_detection_uses_whole_words():
 @pytest.fixture(scope="module")
 def client():
     import main
-    return TestClient(main.app)  # no lifespan: drafts don't need the embedding model
+    return TestClient(main.app, headers={"X-Internal-Key": TEST_KEY})  # no lifespan: drafts don't need the embedding model
 
 
 def test_draft_endpoints(client):

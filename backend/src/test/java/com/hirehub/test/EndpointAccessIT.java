@@ -48,6 +48,7 @@ class EndpointAccessIT extends ApiTestSupport {
                 Arguments.of("GET", "/api/candidates/me/cv/file", Role.CANDIDATE),
                 Arguments.of("POST", "/api/candidates/documents", Role.CANDIDATE),
                 Arguments.of("GET", "/api/candidates/offers/1/match", Role.CANDIDATE),
+                Arguments.of("POST", "/api/candidates/me/bio-draft", Role.CANDIDATE),
                 // Recruiter
                 Arguments.of("GET", "/api/recruiters/offers", Role.RECRUITER),
                 Arguments.of("POST", "/api/recruiters/offers", Role.RECRUITER),
@@ -56,6 +57,7 @@ class EndpointAccessIT extends ApiTestSupport {
                 Arguments.of("DELETE", "/api/recruiters/offers/1", Role.RECRUITER),
                 Arguments.of("GET", "/api/recruiters/profile", Role.RECRUITER),
                 Arguments.of("PUT", "/api/recruiters/profile", Role.RECRUITER),
+                Arguments.of("POST", "/api/recruiters/profile/description-draft", Role.RECRUITER),
                 Arguments.of("POST", "/api/recruiters/profile/import", Role.RECRUITER),
                 // Any signed-in user
                 Arguments.of("GET", "/api/notifications", null),
@@ -91,6 +93,9 @@ class EndpointAccessIT extends ApiTestSupport {
                 Arguments.of("GET", "/api/health"),
                 Arguments.of("GET", "/api/joboffers"),
                 Arguments.of("POST", "/api/auth/login"),
+                Arguments.of("POST", "/api/auth/token"),
+                Arguments.of("POST", "/api/auth/logout"),
+                Arguments.of("GET", "/api/auth/csrf"),
                 Arguments.of("POST", "/api/auth/register"),
                 Arguments.of("POST", "/api/auth/password-reset"),
                 Arguments.of("POST", "/api/auth/password-reset/check"),

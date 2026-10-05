@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from tests import fixtures as f
+from tests.conftest import TEST_KEY
 from tests.pdf_utils import make_pdf
 
 
@@ -9,8 +10,51 @@ from tests.pdf_utils import make_pdf
 def client():
     import main
 
-    with TestClient(main.app) as c:  # runs the lifespan, i.e. loads the model
+    # Sends the shared key, as the backend does. Runs the lifespan, i.e. loads the model.
+    with TestClient(main.app, headers={"X-Internal-Key": TEST_KEY}) as c:
         yield c
+
+
+@pytest.fixture(scope="module")
+def outsider(client):
+    """Anyone else: no key."""
+    import main
+
+    return TestClient(main.app)
+
+
+def test_only_the_backend_may_call_the_service(outsider):
+    for method, path, body in [("post", "/match", {"cv_text": "x", "offer": {"title": "t"}}),
+                               ("post", "/company/profile", {"url": "https://example.com"}),
+                               ("post", "/draft/bio", {"headline": "Dev"}),
+                               ("post", "/extract", None)]:
+        response = getattr(outsider, method)(path, json=body)
+        assert response.status_code == 401, path
+        assert response.json()["code"] == "AUTH_REQUIRED"
+    wrong = outsider.post("/draft/bio", json={"headline": "Dev"}, headers={"X-Internal-Key": "wrong"})
+    assert wrong.status_code == 401
+    # Health stays open (Docker and the backend's health check).
+    assert outsider.get("/health").status_code == 200
+
+
+def test_no_cors_headers_for_browsers(client):
+    response = client.options("/draft/bio", headers={"Origin": "http://evil.example",
+                                                     "Access-Control-Request-Method": "POST"})
+    assert "access-control-allow-origin" not in {k.lower() for k in response.headers}
+
+
+def test_errors_reuse_the_backends_request_id(client):
+    response = client.post("/draft/bio", json={}, headers={"X-Request-Id": "backend-request-0001"})
+    assert response.status_code == 422
+    assert response.json()["correlationId"] == "backend-request-0001"
+
+
+def test_the_service_refuses_to_start_without_a_strong_key(monkeypatch):
+    import security
+
+    monkeypatch.setenv("AI_SERVICE_KEY", "short")
+    with pytest.raises(RuntimeError, match="AI_SERVICE_KEY"):
+        security.configured_key()
 
 
 def test_health_reports_ready_and_version(client):

@@ -2,12 +2,14 @@
 
     {"code": "...", "message": "...", "correlationId": "...", "fieldErrors": {...}}
 
-`message` is a sentence a user can read, `code` is stable, `correlationId` appears in the log line
-for the same error, and `fieldErrors` (field -> message) is present only for request validation errors.
+`message` is a sentence a user can read, `code` is stable, `correlationId` is the backend's request
+id (X-Request-Id) when there is one and appears in the log line for the same error, and `fieldErrors` (field -> message) is present only for request validation errors.
 """
 
 import logging
 import uuid
+
+from security import request_id
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -23,7 +25,7 @@ _MESSAGES = {404: "Not found.", 405: "This action isn't available here."}
 
 
 def error_body(code, message, field_errors=None):
-    body = {"code": code, "message": message, "correlationId": str(uuid.uuid4())}
+    body = {"code": code, "message": message, "correlationId": request_id.get() or str(uuid.uuid4())}
     if field_errors:
         body["fieldErrors"] = field_errors
     return body

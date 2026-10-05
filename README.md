@@ -6,7 +6,7 @@ Recruitment platform with two roles, recruiters and candidates.
 |---|---|---|
 | `frontend/` | React + Vite | 5173 |
 | `backend/` | Spring Boot (Java 17+), MySQL | 8081 |
-| `ai-service/` | Python FastAPI: CV text extraction, CV/offer matching, company website import | 8000 |
+| `ai-service/` | Python FastAPI: CV text extraction, CV/offer matching, company website import, profile drafts. Internal: only the backend calls it, with a shared key | 8000 |
 
 ## Install and run (one command)
 
@@ -167,6 +167,7 @@ in your environment wins over `.env`.
 | `DB_USERNAME` | MySQL user | no (default `root`) |
 | `DB_PASSWORD` | MySQL password; leave the value empty if the account has none | **yes** |
 | `JWT_SECRET` | Key that signs login tokens: base64, at least 32 bytes (256 bits) | **yes**: the backend refuses to start without a valid one |
+| `AI_SERVICE_KEY` | Shared by the backend and the ai-service, which answers nobody else: at least 32 random characters | **yes** for both services; `npm run dev` generates it in `.env` (and adds it to an older `.env`) |
 | `MAIL_MODE` | `mailpit` (local test inbox) or `smtp` (real emails, see [Emails](#emails)) | no (default `mailpit`) |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` | Outgoing mail server, used when `MAIL_MODE=smtp` | only with `MAIL_MODE=smtp`: the backend refuses to start without them |
 | `MAIL_FROM` | Sender of the app's emails | no (default `HireHub <SMTP_USERNAME>` with `smtp`, `HireHub <no-reply@hirehub.local>` with Mailpit) |

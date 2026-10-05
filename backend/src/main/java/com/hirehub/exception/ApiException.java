@@ -35,6 +35,11 @@ public class ApiException extends RuntimeException {
                 "The matching service is temporarily unavailable. Please try again in a moment.");
     }
 
+    public static ApiException draftsUnavailable() {
+        return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "DRAFTS_UNAVAILABLE",
+                "The draft helper is unavailable right now. You can still write it yourself.");
+    }
+
     public static ApiException cvUnreadable(String message) {
         return new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "CV_UNREADABLE", message);
     }

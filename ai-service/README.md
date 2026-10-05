@@ -11,12 +11,25 @@ cd ai-service
 python -m venv venv
 venv\Scripts\activate            # Windows (source venv/bin/activate sous Mac/Linux)
 pip install -r requirements.txt
+set AI_SERVICE_KEY=une-cle-aleatoire-d-au-moins-32-caracteres   # Windows (export ... sous Mac/Linux)
 uvicorn main:app --port 8000
 ```
 
 Au premier lancement, le modèle d'embeddings multilingue `paraphrase-multilingual-MiniLM-L12-v2` (environ 470 Mo) est téléchargé une fois, puis mis en cache. Il compare les CV et les offres en français, en anglais ou mélangés.
 
 La documentation interactive de l'API est sur http://localhost:8000/docs.
+
+## Qui peut l'appeler
+
+Seul le backend. Chaque requête doit porter la clé partagée dans l'en-tête `X-Internal-Key` (variable
+`AI_SERVICE_KEY`, la même pour le backend et ce service, au moins 32 caractères ; `npm run dev` la génère
+dans `.env`). Sans elle : `401 AUTH_REQUIRED`. Restent ouverts `GET /health` et la documentation (`/docs`,
+`/openapi.json`), qui ne contiennent aucune donnée. Le service refuse de démarrer sans clé.
+
+Le navigateur n'appelle jamais ce service (pas de CORS) : les brouillons de profil passent par le backend
+(`POST /api/recruiters/profile/description-draft`, `POST /api/candidates/me/bio-draft`). Dans Docker, le service
+n'est que sur le réseau interne, sans port publié. L'identifiant de requête du backend (`X-Request-Id`) sert de
+`correlationId` aux erreurs de ce service, pour suivre une requête dans les journaux des deux.
 
 ## Endpoints
 

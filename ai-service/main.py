@@ -1,29 +1,30 @@
-"""HireHub AI service: CV text extraction, CV/offer matching and company profile import.
+"""HireHub AI service: CV text extraction, CV/offer matching, company profile import, profile drafts.
 
-Run: uvicorn main:app --port 8000
-Called by the Spring Boot backend (matching) and by the profile pages (bio).
+Run: uvicorn main:app --port 8000 (with AI_SERVICE_KEY set).
+Called only by the Spring Boot backend, with the shared key (see security.py).
 """
 
 import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from company.scraper import ScrapeError, allows_local_sites, scrape_company
-from errors import install_error_handlers
+from errors import error_body, install_error_handlers
 from drafts import NotEnoughData, draft_bio, draft_company, get_rewriter
 from matching import ALGORITHM_VERSION
 from matching.extraction import ExtractionError, extract_text
 from matching.recommendations import get_recommendation_provider
 from matching.scoring import compute_match
 from matching.semantic import SemanticScorer
+from security import configured_key, install_internal_key
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("hirehub.ai")
 
+internal_key = configured_key()
 semantic_scorer = SemanticScorer()
 recommendation_provider = get_recommendation_provider()
 draft_rewriter = get_rewriter()
@@ -39,9 +40,8 @@ async def lifespan(_app):
 
 app = FastAPI(title="HireHub AI Service", lifespan=lifespan)
 install_error_handlers(app)
-
-# The browser only calls /draft/* directly; matching and company import go through the backend.
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+# No CORS: browsers never call this service; the backend does, with the shared key.
+install_internal_key(app, internal_key, error_body)
 
 
 @app.get("/health")

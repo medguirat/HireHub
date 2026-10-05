@@ -29,6 +29,10 @@ class AiServiceClientTest {
     private final AtomicReference<String> lastBody = new AtomicReference<>();
     private final AtomicReference<String> lastContentType = new AtomicReference<>();
     private final AtomicReference<String> lastUpgradeHeader = new AtomicReference<>();
+    private final AtomicReference<String> lastKey = new AtomicReference<>();
+    private final AtomicReference<String> lastRequestId = new AtomicReference<>();
+    private final AtomicReference<String> lastPath = new AtomicReference<>();
+    private static final String KEY = "test-internal-key-0123456789abcdef";
     private volatile int status = 200;
     private volatile String response = "{}";
 
@@ -38,6 +42,9 @@ class AiServiceClientTest {
         server.createContext("/", exchange -> {
             lastContentType.set(exchange.getRequestHeaders().getFirst("Content-Type"));
             lastUpgradeHeader.set(exchange.getRequestHeaders().getFirst("Upgrade"));
+            lastKey.set(exchange.getRequestHeaders().getFirst("X-Internal-Key"));
+            lastRequestId.set(exchange.getRequestHeaders().getFirst("X-Request-Id"));
+            lastPath.set(exchange.getRequestURI().getPath());
             lastBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.ISO_8859_1));
             byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
@@ -46,12 +53,55 @@ class AiServiceClientTest {
             exchange.close();
         });
         server.start();
-        client = new AiServiceClient("http://127.0.0.1:" + server.getAddress().getPort(), 5);
+        client = new AiServiceClient("http://127.0.0.1:" + server.getAddress().getPort(), KEY, 5);
     }
 
     @AfterEach
     void stop() {
         server.stop(0);
+    }
+
+    @Test
+    void everyCallCarriesTheSharedKeyAndTheRequestId() {
+        response = "{\"overall_score\":70}";
+        org.slf4j.MDC.put("requestId", "req-id-for-ai-0001");
+        try {
+            client.match("Java developer", "Java", "Spring");
+        } finally {
+            org.slf4j.MDC.remove("requestId");
+        }
+        assertThat(lastKey.get()).isEqualTo(KEY);
+        assertThat(lastRequestId.get()).isEqualTo("req-id-for-ai-0001");
+    }
+
+    @Test
+    void theBackendRefusesToStartWithoutAStrongKey() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> new AiServiceClient("http://127.0.0.1:1", "short", 5))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("AI_SERVICE_KEY");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> new AiServiceClient("http://127.0.0.1:1", "", 5))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void aDraftIsForwardedAndItsOwnErrorsKeepTheirMessage() throws Exception {
+        com.fasterxml.jackson.databind.ObjectMapper json = new com.fasterxml.jackson.databind.ObjectMapper();
+        response = "{\"text\":\"Acme builds robots.\",\"ai_assisted\":false,\"used\":[\"companyName\"]}";
+        assertThat(client.draft("company", json.readTree("{\"companyName\":\"Acme\"}")).path("text").asText())
+                .isEqualTo("Acme builds robots.");
+        assertThat(lastPath.get()).isEqualTo("/draft/company");
+        assertThat(lastBody.get()).contains("\"companyName\":\"Acme\"");
+
+        status = 422;
+        response = "{\"code\":\"not_enough_data\",\"message\":\"Add a few details first.\",\"correlationId\":\"c\"}";
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> client.draft("bio", json.readTree("{}")))
+                .isInstanceOf(com.hirehub.exception.ApiException.class)
+                .hasMessage("Add a few details first.")
+                .extracting("code").isEqualTo("NOT_ENOUGH_DATA");
+
+        status = 401;
+        response = "{\"code\":\"AUTH_REQUIRED\",\"message\":\"This service only answers the HireHub backend.\",\"correlationId\":\"c\"}";
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> client.draft("bio", json.readTree("{}")))
+                .isInstanceOf(com.hirehub.matching.AiServiceUnavailableException.class);
     }
 
     @Test

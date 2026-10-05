@@ -6,6 +6,7 @@ import pytest
 from company import scraper
 from company.extract import merge_pages
 from company.scraper import ScrapeError, normalize_url, pick_extra_pages, scrape_company
+from tests.conftest import TEST_KEY
 
 HOME_EN = """<!doctype html><html><head>
 <title>Home | Acme Software</title>
@@ -215,7 +216,7 @@ def test_endpoint_returns_422_with_a_message_for_bad_urls():
     from fastapi.testclient import TestClient
     import main
 
-    client = TestClient(main.app)  # no lifespan: the model isn't needed here
+    client = TestClient(main.app, headers={"X-Internal-Key": TEST_KEY})  # no lifespan: the model isn't needed here
     response = client.post("/company/profile", json={"url": "ftp://acme.example.com"})
     assert response.status_code == 422
     assert response.json()["code"] == "invalid_url"
@@ -227,6 +228,6 @@ def test_endpoint_returns_the_fields(monkeypatch):
 
     monkeypatch.setattr(main, "scrape_company", lambda url: {"url": url, "fields": {"companyName": "Acme"},
                                                              "pages": [url]})
-    response = TestClient(main.app).post("/company/profile", json={"url": "https://acme.example.com"})
+    response = TestClient(main.app, headers={"X-Internal-Key": TEST_KEY}).post("/company/profile", json={"url": "https://acme.example.com"})
     assert response.status_code == 200
     assert response.json()["fields"] == {"companyName": "Acme"}

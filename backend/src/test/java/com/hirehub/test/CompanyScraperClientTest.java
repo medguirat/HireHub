@@ -39,7 +39,7 @@ class CompanyScraperClientTest {
             exchange.close();
         });
         server.start();
-        client = new CompanyScraperClient("http://127.0.0.1:" + server.getAddress().getPort(), 5);
+        client = new CompanyScraperClient("http://127.0.0.1:" + server.getAddress().getPort(), "test-internal-key-0123456789abcdef", 5);
     }
 
     @AfterEach

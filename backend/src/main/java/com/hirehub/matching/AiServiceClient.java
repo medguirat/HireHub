@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -16,8 +15,6 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
-import java.net.http.HttpClient;
-import java.time.Duration;
 import java.util.Map;
 
 /** HTTP client for the Python ai-service (text extraction, matching, health). */
@@ -29,17 +26,9 @@ public class AiServiceClient {
     private final RestClient restClient;
 
     public AiServiceClient(@Value("${ai-service.base-url}") String baseUrl,
+                           @Value("${ai-service.api-key:}") String apiKey,
                            @Value("${ai-service.read-timeout-seconds:30}") long readTimeoutSeconds) {
-        // HTTP/1.1 explicitly: the JDK client defaults to HTTP/2 and sends an "Upgrade: h2c"
-        // header on plain-http requests, which uvicorn doesn't support and which breaks
-        // multipart uploads to /extract.
-        HttpClient httpClient = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_1_1)
-                .connectTimeout(Duration.ofSeconds(2))
-                .build();
-        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
-        factory.setReadTimeout(Duration.ofSeconds(readTimeoutSeconds));
-        this.restClient = RestClient.builder().baseUrl(baseUrl).requestFactory(factory).build();
+        this.restClient = AiServiceHttp.restClient(baseUrl, apiKey, readTimeoutSeconds);
     }
 
     public record ExtractedText(String text, String format) {}
@@ -66,6 +55,7 @@ public class AiServiceClient {
                     .body(JsonNode.class);
             return new ExtractedText(body.path("text").asText(), body.path("format").asText());
         } catch (HttpClientErrorException e) {
+            logIfKeyRefused(e);
             JsonNode error = e.getResponseBodyAs(JsonNode.class);
             if (!isOwnError(error)) {
                 // Not one of the ai-service's own errors (e.g. a request validation error): a bug on our side.
@@ -97,7 +87,46 @@ public class AiServiceClient {
                     .retrieve()
                     .body(JsonNode.class);
         } catch (RestClientException e) {
+            logIfKeyRefused(e);
             throw new AiServiceUnavailableException("ai-service /match failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * A profile draft built only from the user's own data: "company" (company description) or
+     * "bio" (candidate bio). Answers {text, ai_assisted, used}.
+     *
+     * @throws ApiException                  422 NOT_ENOUGH_DATA (the profile is too empty), 400 if the
+     *                                       ai-service can't use the data
+     * @throws AiServiceUnavailableException the service is down or failing
+     */
+    public JsonNode draft(String kind, JsonNode profile) {
+        try {
+            return restClient.post().uri("/draft/{kind}", kind)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(profile)
+                    .retrieve()
+                    .body(JsonNode.class);
+        } catch (HttpClientErrorException e) {
+            JsonNode error = e.getResponseBodyAs(JsonNode.class);
+            if (e.getStatusCode() == HttpStatus.UNPROCESSABLE_ENTITY && isOwnError(error)) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "NOT_ENOUGH_DATA", error.path("message").asText());
+            }
+            if (e.getStatusCode() == HttpStatus.UNPROCESSABLE_ENTITY) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "BAD_REQUEST",
+                        "Some of these details can't be used for a draft. Check them and try again.");
+            }
+            logIfKeyRefused(e);
+            throw new AiServiceUnavailableException("ai-service /draft/" + kind + " failed: " + e.getMessage(), e);
+        } catch (RestClientException e) {
+            throw new AiServiceUnavailableException("ai-service /draft/" + kind + " failed: " + e.getMessage(), e);
+        }
+    }
+
+    /** A 401 means the two services don't share the same AI_SERVICE_KEY: say so plainly in the log. */
+    static void logIfKeyRefused(RestClientException e) {
+        if (e instanceof HttpClientErrorException.Unauthorized) {
+            log.error("The ai-service refused this backend's key: AI_SERVICE_KEY must be the same for both services.");
         }
     }
 

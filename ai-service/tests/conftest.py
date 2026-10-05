@@ -5,6 +5,10 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# The shared key the backend sends (security.py); set before main is imported.
+TEST_KEY = "test-internal-key-0123456789abcdef"
+os.environ["AI_SERVICE_KEY"] = TEST_KEY
+
 from matching.recommendations import FallbackRecommendationProvider, RuleBasedRecommendationProvider  # noqa: E402
 from matching.scoring import compute_match  # noqa: E402
 from matching.semantic import SemanticScorer  # noqa: E402

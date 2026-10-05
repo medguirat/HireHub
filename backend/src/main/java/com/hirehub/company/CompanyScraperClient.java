@@ -2,20 +2,18 @@ package com.hirehub.company;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.hirehub.matching.AiServiceClient;
+import com.hirehub.matching.AiServiceHttp;
 import com.hirehub.matching.AiServiceUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
-import java.net.http.HttpClient;
-import java.time.Duration;
 import java.util.Map;
 
 /** Calls the ai-service's company website import (/company/profile). */
@@ -26,17 +24,11 @@ public class CompanyScraperClient {
 
     private final RestClient restClient;
 
+    // The ai-service bounds a whole import to ~25 s; the read timeout leaves it room to answer.
     public CompanyScraperClient(@Value("${ai-service.base-url}") String baseUrl,
+                                @Value("${ai-service.api-key:}") String apiKey,
                                 @Value("${company-import.read-timeout-seconds:45}") long readTimeoutSeconds) {
-        // HTTP/1.1 for the same reason as AiServiceClient (uvicorn and h2c upgrades).
-        HttpClient httpClient = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_1_1)
-                .connectTimeout(Duration.ofSeconds(2))
-                .build();
-        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
-        // The ai-service bounds a whole import to ~25 s; leave it room to answer.
-        factory.setReadTimeout(Duration.ofSeconds(readTimeoutSeconds));
-        this.restClient = RestClient.builder().baseUrl(baseUrl).requestFactory(factory).build();
+        this.restClient = AiServiceHttp.restClient(baseUrl, apiKey, readTimeoutSeconds);
     }
 
     /** The fields the website states (absent when not found) and the final homepage URL. */
