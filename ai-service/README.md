@@ -1,63 +1,70 @@
 # ai-service
 
-Service Python (FastAPI) qui lit les CV, calcule la compatibilité CV / offre et importe les informations d'une entreprise depuis son site web, pour HireHub.
+Python service (FastAPI) for HireHub: reads CVs, scores how well a CV matches an offer, imports a company's
+details from its website, and drafts profile texts from the user's own data.
 
-Normalement, on le lance avec tout le reste depuis la racine du projet : `npm run dev` (voir le README principal).
+It normally runs with everything else from the repository root: `npm run dev` (see the main README).
 
-## Lancer ce service seul
+## Run this service alone
 
 ```bash
 cd ai-service
 python -m venv venv
-venv\Scripts\activate            # Windows (source venv/bin/activate sous Mac/Linux)
+venv\Scripts\activate            # Windows (source venv/bin/activate on Mac/Linux)
 pip install -r requirements.txt
-set AI_SERVICE_KEY=une-cle-aleatoire-d-au-moins-32-caracteres   # Windows (export ... sous Mac/Linux)
+set AI_SERVICE_KEY=a-random-value-of-at-least-32-characters   # Windows (export ... on Mac/Linux)
 uvicorn main:app --port 8000
 ```
 
-Au premier lancement, le modèle d'embeddings multilingue `paraphrase-multilingual-MiniLM-L12-v2` (environ 470 Mo) est téléchargé une fois, puis mis en cache. Il compare les CV et les offres en français, en anglais ou mélangés.
+On first start, the multilingual embedding model `paraphrase-multilingual-MiniLM-L12-v2` (about 470 MB) is
+downloaded once, then cached. It compares CVs and offers in French, English or a mix of both.
 
-La documentation interactive de l'API est sur http://localhost:8000/docs.
+The interactive API documentation is at http://localhost:8000/docs.
 
-## Qui peut l'appeler
+## Who may call it
 
-Seul le backend. Chaque requête doit porter la clé partagée dans l'en-tête `X-Internal-Key` (variable
-`AI_SERVICE_KEY`, la même pour le backend et ce service, au moins 32 caractères ; `npm run dev` la génère
-dans `.env`). Sans elle : `401 AUTH_REQUIRED`. Restent ouverts `GET /health` et la documentation (`/docs`,
-`/openapi.json`), qui ne contiennent aucune donnée. Le service refuse de démarrer sans clé.
+Only the backend. Every request must carry the shared key in the `X-Internal-Key` header (`AI_SERVICE_KEY`, the
+same for the backend and this service, at least 32 characters; `npm run dev` generates it in `.env`). Without it:
+`401 AUTH_REQUIRED`. Open: `GET /health` and the documentation (`/docs`, `/openapi.json`), which hold no data. The
+service refuses to start without a key.
 
-Le navigateur n'appelle jamais ce service (pas de CORS) : les brouillons de profil passent par le backend
-(`POST /api/recruiters/profile/description-draft`, `POST /api/candidates/me/bio-draft`). Dans Docker, le service
-n'est que sur le réseau interne, sans port publié. L'identifiant de requête du backend (`X-Request-Id`) sert de
-`correlationId` aux erreurs de ce service, pour suivre une requête dans les journaux des deux.
+The browser never calls this service (no CORS): profile drafts go through the backend
+(`POST /api/recruiters/profile/description-draft`, `POST /api/candidates/me/bio-draft`). In Docker the service is
+only on the internal network, with no published port. The backend's request id (`X-Request-Id`) becomes this
+service's error `correlationId`, so one request can be followed through both services' logs.
 
 ## Endpoints
 
-| Méthode | Chemin | Rôle |
+| Method | Path | What it does |
 |---|---|---|
-| GET | `/health` | Renvoie `ok` quand le modèle est chargé (sinon 503 `loading`), avec la version de l'algorithme |
-| POST | `/extract` | Fichier (PDF ou DOCX) → texte. Renvoie 415 si le format n'est pas supporté, 422 si le fichier n'a pas de texte (PDF scanné) |
-| POST | `/match` | `{cv_text, offer: {title, description}}` → score détaillé |
-| POST | `/company/profile` | `{url}` → champs du profil entreprise trouvés sur le site (un champ absent du site n'est pas renvoyé). 422 avec `{code, message}` si le site est invalide, privé, injoignable ou n'est pas une page web |
-| POST | `/draft/company`, `/draft/bio` | Brouillon de description d'entreprise / de bio construit **uniquement** à partir des champs du profil. Si un LLM compatible OpenAI est configuré (`LLM_BASE_URL`, `LLM_MODEL`), il peut reformuler, sous contrôle : un nombre, un lien ou un superlatif absent des données fait revenir au modèle de texte. `ai_assisted` vaut `true` seulement si le texte du LLM est renvoyé. 422 `not_enough_data` si le profil est vide |
+| GET | `/health` | `ok` once the model is loaded (otherwise 503 `loading`), with the scoring algorithm version |
+| POST | `/extract` | File (PDF or DOCX) → text. 415 if the format isn't supported, 422 if the file has no text (scanned PDF) |
+| POST | `/match` | `{cv_text, offer: {title, description}}` → detailed score |
+| POST | `/company/profile` | `{url}` → the company profile fields found on the website (a field the site doesn't state is left out). 422 with `{code, message}` if the site is invalid, private, unreachable or not a web page |
+| POST | `/draft/company`, `/draft/bio` | A company description / candidate bio built **only** from the profile fields. If an OpenAI-compatible LLM is configured (`LLM_BASE_URL`, `LLM_MODEL`), it may reword it, under control: a number, a link or praise that isn't in the data brings back the template text. `ai_assisted` is `true` only when the LLM's text is returned. 422 `not_enough_data` if the profile is empty |
 
-## Organisation
+## Layout
 
 ```
 matching/
-  taxonomy.py         compétences (synonymes, implications), langues, niveaux d'études
-  parsing.py          extraction : compétences requises / souhaitées, années d'expérience, études, langues
-  semantic.py         pertinence sémantique (sentence-transformers)
-  scoring.py          score pondéré et détail par catégorie
-  recommendations.py  conseils (règles par défaut, LLM optionnel)
-  extraction.py       texte des PDF et DOCX
+  taxonomy.py         skills (synonyms, implications), languages, education levels
+  parsing.py          extraction: required / nice-to-have skills, years of experience, education, languages
+  semantic.py         semantic relevance (sentence-transformers)
+  scoring.py          weighted score and breakdown per category
+  recommendations.py  advice (rules by default, optional LLM)
+  extraction.py       text of PDF and DOCX files
 company/
-  scraper.py          lecture du site (validation de l'URL, réseaux privés refusés, limites de taille et de temps)
-  extract.py          HTML → champs (schema.org, balises meta, liens, sections Mission / Vision / Valeurs)
-tests/                pytest, avec des CV et offres réalistes
+  scraper.py          reads the website (URL validation, private networks refused, size and time limits)
+  extract.py          HTML → fields (schema.org, meta tags, links, Mission / Vision / Values sections)
+drafts.py             profile drafts and the LLM guardrails
+security.py           the shared key (X-Internal-Key) and the request id
+errors.py             one error format, the same as the backend's
+tests/                pytest, with realistic CVs and offers (English and French)
 ```
 
-Le score est **déterministe**. Pour les mêmes entrées, on obtient toujours le même résultat, et chaque point s'explique par un élément du texte. Le LLM optionnel (variables `LLM_BASE_URL` et `LLM_MODEL`, voir le README principal) rédige uniquement les conseils et ne modifie jamais le score.
+The score is **deterministic**: the same inputs always give the same result, and every point comes from something
+in the text. The optional LLM (`LLM_BASE_URL` and `LLM_MODEL`, see the main README) only writes the advice and
+never changes the score.
 
 ## Tests
 

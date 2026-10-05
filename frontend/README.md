@@ -1,16 +1,25 @@
-# React + Vite
+# HireHub frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 single-page app, built with Vite. It normally runs with the whole stack from the repository root
+(`npm run dev`, see the main README).
 
-Currently, two official plugins are available:
+```bash
+npm install
+npm run dev        # http://localhost:5173; /api and /uploads are forwarded to the backend on :8081
+npm run lint       # ESLint
+npm test           # Vitest + React Testing Library
+npm run build      # production build in dist/ (served by nginx in Docker, see Dockerfile and nginx.conf)
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```
+src/
+  pages/        one component per screen (candidate and recruiter dashboards, auth pages)
+  layouts/      the two dashboard shells (fixed navigation, scrolling <main>) and the page titles
+  components/   shared UI: sidebar, dialogs, document viewer, profile parts, toasts, skeletons
+  services/     API calls (axios client with the session cookie and CSRF header)
+  utils/        API errors, validation, formatting, statistics
+  styles/       design tokens (tokens.css) and the stylesheets that use them
+```
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+The session is an HttpOnly cookie set by the API: this code never handles the login token. Colors, spacing and
+type sizes come only from `src/styles/tokens.css`.

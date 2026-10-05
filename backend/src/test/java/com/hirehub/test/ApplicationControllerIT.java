@@ -159,7 +159,7 @@ class ApplicationControllerIT {
     void createApplication_returns400WhenDeadlinePassed() throws Exception {
         User recruiter = persistUser("rec5@test.com", Role.RECRUITER);
         User candidate = persistUser("cand5@test.com", Role.CANDIDATE);
-        // Offre créée directement en base avec deadline passée (contourne la validation de création d'offre)
+        // Created straight in the database with a past deadline (the offer form would refuse it).
         JobOffer offer = jobOfferRepository.save(JobOffer.builder()
                 .title("Old offer").description("desc").location("Sfax")
                 .contractType(ContractType.CDI)

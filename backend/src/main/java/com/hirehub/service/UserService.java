@@ -103,9 +103,8 @@ public class UserService {
 
 
     /**
-     * Profil de l'utilisateur authentifié, quel que soit son rôle.
-     * Complémentaire à /api/candidates/me et /api/recruiters/profile qui
-     * exposent les infos métier spécifiques ; ici ce sont les infos de base.
+     * The signed-in user's basic details, whatever their role. /api/candidates/me and
+     * /api/recruiters/profile give the role-specific profile.
      */
     public UserResponseDto getMyProfile(User currentUser) {
         return toDto(currentUser);
