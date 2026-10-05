@@ -168,8 +168,8 @@ public class GlobalExceptionHandler {
         return respond(HttpStatus.NOT_FOUND, ApiError.of(ErrorCodes.NOT_FOUND, "Not found."));
     }
 
-    // Catch-all. MUST log the full exception with the correlation id: this used to swallow the
-    // real cause silently, which made every unexpected 500 undiagnosable from the server side.
+    // Catch-all. Logs the full exception with the correlation id the client receives, so every
+    // unexpected 500 can be traced from the user's report to its cause in the server log.
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex) {
         ApiError error = ApiError.of(ErrorCodes.INTERNAL_ERROR, "An unexpected error occurred. Please try again later.");

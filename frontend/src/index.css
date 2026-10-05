@@ -116,7 +116,7 @@ body {
   border-color: rgba(var(--magenta-rgb), 0.35) !important;
 }
 
-/* Without this, a disabled button looked exactly like an active one. */
+/* A disabled button must look different from an active one. */
 .btn-brand-3d:disabled, .primary-btn:disabled, .secondary-btn:disabled {
   opacity: 0.45 !important;
   cursor: not-allowed !important;

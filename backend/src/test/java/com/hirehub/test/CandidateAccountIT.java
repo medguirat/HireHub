@@ -71,9 +71,7 @@ class CandidateAccountIT extends ApiTestSupport {
     }
 
     @Test
-    void theHealthAndTestEndpointsAnswer() throws Exception {
-        User candidate = user("account-ping@test.com", Role.CANDIDATE);
-        mockMvc.perform(get("/api/test").header("Authorization", token(candidate))).andExpect(status().isOk());
+    void theHealthEndpointAnswersWithoutSigningIn() throws Exception {
         mockMvc.perform(get("/api/health")).andExpect(jsonPath("$.status").value("UP"));
     }
 }

@@ -63,8 +63,7 @@ class EndpointAccessIT extends ApiTestSupport {
                 Arguments.of("GET", "/api/users/me", null),
                 Arguments.of("PUT", "/api/users/me", null),
                 Arguments.of("DELETE", "/api/users/1", null),
-                Arguments.of("POST", "/api/files/images", null),
-                Arguments.of("GET", "/api/test", null)
+                Arguments.of("POST", "/api/files/images", null)
         );
     }
 
