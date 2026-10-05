@@ -1,5 +1,7 @@
 # HireHub
 
+[![CI](https://github.com/medguirat/HireHub/actions/workflows/ci.yml/badge.svg)](https://github.com/medguirat/HireHub/actions/workflows/ci.yml)
+
 Recruitment platform with two roles, recruiters and candidates.
 
 | Part | Stack | Port |
@@ -104,7 +106,19 @@ run installs nothing extra if Playwright's Chromium is already on the machine; o
 `npx playwright install chromium` once. Every account the E2E tests create starts with `qa-e2e-` and is deleted at
 the end of the run (`npm run e2e:cleanup` does the same by hand). Nothing else in the database is touched.
 
-Backend integration tests use their own database, `hirehub_test`, created automatically. They never touch `hirehub_db`.
+They also cover emails (welcome and reset, read from Mailpit), signing in right after signup, the fixed navigation
+on every page (desktop and 390 px), the HttpOnly session cookie and CSRF, and profile drafts going through the
+backend.
+
+**Backend test database** (`HIREHUB_TEST_DB`): `auto` (default) uses a throwaway MySQL 8.0 in Docker
+(Testcontainers) when Docker is running, otherwise the local MySQL's `hirehub_test` database; `testcontainers` or
+`local` force one. Either way the tests never touch `hirehub_db`, and each test context rebuilds the schema with
+the Flyway migrations.
+
+**Continuous integration**: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull request and
+every push to `main`: backend `mvn verify` (on Testcontainers MySQL, no database to install), ai-service pytest
+(the embedding model is cached between runs), frontend lint, unit tests and production build. The badge at the top
+shows the state of `main`.
 
 ## Optional: a local AI model with Ollama
 
