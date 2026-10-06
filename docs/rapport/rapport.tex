@@ -1,22 +1,21 @@
 % ============================================================
 %  RAPPORT DE STAGE D'ÉTÉ — HireHub — Proxym-IT
-%  Compilation : XeLaTeX (Overleaf : Menu > Compiler > XeLaTeX)
+%  Compilation : pdfLaTeX (Overleaf : Menu > Compiler > pdfLaTeX), deux passes
 %  Les commentaires « % TODO Marwa: » signalent ce qu'il faut
 %  vérifier ou compléter (dates, encadrants, matériel...).
 % ============================================================
 \documentclass[12pt,a4paper]{report}
 
-% ---------- Langue et police ----------
-\usepackage{fontspec}            % police Latin Modern (comme les rapports modèles)
-\usepackage{polyglossia}
-\setmainlanguage{french}
+% ---------- Langue et police (pdfLaTeX : compile vite sur Overleaf gratuit) ----------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}             % police Latin Modern, comme les rapports modèles
+\usepackage[french]{babel}
 
 % ---------- Mise en page ----------
 \usepackage[a4paper,top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm,headheight=15pt]{geometry}
 \usepackage{graphicx}
 \usepackage[table]{xcolor}       % [table] : nécessaire pour \rowcolor
-\usepackage{tcolorbox}
-\tcbuselibrary{skins,breakable}
 \usepackage{fancyhdr}
 \usepackage{titlesec}
 \usepackage{etoc}                % « Plan » au début de chaque chapitre
@@ -43,14 +42,14 @@
 \definecolor{codecom}{HTML}{6A737D}
 
 % ---------- Légendes : « Figure 2.1 : ... » / « Tableau 2.1 : ... » ----------
-\captionsetup{labelfont={sc,bf},labelsep=colon,font=small,justification=centering}
+\captionsetup{labelfont=bf,labelsep=colon,font=small,justification=centering}
 \captionsetup[table]{position=below,skip=6pt}
 
 % ---------- Titres de chapitres (style des rapports ENICarthage) ----------
 \titleformat{\chapter}[display]
   {\normalfont\centering}
   {\noindent\rule[0.6ex]{0.36\linewidth}{5pt}\hfill
-   {\large\itshape\scshape Chapitre \thechapter}\hfill
+   {\large\scshape Chapitre \thechapter}\hfill
    \rule[0.6ex]{0.36\linewidth}{5pt}}
   {2pt}
   {\titlerule\vspace{8pt}\Huge\scshape}
@@ -163,7 +162,7 @@
     École Nationale d'Ingénieurs de Carthage\par
   \end{minipage}\hfill
   \begin{minipage}[c]{0.2\textwidth}
-    \centering\includegraphics[width=\textwidth,height=2.2cm,keepaspectratio]{images/Université_Carthage_logo.png}
+    \centering\includegraphics[width=\textwidth,height=2.2cm,keepaspectratio]{images/Universite_Carthage_logo.png}
   \end{minipage}
 
   \vspace{1.6cm}
@@ -858,7 +857,7 @@ overall = round(sum(cat["score"] * cat["effective_weight"]
                     for cat in categories.values() if cat["applicable"]))
 \end{lstlisting}
 
-La similarité sémantique utilise le modèle multilingue \texttt{paraphrase-multilingual-MiniLM-L12-v2} \cite{sbert}, qui fonctionne sur un simple processeur et permet de comparer un CV français à une offre anglaise. Le résultat est mis en cache selon l'empreinte SHA-256 du CV, le texte de l'offre et la version de l'algorithme : il n'est recalculé que si l'un d'eux change.
+La similarité sémantique utilise le modèle multilingue \texttt{paraphrase-multilingual-\allowbreak MiniLM-L12-v2} \cite{sbert}, qui fonctionne sur un simple processeur et permet de comparer un CV français à une offre anglaise. Le résultat est mis en cache selon l'empreinte SHA-256 du CV, le texte de l'offre et la version de l'algorithme : il n'est recalculé que si l'un d'eux change.
 
 \subsection{Import du profil entreprise}
 À l'inscription, le recruteur peut indiquer le site web de son entreprise. Le service IA lit les pages publiques (données schema.org, balises meta, sections « Mission », « Vision », « Valeurs ») et remplit uniquement les champs encore vides ; ces champs sont marqués « From your website » jusqu'à ce que le recruteur les vérifie. Pour éviter les attaques \textbf{SSRF}, le service refuse les adresses internes ou privées.
