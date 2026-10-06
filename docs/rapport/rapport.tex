@@ -344,7 +344,7 @@ Dans ce chapitre, nous avons présenté l'organisme d'accueil, analysé l'exista
 
 \section*{Introduction}
 \addcontentsline{toc}{section}{Introduction}
-Ce chapitre est consacré à l'analyse des besoins. Nous identifions d'abord les acteurs, puis nous présentons les besoins fonctionnels et non fonctionnels. Ces besoins sont ensuite représentés par des diagrammes de cas d'utilisation et des descriptions textuelles. Enfin, nous présentons le backlog du produit.
+Ce chapitre est consacré à l'analyse des besoins. Nous identifions d'abord les acteurs, puis nous présentons les besoins fonctionnels et non fonctionnels. Ces besoins sont ensuite représentés par des diagrammes de cas d'utilisation, des descriptions textuelles et des diagrammes de séquence système. Enfin, nous présentons le backlog du produit.
 
 \section{Capture des besoins}
 
@@ -412,98 +412,175 @@ Les besoins fonctionnels décrivent ce que le système doit faire pour chaque ac
 \section{Spécification des besoins}
 
 \subsection{Diagramme de cas d'utilisation global}
-La figure \ref{fig:uc-global} présente les fonctionnalités offertes à chaque acteur principal.
+La figure \ref{fig:uc-global} présente les différentes fonctionnalités que notre système propose aux acteurs. Chaque cas d'utilisation, sauf l'inscription et la réinitialisation du mot de passe, nécessite une authentification préalable.
 
 \begin{figure}[H]\centering
-\includegraphics[width=0.85\textwidth,height=0.72\textheight,keepaspectratio]{cas-utilisation-global.png}
+\includegraphics[width=0.8\textwidth,height=0.7\textheight,keepaspectratio]{cas-utilisation-global.png}
 \caption{Diagramme de cas d'utilisation global}
 \label{fig:uc-global}
 \end{figure}
 
-\subsection{Analyse des cas d'utilisation du candidat}
+% ------------------------------------------------------------
+\subsection{Analyse du cas d'utilisation « Gérer les offres »}
 
-\subsubsection{Raffinement}
-La figure \ref{fig:uc-candidat} détaille les cas d'utilisation du candidat.
+\subsubsection{Raffinement du cas d'utilisation « Gérer les offres »}
+La figure \ref{fig:raf-offres} illustre en détail le cas d'utilisation « Gérer les offres » ainsi que ses sous-cas d'utilisation.
 
 \begin{figure}[H]\centering
-\includegraphics[width=\textwidth,height=0.6\textheight,keepaspectratio]{cas-utilisation-candidat.png}
-\caption{Raffinement des cas d'utilisation du candidat}
-\label{fig:uc-candidat}
+\includegraphics[width=0.85\textwidth,height=0.45\textheight,keepaspectratio]{raffinement-gerer-offres.png}
+\caption{Raffinement du cas d'utilisation « Gérer les offres »}
+\label{fig:raf-offres}
 \end{figure}
 
-\subsubsection{Description textuelle du cas « Consulter sa compatibilité CV / offre »}
+\subsubsection{Description textuelle du cas d'utilisation « Publier une offre »}
+Le tableau \ref{tab:desc-publier} présente la description textuelle du cas d'utilisation « Publier une offre ».
 
 \begin{table}[H]
 \centering\small
 \begin{tabularx}{\textwidth}{|p{3.6cm}|L|}
 \hline
-\rowcolor{headgray}\thead{Cas d'utilisation} & Consulter sa compatibilité CV / offre \\ \hline
-\thead{Acteur principal} & Candidat \\ \hline
-\thead{Acteur secondaire} & Service IA \\ \hline
-\thead{Pré-conditions} & Le candidat est connecté et a déposé un CV. \\ \hline
-\thead{Post-conditions} & Le score et son détail sont affichés et mis en cache. \\ \hline
-\thead{Scénario nominal} & 1. Le candidat ouvre une offre et clique sur « Check my CV match ».\newline
-2. Le système vérifie s'il existe un résultat pour la même version du CV, le même texte d'offre et la même version de l'algorithme.\newline
-3. Sinon, le système envoie le texte du CV et l'offre au service IA.\newline
-4. Le service IA calcule le score par catégorie et les conseils.\newline
-5. Le système enregistre le résultat et l'affiche : score sur 100, détail et conseils. \\ \hline
-\thead{Enchaînements alternatifs} & A1 : aucun CV déposé : le système invite le candidat à déposer son CV.\newline
-A2 : service IA indisponible : le système affiche un message et un bouton « Réessayer », sans aucun score. \\ \hline
+\thead{Cas d'utilisation} & Publier une offre \\ \hline
+\thead{Acteur principal} & Recruteur \\ \hline
+\thead{Pré-conditions} & Le recruteur est authentifié. \\ \hline
+\thead{Post-conditions} & L'offre est enregistrée avec le statut « ouverte » et visible par les candidats. \\ \hline
+\thead{Scénario nominal} & 1. Le recruteur clique sur « New job offer ».\newline
+2. Le système affiche le formulaire de l'offre.\newline
+3. Le recruteur saisit le titre, la description, le lieu, le type de contrat et la date limite, puis clique sur « Publish ».\newline
+4. Le système vérifie la validité des données, enregistre l'offre et affiche un message de succès. \\ \hline
+\thead{Enchaînements alternatifs} & A1 : un champ obligatoire est vide ou invalide.\newline
+A1.1 : le système affiche un message d'erreur sous le champ concerné.\newline
+A1.2 : retour à l'étape 3 du scénario nominal. \\ \hline
 \end{tabularx}
-\caption{Description du cas « Consulter sa compatibilité CV / offre »}
+\caption{Description du cas d'utilisation « Publier une offre »}
+\label{tab:desc-publier}
 \end{table}
 
-\subsubsection{Description textuelle du cas « Postuler à une offre »}
+\subsubsection{Diagramme de séquence système du cas d'utilisation « Publier une offre »}
+La figure \ref{fig:dss-publier} décrit les interactions entre le recruteur et le système.
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.8\textwidth,height=0.5\textheight,keepaspectratio]{dss-publier-offre.png}
+\caption{Diagramme de séquence système « Publier une offre »}
+\label{fig:dss-publier}
+\end{figure}
+
+% ------------------------------------------------------------
+\subsection{Analyse du cas d'utilisation « Gérer les candidatures reçues »}
+
+\subsubsection{Raffinement du cas d'utilisation « Gérer les candidatures reçues »}
+La figure \ref{fig:raf-recues} offre une vue détaillée du cas d'utilisation « Gérer les candidatures reçues » et de ses sous-cas associés.
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\textwidth,height=0.45\textheight,keepaspectratio]{raffinement-gerer-candidatures-recues.png}
+\caption{Raffinement du cas d'utilisation « Gérer les candidatures reçues »}
+\label{fig:raf-recues}
+\end{figure}
+
+\subsubsection{Description textuelle du cas d'utilisation « Accepter une candidature »}
 
 \begin{table}[H]
 \centering\small
 \begin{tabularx}{\textwidth}{|p{3.6cm}|L|}
 \hline
-\rowcolor{headgray}\thead{Cas d'utilisation} & Postuler à une offre \\ \hline
+\thead{Cas d'utilisation} & Accepter une candidature \\ \hline
+\thead{Acteur principal} & Recruteur \\ \hline
+\thead{Pré-conditions} & Le recruteur est authentifié et propriétaire de l'offre ; la candidature est « en attente ». \\ \hline
+\thead{Post-conditions} & La candidature est acceptée et le candidat reçoit une notification avec la date de l'entretien. \\ \hline
+\thead{Scénario nominal} & 1. Le recruteur sélectionne une candidature et consulte le CV.\newline
+2. Il clique sur « Accept… » et saisit la date et l'heure de l'entretien.\newline
+3. Le système vérifie les droits du recruteur et l'état de la candidature.\newline
+4. Le système enregistre la décision, notifie le candidat et affiche un message de succès. \\ \hline
+\thead{Enchaînements alternatifs} & A1 : le recruteur n'est pas propriétaire de l'offre : accès refusé (HTTP 403).\newline
+A2 : la candidature est déjà traitée : « Application has already been processed. »\newline
+A3 : la date d'entretien manque : message d'erreur, retour à l'étape 2. \\ \hline
+\end{tabularx}
+\caption{Description du cas d'utilisation « Accepter une candidature »}
+\end{table}
+
+\subsubsection{Diagramme de séquence système du cas d'utilisation « Accepter une candidature »}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.8\textwidth,height=0.55\textheight,keepaspectratio]{dss-accepter-candidature.png}
+\caption{Diagramme de séquence système « Accepter une candidature »}
+\end{figure}
+
+% ------------------------------------------------------------
+\subsection{Analyse du cas d'utilisation « Gérer ses candidatures »}
+
+\subsubsection{Raffinement du cas d'utilisation « Gérer ses candidatures »}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\textwidth,height=0.45\textheight,keepaspectratio]{raffinement-gerer-ses-candidatures.png}
+\caption{Raffinement du cas d'utilisation « Gérer ses candidatures »}
+\end{figure}
+
+\subsubsection{Description textuelle du cas d'utilisation « Postuler à une offre »}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\textwidth}{|p{3.6cm}|L|}
+\hline
+\thead{Cas d'utilisation} & Postuler à une offre \\ \hline
 \thead{Acteur principal} & Candidat \\ \hline
-\thead{Pré-conditions} & Le candidat est connecté ; l'offre est ouverte. \\ \hline
+\thead{Pré-conditions} & Le candidat est authentifié ; l'offre est ouverte. \\ \hline
 \thead{Post-conditions} & Une candidature « en attente » est créée. \\ \hline
-\thead{Scénario nominal} & 1. Le candidat ouvre le formulaire de candidature.\newline
-2. Il choisit le CV (PDF) et rédige une lettre de motivation facultative.\newline
-3. Le système vérifie le fichier (vrai PDF, 10 Mo maximum) et l'enregistre de façon privée.\newline
-4. Le système vérifie que l'offre est ouverte, que la date limite n'est pas dépassée et que le candidat n'a pas déjà postulé.\newline
-5. Le système enregistre la candidature et confirme l'envoi. \\ \hline
+\thead{Scénario nominal} & 1. Le candidat consulte une offre et clique sur « Apply Now ».\newline
+2. Le système affiche le formulaire de candidature.\newline
+3. Le candidat choisit son CV (PDF), rédige une lettre de motivation facultative et clique sur « Send application ».\newline
+4. Le système vérifie le fichier (vrai PDF, 10 Mo maximum), l'offre et l'absence de candidature existante.\newline
+5. Le système enregistre la candidature et affiche un message de succès. \\ \hline
 \thead{Enchaînements alternatifs} & A1 : offre clôturée ou date limite dépassée : message d'erreur.\newline
 A2 : candidature déjà existante : « You have already applied for this job offer. »\newline
-A3 : fichier invalide : message d'erreur, retour à l'étape 2. \\ \hline
+A3 : fichier invalide : message d'erreur, retour à l'étape 3. \\ \hline
 \end{tabularx}
-\caption{Description du cas « Postuler à une offre »}
+\caption{Description du cas d'utilisation « Postuler à une offre »}
 \end{table}
 
-\subsection{Analyse des cas d'utilisation du recruteur}
+\subsubsection{Diagramme de séquence système du cas d'utilisation « Postuler à une offre »}
 
-\subsubsection{Raffinement}
 \begin{figure}[H]\centering
-\includegraphics[width=\textwidth,height=0.6\textheight,keepaspectratio]{cas-utilisation-recruteur.png}
-\caption{Raffinement des cas d'utilisation du recruteur}
-\label{fig:uc-recruteur}
+\includegraphics[width=0.8\textwidth,height=0.55\textheight,keepaspectratio]{dss-postuler-offre.png}
+\caption{Diagramme de séquence système « Postuler à une offre »}
 \end{figure}
 
-\subsubsection{Description textuelle du cas « Traiter une candidature »}
+% ------------------------------------------------------------
+\subsection{Analyse du cas d'utilisation « Gérer le profil entreprise »}
+
+\subsubsection{Raffinement du cas d'utilisation « Gérer le profil entreprise »}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\textwidth,height=0.45\textheight,keepaspectratio]{raffinement-gerer-profil-entreprise.png}
+\caption{Raffinement du cas d'utilisation « Gérer le profil entreprise »}
+\end{figure}
+
+\subsubsection{Description textuelle du cas d'utilisation « Importer le profil depuis le site web »}
 
 \begin{table}[H]
 \centering\small
 \begin{tabularx}{\textwidth}{|p{3.6cm}|L|}
 \hline
-\rowcolor{headgray}\thead{Cas d'utilisation} & Traiter une candidature (accepter ou refuser) \\ \hline
+\thead{Cas d'utilisation} & Importer le profil depuis le site web \\ \hline
 \thead{Acteur principal} & Recruteur \\ \hline
-\thead{Pré-conditions} & Le recruteur est connecté et propriétaire de l'offre ; la candidature est « en attente ». \\ \hline
-\thead{Post-conditions} & La candidature est acceptée ou refusée ; en cas d'acceptation, le candidat reçoit une notification avec la date d'entretien. \\ \hline
-\thead{Scénario nominal} & 1. Le recruteur ouvre la candidature et consulte le CV.\newline
-2. Il choisit « Accepter » et saisit la date et le type d'entretien.\newline
-3. Le système vérifie les droits et l'état de la candidature.\newline
-4. Le système enregistre la décision et notifie le candidat. \\ \hline
-\thead{Enchaînements alternatifs} & A1 : le recruteur n'est pas propriétaire de l'offre : refus (HTTP 403).\newline
-A2 : candidature déjà traitée : « Application has already been processed. »\newline
-A3 : acceptation sans date d'entretien : message d'erreur. \\ \hline
+\thead{Acteur secondaire} & Site web de l'entreprise \\ \hline
+\thead{Pré-conditions} & Le recruteur est authentifié et a renseigné l'adresse du site web. \\ \hline
+\thead{Post-conditions} & Les champs vides du profil sont remplis et marqués « From your website ». \\ \hline
+\thead{Scénario nominal} & 1. Le recruteur clique sur « Fill empty fields from this website ».\newline
+2. Le système vérifie que l'adresse est publique.\newline
+3. Le système affiche une bannière de progression et lit les pages publiques du site.\newline
+4. Le système extrait les informations et remplit uniquement les champs vides.\newline
+5. Le système affiche les champs remplis. \\ \hline
+\thead{Enchaînements alternatifs} & A1 : adresse interne ou privée : l'import est refusé (protection SSRF).\newline
+A2 : site inaccessible : message d'erreur et bouton « Try again ». \\ \hline
 \end{tabularx}
-\caption{Description du cas « Traiter une candidature »}
+\caption{Description du cas d'utilisation « Importer le profil depuis le site web »}
 \end{table}
+
+\subsubsection{Diagramme de séquence système du cas d'utilisation « Importer le profil depuis le site web »}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\textwidth,height=0.55\textheight,keepaspectratio]{dss-importer-profil.png}
+\caption{Diagramme de séquence système « Importer le profil depuis le site web »}
+\end{figure}
 
 \section{Backlog du produit}
 Le backlog du produit regroupe les fonctionnalités sous forme d'histoires utilisateur (user stories), classées par priorité (tableau \ref{tab:backlog}).
@@ -593,55 +670,43 @@ Exception & Gestion centralisée des erreurs (\texttt{GlobalExceptionHandler}) a
 \section{Conception détaillée}
 
 \subsection{Diagramme de classes}
-Le modèle de données compte quatorze entités. Pour rester lisible, il est présenté en deux vues. La première (figure \ref{fig:classes-comptes}) concerne les comptes : un \texttt{User} a un rôle (candidat ou recruteur) et un profil associé ; le candidat possède un CV de matching, des expériences et des langues ; les jetons de réinitialisation sont stockés sous forme de hachage.
+Dans cette section, nous examinons l'aspect statique de notre application à travers le diagramme de classes. La figure \ref{fig:classes} présente les entités du système, leurs attributs, les opérations offertes par les services associés et les relations entre elles.
 
 \begin{figure}[H]\centering
-\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{classes-comptes.png}
-\caption{Diagramme de classes : comptes et profils}
-\label{fig:classes-comptes}
-\end{figure}
-
-La seconde vue (figure \ref{fig:classes-recrutement}) concerne le recrutement : un recruteur publie des offres ; une offre reçoit des candidatures ; une candidature référence ses fichiers (CV, lettre) et peut recevoir une évaluation ; les scores de compatibilité sont mis en cache par candidat et par offre.
-
-\begin{figure}[H]\centering
-\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{classes-recrutement.png}
-\caption{Diagramme de classes : offres et candidatures}
-\label{fig:classes-recrutement}
+\includegraphics[width=\textwidth,height=0.75\textheight,keepaspectratio]{classes.png}
+\caption{Diagramme de classes}
+\label{fig:classes}
 \end{figure}
 
 \subsection{Diagrammes de séquence objet}
-Ces diagrammes montrent les échanges entre les objets pour réaliser les principaux scénarios.
+Au cours de cette section, nous examinons l'aspect dynamique de notre application. Ces diagrammes détaillent les échanges entre l'interface (\emph{View}), les contrôleurs, les entités et la base de données pour réaliser les principaux scénarios.
 
-\subsubsection{Scénario « Créer un compte »}
-La figure \ref{fig:seq-inscription} montre l'inscription d'un recruteur : le compte est créé, le cookie de session est renvoyé (connexion automatique), puis l'import du profil entreprise et l'e-mail de bienvenue s'exécutent en arrière-plan, après l'enregistrement en base.
-
+\subsubsection{Diagramme de séquence objet relatif au scénario « Publier une offre »}
 \begin{figure}[H]\centering
-\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{sequence-inscription.png}
-\caption{Diagramme de séquence objet « Créer un compte »}
-\label{fig:seq-inscription}
+\includegraphics[width=\textwidth,height=0.6\textheight,keepaspectratio]{dso-publier-offre.png}
+\caption{Diagramme de séquence objet relatif au scénario « Publier une offre »}
 \end{figure}
 
-\subsubsection{Scénario « Consulter sa compatibilité CV / offre »}
+\subsubsection{Diagramme de séquence objet relatif au scénario « Accepter une candidature »}
 \begin{figure}[H]\centering
-\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{sequence-compatibilite-cv.png}
-\caption{Diagramme de séquence objet « Consulter sa compatibilité CV / offre »}
-\label{fig:seq-match}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{dso-accepter-candidature.png}
+\caption{Diagramme de séquence objet relatif au scénario « Accepter une candidature »}
 \end{figure}
 
-\subsubsection{Scénario « Postuler à une offre »}
+\subsubsection{Diagramme de séquence objet relatif au scénario « Postuler à une offre »}
+Dans ce scénario, le CV est d'abord enregistré dans un espace privé, puis la candidature est créée en référençant ce fichier.
+
 \begin{figure}[H]\centering
-\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{sequence-candidature.png}
-\caption{Diagramme de séquence objet « Postuler à une offre »}
-\label{fig:seq-candidature}
+\includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{dso-postuler-offre.png}
+\caption{Diagramme de séquence objet relatif au scénario « Postuler à une offre »}
 \end{figure}
 
-\subsubsection{Scénario « Réinitialiser le mot de passe »}
-Le lien envoyé contient un jeton aléatoire de 256 bits ; seul son hachage est stocké. Il est valable 45 minutes et une seule fois. Le système répond de la même façon, que le compte existe ou non, et toutes les sessions ouvertes avant le changement sont refusées.
+\subsubsection{Diagramme de séquence objet relatif au scénario « Consulter sa compatibilité CV / offre »}
+Le résultat est mis en cache : il n'est recalculé que si le CV, le texte de l'offre ou la version de l'algorithme change. Si le service IA est indisponible, aucun score n'est affiché.
 
 \begin{figure}[H]\centering
-\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{sequence-mot-de-passe-oublie.png}
-\caption{Diagramme de séquence objet « Réinitialiser le mot de passe »}
-\label{fig:seq-reset}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{dso-compatibilite-cv.png}
+\caption{Diagramme de séquence objet relatif au scénario « Consulter sa compatibilité CV / offre »}
 \end{figure}
 
 \section*{Conclusion}

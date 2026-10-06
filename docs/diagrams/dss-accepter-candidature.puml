@@ -1,0 +1,21 @@
+@startuml dss-accepter-candidature
+!include _style.puml
+mainframe Diagramme de séquence système "Accepter une candidature"
+
+actor "Recruteur" as R
+participant "Système" as S
+
+ref over R, S : S'authentifier
+ref over R, S : Consulter la liste des candidatures
+R -> S : 1: Sélectionner une candidature
+S --> R : 2: Afficher le profil, le CV et la lettre
+R -> S : 3: Cliquer sur "Accept…", saisir la date\net l'heure de l'entretien, puis valider
+S -> S : 4: Vérifier les droits et l'état de la candidature
+alt candidature en attente et recruteur propriétaire
+  S -> S : 5: Enregistrer la décision
+  S -> S : 6: Créer une notification pour le candidat
+  S --> R : 7: Afficher un message de succès
+else candidature déjà traitée ou date manquante
+  S --> R : 8: Afficher un message d'erreur
+end
+@enduml

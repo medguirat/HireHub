@@ -1,32 +1,39 @@
-' Common look of every HireHub diagram (included by each .puml file).
-' Rendered by `npm run diagrams` (PlantUML, no Graphviz needed: smetana layout).
+' Common look of every HireHub diagram, close to the ENICarthage example reports: black and
+' white, thin lines, plain font. Rendered by `npm run diagrams` (PlantUML, smetana layout).
 skinparam backgroundColor white
 skinparam shadowing false
-skinparam defaultFontName "Segoe UI"
+skinparam monochrome true
+skinparam defaultFontName "Arial"
 skinparam defaultFontSize 13
-skinparam roundCorner 8
-skinparam ArrowColor #132B64
+skinparam roundCorner 4
+skinparam ArrowColor black
 skinparam ArrowFontSize 11
-skinparam ActorBorderColor #132B64
-skinparam ActorBackgroundColor #FFFFFF
-skinparam UsecaseBorderColor #132B64
-skinparam UsecaseBackgroundColor #EEF2FA
-skinparam RectangleBorderColor #132B64
-skinparam PackageBorderColor #132B64
-skinparam ClassBorderColor #132B64
-skinparam ClassBackgroundColor #FFFFFF
-skinparam ClassHeaderBackgroundColor #EEF2FA
-skinparam NoteBorderColor #E81B6B
-skinparam NoteBackgroundColor #FFF4F8
-skinparam ParticipantBorderColor #132B64
-skinparam ParticipantBackgroundColor #EEF2FA
-skinparam DatabaseBorderColor #132B64
-skinparam DatabaseBackgroundColor #EEF2FA
-skinparam NodeBorderColor #132B64
-skinparam NodeBackgroundColor #FFFFFF
-skinparam ComponentBorderColor #132B64
-skinparam ComponentBackgroundColor #EEF2FA
-skinparam SequenceLifeLineBorderColor #8C8E90
-skinparam SequenceGroupBorderColor #8C8E90
-skinparam SequenceBoxBorderColor #8C8E90
-skinparam TitleFontSize 15
+skinparam ActorBorderColor black
+skinparam ActorBackgroundColor white
+skinparam UsecaseBorderColor black
+skinparam UsecaseBackgroundColor white
+skinparam RectangleBorderColor black
+skinparam RectangleBackgroundColor white
+skinparam PackageBorderColor black
+skinparam ClassBorderColor black
+skinparam ClassBackgroundColor white
+skinparam ClassAttributeIconSize 0
+skinparam NoteBorderColor black
+skinparam NoteBackgroundColor white
+skinparam ParticipantBorderColor black
+skinparam ParticipantBackgroundColor white
+skinparam BoundaryBorderColor black
+skinparam ControlBorderColor black
+skinparam EntityBorderColor black
+skinparam DatabaseBorderColor black
+skinparam DatabaseBackgroundColor white
+skinparam NodeBorderColor black
+skinparam NodeBackgroundColor white
+skinparam ComponentBorderColor black
+skinparam ComponentBackgroundColor white
+skinparam SequenceLifeLineBorderColor black
+skinparam SequenceGroupBorderColor black
+skinparam SequenceReferenceBorderColor black
+skinparam SequenceReferenceBackgroundColor white
+skinparam TitleFontSize 14
+hide footbox

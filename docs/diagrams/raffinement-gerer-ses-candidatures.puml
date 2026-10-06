@@ -1,0 +1,25 @@
+@startuml raffinement-gerer-ses-candidatures
+!pragma layout smetana
+!include _style.puml
+left to right direction
+
+actor "Candidat" as C
+
+rectangle "Cas d'utilisation Gérer ses candidatures" {
+  usecase "Gérer ses candidatures" as G
+  usecase "Postuler à une offre" as P
+  usecase "Consulter sa compatibilité\nCV / offre" as M
+  usecase "Retirer une candidature" as RT
+  usecase "Consulter la liste\nde ses candidatures" as L
+  usecase "Consulter une offre" as O
+}
+
+C -- G
+P --|> G
+M --|> G
+RT --|> G
+L --|> G
+P ..> O : <<include>>
+M ..> O : <<include>>
+RT ..> L : <<include>>
+@enduml

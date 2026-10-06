@@ -1,0 +1,28 @@
+@startuml raffinement-gerer-offres
+!pragma layout smetana
+!include _style.puml
+left to right direction
+
+actor "Recruteur" as R
+
+rectangle "Cas d'utilisation Gérer les offres" {
+  usecase "Gérer les offres" as G
+  usecase "Publier une offre" as A
+  usecase "Modifier une offre" as M
+  usecase "Clôturer une offre" as CL
+  usecase "Supprimer une offre" as S
+  usecase "Chercher une offre" as CH
+  usecase "Consulter la liste\ndes offres" as L
+}
+
+R -- G
+A --|> G
+M --|> G
+CL --|> G
+S --|> G
+CH --|> G
+L --|> G
+M ..> L : <<include>>
+CL ..> L : <<include>>
+S ..> L : <<include>>
+@enduml

@@ -1,0 +1,29 @@
+@startuml raffinement-gerer-candidatures-recues
+!pragma layout smetana
+!include _style.puml
+left to right direction
+
+actor "Recruteur" as R
+
+rectangle "Cas d'utilisation Gérer les candidatures reçues" {
+  usecase "Gérer les candidatures\nreçues" as G
+  usecase "Consulter la liste\ndes candidatures" as L
+  usecase "Consulter le CV\net la lettre" as CV
+  usecase "Accepter une candidature" as A
+  usecase "Refuser une candidature" as RF
+  usecase "Évaluer un candidat" as E
+  usecase "Planifier l'entretien" as P
+}
+
+R -- G
+L --|> G
+CV --|> G
+A --|> G
+RF --|> G
+E --|> G
+CV ..> L : <<include>>
+A ..> L : <<include>>
+RF ..> L : <<include>>
+E ..> L : <<include>>
+P ..> A : <<extend>>
+@enduml

@@ -1,0 +1,19 @@
+@startuml dss-publier-offre
+!include _style.puml
+mainframe Diagramme de séquence système "Publier une offre"
+
+actor "Recruteur" as R
+participant "Système" as S
+
+ref over R, S : S'authentifier
+R -> S : 1: Cliquer sur "New job offer"
+S --> R : 2: Afficher le formulaire de l'offre
+R -> S : 3: Remplir le titre, la description, le lieu,\nle type de contrat, la date limite et valider
+S -> S : 4: Vérifier la validité des données
+alt données valides
+  S -> S : 5: Enregistrer l'offre (statut OPEN)
+  S --> R : 6: Afficher un message de succès
+else données invalides
+  S --> R : 7: Afficher les messages d'erreur
+end
+@enduml

@@ -1,0 +1,40 @@
+@startuml dso-compatibilite-cv
+!include _style.puml
+mainframe Diagramme de séquence objet "Consulter sa compatibilité CV / offre"
+
+actor "Candidat" as U
+boundary "View" as V
+control "CandidateController" as C
+control "MatchingService" as MS
+entity "MatchScore" as M
+participant "Service IA" as AI
+database "Base de données" as DB
+
+ref over U, V : S'authentifier
+U -> V : 1: Cliquer sur "Check my CV match"
+V -> C : 2: GET /api/candidates/offers/{id}/match
+activate C
+C -> MS : 3: match(candidat, offre)
+MS -> DB : 4: Chercher un résultat en cache
+DB --> MS : 5: Résultat ou rien
+alt résultat en cache (même CV, même offre,\nmême version d'algorithme)
+  MS --> C : 6: Résultat en cache
+else calcul nécessaire
+  MS -> AI : 7: POST /match (texte du CV, offre)
+  alt service IA disponible
+    AI -> AI : 8: Analyser et calculer le score
+    AI --> MS : 9: Score, détail et conseils
+    MS -> M : 10: Créer le résultat
+    M -> DB : 11: Enregistrer le résultat
+    MS --> C : 12: Résultat
+  else service IA indisponible
+    AI --> MS : 13: Erreur
+    MS --> C : 14: AiServiceUnavailableException
+    C --> V : 15: 503
+    V --> U : 16: Afficher un message et "Retry"\n(aucun score affiché)
+  end
+end
+C --> V : 17: 200 + résultat
+V --> U : 18: Afficher le score, le détail et les conseils
+deactivate C
+@enduml

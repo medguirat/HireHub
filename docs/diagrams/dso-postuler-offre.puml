@@ -1,0 +1,36 @@
+@startuml dso-postuler-offre
+!include _style.puml
+mainframe Diagramme de séquence objet "Postuler à une offre"
+
+actor "Candidat" as U
+boundary "View" as V
+control "ApplicationController" as C
+entity "StoredFile" as F
+entity "Application" as A
+database "Base de données" as DB
+
+ref over U, V : S'authentifier
+ref over U, V : Consulter une offre
+U -> V : 1: Choisir le CV et écrire la lettre
+U -> V : 2: Cliquer sur "Send application"
+V -> F : 3: POST /api/candidates/documents (CV)
+F -> F : 4: Vérifier le fichier (vrai PDF, 10 Mo max)
+F -> DB : 5: Enregistrer le fichier (privé)
+F --> V : 6: Identifiant du fichier
+V -> C : 7: POST /api/applications
+activate C
+C -> A : 8: createApplication(offre, fichier, lettre)
+A -> A : 9: Vérifier l'offre (ouverte, date limite)\net l'absence de candidature
+alt données valides
+  A -> DB : 10: Enregistrer la candidature (PENDING)
+  DB --> A : 11: Confirmation d'enregistrement
+  A --> C : 12: Candidature créée
+  C --> V : 13: 200
+  V --> U : 14: Afficher un message de succès
+else offre clôturée, date dépassée ou déjà postulé
+  A --> C : 15: BadRequestException
+  C --> V : 16: 400 + message
+  V --> U : 17: Afficher un message d'erreur
+end
+deactivate C
+@enduml

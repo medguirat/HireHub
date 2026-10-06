@@ -1,0 +1,26 @@
+@startuml raffinement-gerer-profil-entreprise
+!pragma layout smetana
+!include _style.puml
+left to right direction
+
+actor "Recruteur" as R
+
+rectangle "Cas d'utilisation Gérer le profil entreprise" {
+  usecase "Gérer le profil entreprise" as G
+  usecase "Consulter le profil" as C
+  usecase "Modifier le profil" as M
+  usecase "Importer le profil\ndepuis le site web" as I
+  usecase "Générer une proposition\nde description" as D
+  usecase "Ajouter un logo" as L
+}
+
+R -- G
+C --|> G
+M --|> G
+I --|> G
+D --|> G
+L --|> G
+M ..> C : <<include>>
+D ..> M : <<include>>
+L ..> M : <<include>>
+@enduml
