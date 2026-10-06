@@ -58,3 +58,7 @@ backend/cv-store/
 # Playwright
 e2e-report/
 test-results/
+
+# Report exports for Overleaf (rebuilt from docs/rapport)
+docs/*-overleaf.zip
+docs/diagrammes-overleaf/
