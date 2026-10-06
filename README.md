@@ -177,6 +177,8 @@ npm run docker:up      # builds the images, starts everything, waits until it's 
 Then open **http://localhost:8080** (emails: http://localhost:8025). Stop with `docker compose down` (add `-v` to
 also delete the database and uploaded files). `npm run docker:up` adds the secrets Docker needs to `.env` if
 they're missing (`AI_SERVICE_KEY`, `DOCKER_DB_PASSWORD`); `docker compose up -d --build` works too once they are set.
+If port 8080 is already taken on your computer (Oracle Database XE uses it, for example), set `FRONTEND_PORT=8090`
+in `.env`: the app, the links in emails and the E2E tests all follow it.
 
 | Container | Image | Reachable from this machine | Data |
 |---|---|---|---|
@@ -195,8 +197,9 @@ they're missing (`AI_SERVICE_KEY`, `DOCKER_DB_PASSWORD`); `docker compose up -d 
 - Real emails: `MAIL_MODE=smtp` and the `SMTP_*` settings in `.env`, exactly as without Docker.
 
 **End-to-end tests against Docker**: `npm run test:e2e:docker` starts a separate project (`hirehub-e2e`, with its
-own empty database and files), runs the whole Playwright suite against http://localhost:8080, then removes it
-(`--keep` leaves it running). The fixture company website runs on this machine and the ai-service container reaches
+own empty database and files), runs the whole Playwright suite against the app (http://localhost:8080 by default,
+or `FRONTEND_PORT`), then removes it (`--keep` leaves it running). Stop the main stack first (`docker compose
+stop`): both use the same ports. Last run: 24/24 passed. The fixture company website runs on this machine and the ai-service container reaches
 it through `host.docker.internal`.
 
 **Prerequisite**: Docker Desktop (Windows: https://docs.docker.com/desktop/setup/install/windows-install/, with the

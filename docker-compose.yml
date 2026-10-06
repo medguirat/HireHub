@@ -71,9 +71,9 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-}
       # Links in emails and image addresses point to the app as users open it.
-      APP_FRONTEND_URL: ${DOCKER_PUBLIC_URL:-http://localhost:8080}
-      APP_BASE_URL: ${DOCKER_PUBLIC_URL:-http://localhost:8080}
-      APP_CORS_ORIGINS: ${DOCKER_PUBLIC_URL:-http://localhost:8080}
+      APP_FRONTEND_URL: ${DOCKER_PUBLIC_URL:-http://localhost:${FRONTEND_PORT:-8080}}
+      APP_BASE_URL: ${DOCKER_PUBLIC_URL:-http://localhost:${FRONTEND_PORT:-8080}}
+      APP_CORS_ORIGINS: ${DOCKER_PUBLIC_URL:-http://localhost:${FRONTEND_PORT:-8080}}
       # Plain http on localhost: set it to true behind HTTPS.
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
       API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}

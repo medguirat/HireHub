@@ -5,7 +5,7 @@ export const TARGET = process.env.E2E_TARGET === "docker" ? "docker" : "dev";
 const DOCKER = TARGET === "docker";
 
 /** The app as users open it (also the address in links sent by email). */
-export const BASE_URL = process.env.E2E_BASE_URL || (DOCKER ? "http://localhost:8080" : "http://localhost:5173");
+export const BASE_URL = process.env.E2E_BASE_URL || (DOCKER ? `http://localhost:${process.env.FRONTEND_PORT || 8080}` : "http://localhost:5173");
 /** The API, called directly by test helpers (published on 127.0.0.1 in Docker too). */
 export const API = process.env.E2E_API_URL || "http://localhost:8081/api";
 export const MAILPIT = process.env.E2E_MAILPIT_URL || "http://localhost:8025";
