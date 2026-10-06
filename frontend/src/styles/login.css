@@ -205,7 +205,7 @@
 
 @media (max-width: 900px) {
     .login-page {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .login-left,
@@ -226,6 +226,6 @@
     }
 
     .mode-toggle {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 }

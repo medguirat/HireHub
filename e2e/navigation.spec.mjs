@@ -68,8 +68,10 @@ for (const role of ["RECRUITER", "CANDIDATE"]) {
           }
           await expect(page.locator("#e2e-last")).toBeInViewport();
 
-          // No horizontal scrolling at this width.
+          // No horizontal scrolling at this width, neither of the page nor of the main content
+          // (a one-column grid with `1fr` once grew to the width of a long one-line message).
           expect(await page.evaluate(() => document.scrollingElement.scrollWidth <= window.innerWidth), path).toBe(true);
+          expect(await main.evaluate((el) => el.scrollWidth <= el.clientWidth), path).toBe(true);
         }
       });
     }

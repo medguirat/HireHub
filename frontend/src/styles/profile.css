@@ -61,7 +61,7 @@
 .profile-column { display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; }
 
 @media (max-width: 1000px) {
-  .profile-layout { grid-template-columns: 1fr; }
+  .profile-layout { grid-template-columns: minmax(0, 1fr); }
   .profile-layout .profile-column--aside { order: -1; }
 }
 

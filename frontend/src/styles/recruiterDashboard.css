@@ -853,13 +853,13 @@
     font-size: 1.5rem;
   }
   .form-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .form-full-width {
     grid-column: span 1;
   }
   .stats-page-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .dashboard-panel,
   .glass-card {

@@ -66,7 +66,7 @@
 
 @media (max-width: 1024px) {
   .offers-split-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -337,7 +337,7 @@
 
 @media (max-width: 600px) {
   .experience-form-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
