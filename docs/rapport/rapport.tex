@@ -118,9 +118,22 @@
   \begin{figure}[H]\centering
   \includegraphics[width=#1,height=0.72\textheight,keepaspectratio]{#2}
   \caption{#3}\end{figure}}
+% Capture de téléphone (dans une sous-figure), avec le même repli si le fichier manque.
+\newcommand{\phoneshot}[1]{%
+  \IfFileExists{images/#1}{%
+    \fcolorbox{codeframe}{white}{\includegraphics[width=0.88\linewidth]{#1}}%
+  }{%
+    \fbox{\parbox[c][5cm][c]{0.88\linewidth}{\centering\footnotesize\itshape Capture à ajouter :\\ \detokenize{#1}}}%
+  }}
+% Capture d'écran encadrée. Si le fichier n'est pas encore dans images/, un cadre gris
+% avec son nom s'affiche à la place : le rapport compile quand même.
 \newcommand{\capture}[3][\textwidth]{%
   \begin{figure}[H]\centering
-  \fcolorbox{codeframe}{white}{\includegraphics[width=#1,keepaspectratio]{#2}}
+  \IfFileExists{images/#2}{%
+    \fcolorbox{codeframe}{white}{\includegraphics[width=\dimexpr#1-2\fboxsep-2\fboxrule\relax,keepaspectratio]{#2}}%
+  }{%
+    \fbox{\parbox[c][4cm][c]{\dimexpr#1-2\fboxsep-2\fboxrule\relax}{\centering\small\itshape Capture à ajouter : images/\detokenize{#2}}}%
+  }%
   \caption{#3}\end{figure}}
 
 \hypersetup{
@@ -927,13 +940,13 @@ Les captures suivantes ont été réalisées automatiquement avec Playwright à 
 \paragraph{Version mobile} L'interface s'adapte aux petits écrans : la barre de navigation reste fixe et seul le contenu défile.
 \begin{figure}[H]\centering
 \begin{subfigure}{0.3\textwidth}\centering
-  \fcolorbox{codeframe}{white}{\includegraphics[width=0.92\textwidth]{30-phone-candidate-overview.jpg}}
+  \phoneshot{30-phone-candidate-overview.jpg}
   \caption{Vue d'ensemble}\end{subfigure}\hfill
 \begin{subfigure}{0.3\textwidth}\centering
-  \fcolorbox{codeframe}{white}{\includegraphics[width=0.92\textwidth]{31-phone-candidate-offers.jpg}}
+  \phoneshot{31-phone-candidate-offers.jpg}
   \caption{Offres}\end{subfigure}\hfill
 \begin{subfigure}{0.3\textwidth}\centering
-  \fcolorbox{codeframe}{white}{\includegraphics[width=0.92\textwidth]{33-phone-recruiter-statistics.jpg}}
+  \phoneshot{33-phone-recruiter-statistics.jpg}
   \caption{Statistiques}\end{subfigure}
 \caption{Interfaces sur téléphone (390 px)}
 \end{figure}
