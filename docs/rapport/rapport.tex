@@ -644,9 +644,15 @@ HireHub suit une architecture \textbf{multi-tiers} composée de plusieurs servic
 \begin{itemize}
   \item \textbf{frontend} : un serveur nginx sert l'application React et redirige les appels \texttt{/api} vers le backend ; c'est le seul service ouvert au réseau ;
   \item \textbf{backend} : l'API REST Spring Boot (Java 17) ;
-  \item \textbf{ai-service} : le service d'analyse FastAPI (Python), accessible uniquement par le backend, avec une clé interne ;
+  \item \textbf{ai-service} : le service d'analyse FastAPI (Python), accessible uniquement par le backend, avec une clé interne. Il extrait le texte des CV, calcule la compatibilité CV / offre et importe le profil d'une entreprise par \emph{web scraping} de son site ;
   \item \textbf{mysql} : la base de données MySQL 8 ;
   \item \textbf{mailpit} : une boîte e-mail locale pour le développement (Gmail SMTP pour les vrais e-mails).
+\end{itemize}
+
+Deux services externes, sur Internet, complètent cette architecture :
+\begin{itemize}
+  \item les \textbf{sites web des entreprises}, dont l'ai-service lit uniquement les pages publiques (accueil, « À propos », « Contact »…) lors de l'import du profil entreprise ;
+  \item le \textbf{serveur SMTP de Gmail}, utilisé par le backend pour envoyer les e-mails réels (bienvenue, réinitialisation du mot de passe).
 \end{itemize}
 
 \begin{figure}[H]\centering
