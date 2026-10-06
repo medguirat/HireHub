@@ -29,6 +29,7 @@
 \usepackage{setspace}
 \usepackage{hyperref}
 \onehalfspacing
+\setlength{\emergencystretch}{3em}   % évite les lignes qui débordent (noms de code longs)
 \setlength{\parindent}{1.5em}
 \setlength{\parskip}{4pt}
 
@@ -49,7 +50,7 @@
 \titleformat{\chapter}[display]
   {\normalfont\centering}
   {\noindent\rule[0.6ex]{0.36\linewidth}{5pt}\hfill
-   {\large\bfseries\itshape\scshape Chapitre \thechapter}\hfill
+   {\large\itshape\scshape Chapitre \thechapter}\hfill
    \rule[0.6ex]{0.36\linewidth}{5pt}}
   {2pt}
   {\titlerule\vspace{8pt}\Huge\scshape}
