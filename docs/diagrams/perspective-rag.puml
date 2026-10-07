@@ -1,0 +1,34 @@
+@startuml perspective-rag
+!pragma layout smetana
+!include _style.puml
+title Perspective : assistant « Interroger mes candidats » (RAG)
+
+actor "Recruteur" as R
+
+package "Indexation (au dépôt d'un CV)" as idx {
+  component "Découpage du CV\nen passages" as chunk
+  component "Calcul des vecteurs\n(modèle multilingue)" as embed
+  database "Index vectoriel\n(passages + id candidat)" as vdb
+}
+
+package "Question du recruteur" as ask {
+  component "Backend Spring Boot\n(liste des candidats\nautorisés du recruteur)" as be
+  component "Recherche des passages\nles plus proches\n(filtrée par id autorisés)" as search
+  component "Modèle de langue\n(réponse avec citations)" as llm
+  component "Règles d'équité\n(âge, sexe, origine exclus)" as fair
+}
+
+chunk --> embed
+embed --> vdb
+R --> be : question
+be --> search : question +\nids autorisés
+search --> vdb
+search --> llm : passages pertinents
+llm --> fair
+fair --> R : réponse + sources
+
+note bottom of search
+  Évaluation : recall@k (passages retrouvés)
+  et faithfulness (réponse fidèle aux sources)
+end note
+@enduml

@@ -1,0 +1,995 @@
+/* Tokens live in styles/tokens.css. */
+
+/* App shell: the layout is exactly one screen high and never scrolls. The navigation (sidebar on
+   desktop, top bar on phones) stays put; only <main> scrolls, so no content can slide under the
+   navigation and anchors or focused fields always land in view. */
+.recruiter-layout {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: radial-gradient(circle at 15% 20%, rgba(var(--navy-rgb), 0.55) 0%, transparent 50%),
+              radial-gradient(circle at 85% 80%, rgba(var(--cyan-rgb), 0.2) 0%, transparent 50%),
+              var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+}
+
+/* Sidebar Styling */
+/* Full height; scrolls on its own only if the window is too short for the menu. */
+.recruiter-sidebar {
+  position: relative;
+  z-index: 10;
+  flex-shrink: 0;
+  overflow-y: auto;
+  width: var(--sidebar-width);
+  background: rgba(var(--bg-rgb), 0.85);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--border-color);
+}
+
+.sidebar-inner {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 30px 16px 24px;
+}
+
+.sidebar-brand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 40px;
+  padding: 0 10px;
+}
+
+.sidebar-brand img {
+  transform: scale(1.15);
+  filter: brightness(1.1) drop-shadow(0 0 12px rgba(var(--violet-rgb), 0.3));
+  transition: transform 0.3s ease;
+}
+
+.sidebar-brand img:hover {
+  transform: scale(1.2);
+}
+
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  border-radius: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-size: 0.95rem;
+}
+
+.sidebar-item:hover {
+  color: var(--text-primary);
+  background-color: rgba(var(--white-rgb), 0.05);
+  transform: translateX(3px);
+}
+
+.sidebar-item.active {
+  color: var(--white);
+  font-weight: 600;
+  background: linear-gradient(135deg, rgba(var(--violet-rgb), 0.25), rgba(var(--violet-rgb), 0.15));
+  border: 1px solid rgba(var(--violet-rgb), 0.3);
+  box-shadow: 0 4px 15px rgba(var(--violet-rgb), 0.15);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
+.logout-btn {
+  color: var(--red-soft);
+}
+
+.logout-btn:hover {
+  background-color: rgba(var(--red-rgb), 0.12);
+  color: var(--red-soft);
+}
+
+/* Main Content Area */
+.recruiter-content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 40px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  outline: none; /* tabIndex -1: focusable for keyboard scrolling, without a focus ring on click */
+}
+
+.content-header {
+  margin-bottom: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.content-header h1 {
+  font-size: 1.85rem;
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(to right, var(--white), var(--text-muted));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.content-header p {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--cyan);
+  margin: 6px 0 0 0;
+}
+
+.user-badge {
+  background-color: rgba(var(--cyan-rgb), 0.1);
+  border: 1px solid rgba(var(--cyan-rgb), 0.2);
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 0.88rem;
+  color: var(--cyan-soft);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Stats Cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.stat-card {
+  background: rgba(var(--navy-rgb), 0.22);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(var(--white-rgb), 0.08);
+  border-radius: 20px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 35px rgba(var(--black-rgb), 0.35);
+  border-color: rgba(var(--cyan-rgb), 0.35);
+}
+
+.stat-card.blue { border-color: rgba(var(--cyan-rgb), 0.35); }
+.stat-card.green { border-color: rgba(var(--green-rgb), 0.35); }
+.stat-card.orange { border-color: rgba(var(--orange-rgb), 0.35); }
+.stat-card.red { border-color: rgba(var(--red-rgb), 0.35); }
+.stat-card.violet { border-color: rgba(var(--violet-rgb), 0.35); }
+
+.stat-title {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Tables and Panels */
+.dashboard-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 28px;
+  margin-bottom: 32px;
+  box-shadow: 0 10px 30px rgba(var(--black-rgb), 0.25);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.panel-header h2 {
+  font-size: 1.25rem;
+  margin: 0;
+  font-weight: 700;
+  color: var(--white);
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--violet) 100%);
+  color: white;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.9rem;
+  box-shadow: 0 4px 15px rgba(var(--cyan-rgb), 0.35);
+}
+
+.primary-btn:hover {
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--violet) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(var(--violet-rgb), 0.5);
+}
+
+.primary-btn:active {
+  transform: translateY(0);
+}
+
+.secondary-btn {
+  background: rgba(var(--white-rgb), 0.04);
+  color: var(--text-sub);
+  border: 1px solid var(--border-color);
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondary-btn:hover {
+  color: var(--text-primary);
+  background: rgba(var(--white-rgb), 0.09);
+  border-color: rgba(var(--white-rgb), 0.2);
+  transform: translateY(-1px);
+}
+
+/* Job Offers Table & Grid */
+.offers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.offer-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+}
+
+.offer-card:hover {
+  border-color: rgba(var(--cyan-rgb), 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(var(--black-rgb), 0.3);
+}
+
+.offer-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.offer-card-header h3 {
+  font-size: 1.15rem;
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.contract-badge {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.badge-cdi { background-color: rgba(var(--cyan-rgb), 0.15); color: var(--cyan); }
+.badge-cdd { background-color: rgba(var(--violet-rgb), 0.15); color: var(--violet-soft); }
+.badge-stage { background-color: rgba(var(--green-rgb), 0.15); color: var(--green); }
+.badge-freelance { background-color: rgba(var(--orange-rgb), 0.15); color: var(--orange); }
+
+.offer-desc {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 20px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: 4.5em;
+}
+
+.offer-meta-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.offer-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.offer-actions button {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-edit {
+  background-color: rgba(var(--white-rgb), 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.btn-edit:hover {
+  background-color: rgba(var(--white-rgb), 0.1);
+}
+
+.btn-delete {
+  background-color: rgba(var(--red-rgb), 0.1);
+  border: 1px solid rgba(var(--red-rgb), 0.2);
+  color: var(--red-soft);
+}
+
+.btn-delete:hover {
+  background-color: rgba(var(--red-rgb), 0.2);
+}
+
+/* Custom Table Styling for Applications */
+.custom-table-container {
+  overflow-x: auto;
+}
+
+.custom-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.custom-table th {
+  padding: 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.custom-table td {
+  padding: 16px;
+  font-size: 0.92rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.custom-table tr:hover td {
+  background-color: rgba(var(--white-rgb), 0.01);
+}
+
+.status-badge {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-pending { background-color: rgba(var(--orange-rgb), 0.15); color: var(--orange); }
+.status-accepted { background-color: rgba(var(--green-rgb), 0.15); color: var(--green); }
+.status-rejected { background-color: rgba(var(--red-rgb), 0.15); color: var(--red-soft); }
+
+.action-row {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn-small {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+
+.action-btn-small:hover {
+  opacity: 0.9;
+}
+
+.btn-approve {
+  background-color: var(--color-success);
+  color: white;
+}
+
+.btn-reject {
+  background-color: var(--color-danger);
+  color: white;
+}
+
+.cv-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.cv-link:hover {
+  text-decoration: underline;
+}
+
+.candidate-name-link {
+  color: var(--cyan);
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.candidate-name-link:hover {
+  text-decoration: underline;
+  color: var(--cyan);
+}
+
+/* Forms (Create/Edit Offer / Profile) */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.form-full-width {
+  grid-column: span 2;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.form-group input, .form-group select, .form-group textarea {
+  background-color: rgba(var(--white-rgb), 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  color: white;
+  font-family: inherit;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: var(--color-primary);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: flex-end;
+  margin-top: 32px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+  background-color: rgba(var(--white-rgb), 0.01);
+  border-radius: 12px;
+  border: 1px dashed var(--border-color);
+}
+
+/* Candidate Rating View */
+.rating-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.rating-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background-color: rgba(var(--white-rgb), 0.02);
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.rating-criteria {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.criteria-title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.criteria-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.rating-stars {
+  display: flex;
+  gap: 8px;
+}
+
+.star-input {
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: rgba(var(--white-rgb), 0.2);
+  transition: transform 0.1s, color 0.15s;
+}
+
+.star-input.active {
+  color: var(--orange);
+}
+
+.star-input:hover {
+  transform: scale(1.2);
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.checkbox-input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.rating-score-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, rgba(var(--cyan-rgb), 0.15), rgba(var(--green-rgb), 0.15));
+  border: 1px solid rgba(var(--cyan-rgb), 0.3);
+  padding: 24px;
+  border-radius: 16px;
+  margin-top: 32px;
+}
+
+.score-display {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.score-number {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--green);
+  line-height: 1;
+}
+
+/* Stats Page Elements */
+.stats-page-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+.chart-placeholder {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  height: 300px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chart-bar-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  width: 100%;
+  height: 200px;
+  margin-top: 24px;
+}
+
+.chart-bar {
+  flex: 1;
+  background-color: rgba(var(--cyan-rgb), 0.3);
+  border-radius: 6px 6px 0 0;
+  transition: height 0.5s ease-out;
+  position: relative;
+}
+
+.chart-bar:hover {
+  background-color: var(--color-primary);
+}
+
+.chart-bar::after {
+  content: attr(data-value);
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Official Document Style for PDF Printing */
+@media print {
+  /* Back to the normal page flow, so nothing is cut at the screen's height. */
+  .recruiter-layout,
+  .recruiter-content {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-document-container, .print-document-container * {
+    visibility: visible;
+  }
+  .print-document-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    color: var(--black) !important;
+    background-color: var(--white) !important;
+    padding: 0;
+  }
+}
+
+.print-document-container {
+  background-color: var(--white);
+  color: var(--surface-raised);
+  padding: 60px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(var(--black-rgb), 0.15);
+  font-family: 'Georgia', serif;
+  line-height: 1.6;
+  margin-top: 40px;
+  border: 1px solid var(--text-sub);
+}
+
+.doc-header {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--text-sub);
+  padding-bottom: 20px;
+  margin-bottom: 40px;
+}
+
+.doc-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  font-family: var(--font-family);
+  color: var(--surface-raised);
+}
+
+.doc-meta {
+  text-align: right;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-family: var(--font-family);
+}
+
+.doc-recipient {
+  margin-bottom: 40px;
+}
+
+.doc-body {
+  margin-bottom: 60px;
+  text-align: justify;
+}
+
+.doc-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 60px;
+  padding-top: 20px;
+  border-top: 1px solid var(--text-sub);
+}
+
+.signature-box {
+  width: 200px;
+  text-align: center;
+}
+
+.signature-line {
+  border-bottom: 1px solid var(--text-muted);
+  height: 50px;
+  margin-bottom: 10px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.sidebar-toggle { display: none; }
+
+@media (max-width: 900px) {
+  /* Phone: the top bar stays at the top; an open menu may scroll inside it. */
+  .recruiter-layout {
+    flex-direction: column;
+  }
+  .recruiter-sidebar {
+    width: 100%;
+    max-height: 70dvh;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    z-index: 50;
+  }
+  .sidebar-inner {
+    min-height: 0;
+    padding: 10px 16px;
+  }
+  .sidebar-brand {
+    justify-content: space-between;
+    margin-bottom: 0;
+    padding: 0;
+  }
+  .sidebar-brand img {
+    width: 110px;
+    transform: none;
+  }
+  .sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--glass-subtle);
+    color: var(--text);
+    font-size: 1.2rem;
+    cursor: pointer;
+  }
+  .sidebar-menu,
+  .sidebar-footer {
+    display: none;
+  }
+  .recruiter-sidebar.is-open .sidebar-menu,
+  .recruiter-sidebar.is-open .sidebar-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 12px;
+  }
+  .recruiter-content {
+    padding: 20px 16px 40px;
+  }
+  .content-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .content-header h1 {
+    font-size: 1.5rem;
+  }
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .form-full-width {
+    grid-column: span 1;
+  }
+  .stats-page-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dashboard-panel,
+  .glass-card {
+    padding: 18px !important;
+  }
+  .panel-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .custom-table-container {
+    overflow-x: auto;
+  }
+  .offer-hero {
+    flex-direction: column;
+  }
+}
+
+/* Offer status chips (shared by recruiter and candidate pages) */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.status-chip--new {
+  color: var(--color-cyan);
+  background: rgba(var(--cyan-rgb), 0.12);
+  border: 1px solid rgba(var(--cyan-rgb), 0.4);
+}
+
+.status-chip--closed {
+  color: var(--text-muted);
+  background: rgba(var(--white-rgb), 0.05);
+  border: 1px solid rgba(var(--white-rgb), 0.15);
+}
+
+.offer-card--closed {
+  opacity: 0.7;
+}
+
+/* Company details imported from the recruiter's website */
+.autofill-tag {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-cyan);
+  background: rgba(var(--cyan-rgb), 0.1);
+  border: 1px solid rgba(var(--cyan-rgb), 0.3);
+  vertical-align: middle;
+}
+
+.import-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--cyan-rgb), 0.35);
+  background: rgba(var(--cyan-rgb), 0.08);
+  color: var(--text-primary, var(--white));
+  font-size: 0.9rem;
+}
+
+.import-banner > div {
+  flex: 1;
+  min-width: 200px;
+}
+
+.import-banner {
+  flex-wrap: wrap;
+}
+
+.import-banner a.secondary-btn {
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.import-banner p {
+  margin: 4px 0 0;
+  color: var(--text-secondary, var(--text-muted));
+  font-size: 0.84rem;
+}
+
+.import-banner--failed {
+  border-color: rgba(var(--red-rgb), 0.4);
+  background: rgba(var(--red-rgb), 0.08);
+}
+
+.import-spinner {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(var(--cyan-rgb), 0.3);
+  border-top-color: var(--color-cyan);
+  animation: import-spin 0.8s linear infinite;
+}
+
+@keyframes import-spin {
+  to { transform: rotate(360deg); }
+}
+
+.link-btn {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-cyan);
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.link-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Recruiter offer cards aren't clickable as a whole (candidate cards are; that
+   stylesheet is global once loaded). Their actions are the buttons. */
+.offers-grid .offer-card,
+.offers-grid .offer-card h3 {
+  cursor: default;
+}

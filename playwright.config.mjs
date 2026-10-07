@@ -1,0 +1,49 @@
+// End-to-end tests: real browser, real frontend, backend, ai-service and database.
+// `npm run test:e2e` runs them against the dev stack (started here); `npm run test:e2e:docker`
+// against the Docker stack (started by scripts/e2e-docker.mjs). See README "Tests".
+import { defineConfig, devices } from "@playwright/test";
+import { BASE_URL, COMPANY_SITE_PORT, TARGET } from "./e2e/support/config.mjs";
+
+const companySite = {
+  // The recruiter's "company website", imported at signup. In Docker the ai-service container
+  // reaches it through host.docker.internal, so it listens on every interface there.
+  command: "node e2e/fixtures/serve-company-site.mjs",
+  url: `http://127.0.0.1:${COMPANY_SITE_PORT}`,
+  env: TARGET === "docker" ? { COMPANY_SITE_HOST: "0.0.0.0" } : {},
+  reuseExistingServer: true,
+  timeout: 20_000,
+};
+
+const devStack = {
+  // The whole stack, for tests: the ai-service may import the local fixture site, emails always
+  // go to Mailpit and link to localhost (whatever .env says: real emails, phone access...), and the
+  // login and "forgot password" limits per IP address are raised because every test request comes
+  // from 127.0.0.1 (the backend's RateLimitIT and LoginRateLimitIT test the limits).
+  command: "node scripts/dev.mjs",
+  url: "http://localhost:5173",
+  env: { COMPANY_SCRAPER_ALLOW_PRIVATE: "1", MAIL_MODE: "mailpit",
+    APP_FRONTEND_URL: "http://localhost:5173", APP_BASE_URL: "http://localhost:8081", DEV_LAN_ACCESS: "false",
+    RATE_LIMIT_PASSWORD_RESET_PER_IP: "1000", RATE_LIMIT_LOGIN_PER_IP: "1000" },
+  reuseExistingServer: true,
+  timeout: 600_000,
+  stdout: "ignore",
+};
+
+export default defineConfig({
+  testDir: "./e2e",
+  timeout: 120_000, // CV matching runs the real model
+  expect: { timeout: 20_000 },
+  fullyParallel: false,
+  workers: 1, // the journeys share one database and build on each other
+  retries: 0,
+  reporter: [["list"], ["html", { open: "never", outputFolder: "e2e-report" }]],
+  globalSetup: "./e2e/support/global-setup.mjs",
+  globalTeardown: "./e2e/support/global-teardown.mjs",
+  use: {
+    baseURL: BASE_URL,
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+    ...devices["Desktop Chrome"],
+  },
+  webServer: TARGET === "docker" ? [companySite] : [companySite, devStack],
+});

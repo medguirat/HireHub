@@ -1,0 +1,29 @@
+@startuml dso-publier-offre
+!include _style.puml
+mainframe Diagramme de séquence objet "Publier une offre"
+
+actor "Recruteur" as R
+boundary "View" as V
+control "RecruiterController" as C
+entity "JobOffer" as E
+database "Base de données" as DB
+
+ref over R, V : S'authentifier
+R -> V : 1: Remplir les informations de l'offre
+R -> V : 2: Cliquer sur "Publish"
+V -> C : 3: POST /api/recruiters/offers
+activate C
+C -> C : 4: Vérifier la validité des données
+alt données valides
+  C -> E : 5: createOffer(dto, recruteur)
+  E -> DB : 6: Enregistrer l'offre
+  DB --> E : 7: Confirmation d'enregistrement
+  E --> C : 8: Offre créée
+  C --> V : 9: 200 + offre
+  V --> R : 10: Afficher un message de succès
+else données invalides
+  C --> V : 11: 400 + champs en erreur
+  V --> R : 12: Afficher les messages d'erreur
+end
+deactivate C
+@enduml

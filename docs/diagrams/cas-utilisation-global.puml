@@ -1,0 +1,50 @@
+@startuml cas-utilisation-global
+!pragma layout smetana
+!include _style.puml
+left to right direction
+
+actor "Utilisateur" as U
+actor "Candidat" as C
+actor "Recruteur" as R
+
+C --|> U
+R --|> U
+
+rectangle "Diagramme de cas d'utilisation global" {
+  usecase "S'inscrire" as UC_signup
+  usecase "S'authentifier" as UC_login
+  usecase "Réinitialiser\nle mot de passe" as UC_reset
+
+  usecase "Gérer son profil" as UC_cprofile
+  usecase "Gérer son CV" as UC_cv
+  usecase "Gérer ses candidatures" as UC_capps
+  usecase "Consulter les offres" as UC_browse
+
+  usecase "Gérer les offres" as UC_offers
+  usecase "Gérer les candidatures\nreçues" as UC_rapps
+  usecase "Gérer le profil entreprise" as UC_rprofile
+  usecase "Consulter les statistiques" as UC_stats
+}
+
+U -- UC_signup
+U -- UC_reset
+
+C -- UC_cprofile
+C -- UC_cv
+C -- UC_capps
+C -- UC_browse
+
+R -- UC_offers
+R -- UC_rapps
+R -- UC_rprofile
+R -- UC_stats
+
+UC_cprofile ..> UC_login : <<include>>
+UC_cv ..> UC_login : <<include>>
+UC_capps ..> UC_login : <<include>>
+UC_browse ..> UC_login : <<include>>
+UC_offers ..> UC_login : <<include>>
+UC_rapps ..> UC_login : <<include>>
+UC_rprofile ..> UC_login : <<include>>
+UC_stats ..> UC_login : <<include>>
+@enduml

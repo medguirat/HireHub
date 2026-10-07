@@ -1,0 +1,21 @@
+@startuml dss-importer-profil
+!include _style.puml
+mainframe Diagramme de séquence système "Importer le profil depuis le site web"
+
+actor "Recruteur" as R
+participant "Système" as S
+actor "Site web\nde l'entreprise" as W
+
+ref over R, S : S'authentifier
+R -> S : 1: Saisir l'adresse du site web et cliquer\nsur "Fill empty fields from this website"
+S -> S : 2: Vérifier l'adresse (adresse publique uniquement)
+alt adresse valide
+  S --> R : 3: Afficher "We're building your company profile…"
+  S -> W : 4: Lire les pages publiques
+  W --> S : 5: Contenu des pages
+  S -> S : 6: Extraire les informations et remplir\nuniquement les champs vides
+  S --> R : 7: Afficher les champs remplis\n(marqués "From your website")
+else adresse invalide ou site inaccessible
+  S --> R : 8: Afficher un message d'erreur et "Try again"
+end
+@enduml

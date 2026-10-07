@@ -1,0 +1,188 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/*
+ * HireHub design tokens: the single source of every color, radius, spacing,
+ * type size and shadow in the app. Values come from the Recruiter Statistics
+ * page (the reference design) and the brand logo.
+ *
+ * Rule: no color literal anywhere else. Use var(--token), or
+ * rgba(var(--token-rgb), alpha) for a translucent version.
+ */
+:root {
+  /* ---- Brand palette ---- */
+  --navy: #132B64;
+  --navy-rgb: 19, 43, 100;
+  --navy-deep: #102A72;
+  --navy-deep-rgb: 16, 42, 114;
+  --magenta: #E81B6B;
+  --magenta-rgb: 232, 27, 107;
+  --cyan: #55BDE8;
+  --cyan-rgb: 85, 189, 232;
+  --violet: #804B9E;
+  --violet-rgb: 128, 75, 158;
+  --green: #69C85B;
+  --green-rgb: 105, 200, 91;
+  --green-dark: #4CAF50;
+  --orange: #FBC02D;
+  --orange-rgb: 251, 192, 45;
+  --red: #E83A30;
+  --red-rgb: 232, 58, 48;
+  --grey: #8C8E90;
+
+  /* Light tints of the accents, for text and icons on dark surfaces */
+  --violet-soft: #d8b4fe;
+  --cyan-soft: #a5f3fc;
+  --green-soft: #bbf7d0;
+  --magenta-soft: #f9a8d4;
+  --orange-soft: #fde68a;
+  --red-soft: #fca5a5;
+
+  /* ---- Neutrals ---- */
+  --white: #ffffff;
+  --white-rgb: 255, 255, 255;
+  --black: #000000;
+  --black-rgb: 0, 0, 0;
+
+  /* ---- Dark surfaces (dashboard) ---- */
+  --bg: #070b14;
+  --bg-rgb: 7, 11, 20;
+  --surface: #0a1020;
+  --surface-raised: #0f1c36;
+  --surface-raised-rgb: 15, 28, 54;
+  --sidebar-bg: rgba(13, 19, 34, 0.85);
+  --glass: rgba(var(--navy-rgb), 0.22);
+  --glass-subtle: rgba(var(--white-rgb), 0.02);
+  --glass-hover: rgba(var(--white-rgb), 0.06);
+  --line: rgba(var(--white-rgb), 0.08);
+  --line-strong: rgba(var(--white-rgb), 0.15);
+  --line-brand: rgba(var(--magenta-rgb), 0.35);
+  --overlay: rgba(6, 11, 25, 0.8);
+
+  /* ---- Text on dark ---- */
+  --text: var(--white);
+  --text-sub: #cbd5e1;
+  --text-muted: #8C8E90;
+  --text-muted-rgb: 140, 142, 144;
+
+  /* ---- Status ---- */
+  --success: var(--green);
+  --success-rgb: var(--green-rgb);
+  --warning: var(--orange);
+  --warning-rgb: var(--orange-rgb);
+  --danger: var(--red);
+  --danger-rgb: var(--red-rgb);
+  --info: var(--cyan);
+  --info-rgb: var(--cyan-rgb);
+
+  /* ---- Auth / splash pages (light cards, warm brand gradient) ---- */
+  --auth-ink: #0b1020;
+  --auth-heading: #111827;
+  --auth-text-sub: #667085;
+  --auth-navy: #102a72;
+  --auth-blue: #1e88e5;
+  --auth-blue-rgb: 30, 136, 229;
+  --auth-pink: #f06292;
+  --auth-yellow: #ffd54f;
+  --auth-error: #d32f2f;
+  --auth-pink-strong: #E91E63;
+  --auth-amber: #FFC107;
+  --auth-bg: #f8faff;
+  --auth-bg-rgb: 248, 250, 255;
+  --auth-notice-bg: #fff7ed;
+  --auth-notice-border: #fed7aa;
+  --auth-notice-text: #9a3412;
+  --auth-pink-rgb: 240, 98, 146;
+  --auth-navy-rgb: 16, 42, 114;
+  --auth-navy-mid-rgb: 18, 50, 104;
+  --auth-bg-alt-rgb: 239, 245, 255;
+  --auth-shadow-rgb: 6, 13, 30;
+  --auth-slate: #0f172a;
+  --auth-text-dim: #48556c;
+  --auth-text-faint: #5b6475;
+  --auth-gray: #6b7280;
+  --splash-bg: #081120;
+  --splash-bg-rgb: 8, 17, 32;
+  --splash-bg-soft: #0e2042;
+
+  /* ---- Gradients ---- */
+  --gradient-brand: linear-gradient(135deg, var(--navy), var(--magenta));
+  --gradient-brand-wide: linear-gradient(135deg, var(--navy) 0%, var(--cyan) 50%, var(--magenta) 100%);
+  --gradient-heading: linear-gradient(135deg, var(--white) 0%, var(--grey) 100%);
+  --gradient-auth: linear-gradient(135deg, var(--auth-pink), var(--auth-yellow));
+
+  /* ---- Typography ---- */
+  --font-main: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'Consolas', monospace;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.82rem;
+  --fs-base: 0.9rem;
+  --fs-md: 1rem;
+  --fs-lg: 1.2rem;
+  --fs-xl: 1.5rem;
+  --fs-2xl: 1.75rem;
+  --fs-metric: 2.2rem;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-heavy: 800;
+
+  /* ---- Spacing ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+
+  /* ---- Radii ---- */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* ---- Shadows & focus ---- */
+  --shadow-card: 0 20px 40px rgba(var(--black-rgb), 0.35);
+  --shadow-pop: 0 12px 30px rgba(var(--black-rgb), 0.45);
+  --shadow-brand: 0 8px 25px -5px rgba(var(--magenta-rgb), 0.4);
+  --focus-ring: 0 0 0 3px rgba(var(--cyan-rgb), 0.65);
+
+  /* ---- Layout ---- */
+  --sidebar-width: 260px;
+  --blur: blur(16px);
+
+  /* ---- Legacy names still used by older stylesheets (aliases, not new values) ---- */
+  --bg-primary: var(--bg);
+  --bg-secondary: var(--surface);
+  --bg-dark-root: var(--bg);
+  --bg-dark-surface: var(--surface);
+  --bg-card: var(--glass);
+  --border-color: var(--line);
+  --border-card: var(--line);
+  --border-brand: rgba(var(--magenta-rgb), 0.3);
+  --text-primary: var(--text);
+  --text-secondary: var(--text-muted);
+  --text-main: var(--text);
+  --color-primary: var(--cyan);
+  --color-success: var(--green);
+  --color-danger: var(--red);
+  --color-warning: var(--orange);
+  --color-magenta: var(--magenta);
+  --color-navy: var(--navy);
+  --color-violet: var(--violet);
+  --color-cyan: var(--cyan);
+  --color-grey: var(--grey);
+  --color-red: var(--red);
+  --color-green-light: var(--green);
+  --color-green-dark: var(--green-dark);
+  --color-orange: var(--orange);
+  --font-family: var(--font-main);
+  --primary-blue: var(--auth-navy);
+  --secondary-blue: var(--auth-blue);
+  --primary-pink: var(--auth-pink-strong);
+  --accent-yellow: var(--auth-amber);
+}

@@ -1,0 +1,20 @@
+@startuml dss-postuler-offre
+!include _style.puml
+mainframe Diagramme de séquence système "Postuler à une offre"
+
+actor "Candidat" as C
+participant "Système" as S
+
+ref over C, S : S'authentifier
+ref over C, S : Consulter une offre
+C -> S : 1: Cliquer sur "Apply Now"
+S --> C : 2: Afficher le formulaire de candidature
+C -> S : 3: Choisir le CV (PDF), écrire la lettre\net cliquer sur "Send application"
+S -> S : 4: Vérifier le fichier, l'offre et\nl'absence de candidature existante
+alt données valides
+  S -> S : 5: Enregistrer le CV et la candidature\n(statut PENDING)
+  S --> C : 6: Afficher un message de succès
+else offre clôturée, date limite dépassée,\ndéjà postulé ou fichier invalide
+  S --> C : 7: Afficher un message d'erreur
+end
+@enduml

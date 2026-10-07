@@ -1,0 +1,39 @@
+' Common look of every HireHub diagram, close to the ENICarthage example reports: black and
+' white, thin lines, plain font. Rendered by `npm run diagrams` (PlantUML, smetana layout).
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam monochrome true
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 13
+skinparam roundCorner 4
+skinparam ArrowColor black
+skinparam ArrowFontSize 11
+skinparam ActorBorderColor black
+skinparam ActorBackgroundColor white
+skinparam UsecaseBorderColor black
+skinparam UsecaseBackgroundColor white
+skinparam RectangleBorderColor black
+skinparam RectangleBackgroundColor white
+skinparam PackageBorderColor black
+skinparam ClassBorderColor black
+skinparam ClassBackgroundColor white
+skinparam ClassAttributeIconSize 0
+skinparam NoteBorderColor black
+skinparam NoteBackgroundColor white
+skinparam ParticipantBorderColor black
+skinparam ParticipantBackgroundColor white
+skinparam BoundaryBorderColor black
+skinparam ControlBorderColor black
+skinparam EntityBorderColor black
+skinparam DatabaseBorderColor black
+skinparam DatabaseBackgroundColor white
+skinparam NodeBorderColor black
+skinparam NodeBackgroundColor white
+skinparam ComponentBorderColor black
+skinparam ComponentBackgroundColor white
+skinparam SequenceLifeLineBorderColor black
+skinparam SequenceGroupBorderColor black
+skinparam SequenceReferenceBorderColor black
+skinparam SequenceReferenceBackgroundColor white
+skinparam TitleFontSize 14
+hide footbox

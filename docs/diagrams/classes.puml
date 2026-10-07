@@ -1,0 +1,177 @@
+@startuml classes
+!pragma layout smetana
+!include _style.puml
+hide circle
+skinparam linetype ortho
+
+package "Diagramme de classes" <<Frame>> {
+
+  enum Role <<enumeration>> {
+    CANDIDATE
+    RECRUITER
+  }
+  enum OfferStatus <<enumeration>> {
+    OPEN
+    CLOSED
+  }
+  enum ContractType <<enumeration>> {
+    CDI
+    CDD
+    STAGE
+    FREELANCE
+  }
+  enum ApplicationStatus <<enumeration>> {
+    PENDING
+    ACCEPTED
+    REJECTED
+  }
+
+  class User {
+    +id : Long
+    +firstName : String
+    +lastName : String
+    +email : String
+    +password : String
+    +role : Role
+    --
+    +register()
+    +login()
+    +updateBasicInfo()
+    +resetPassword()
+  }
+
+  class CandidateProfile {
+    +headline : String
+    +bio : String
+    +education : String
+    +skills : List<String>
+    +languages : List<CandidateLanguage>
+    --
+    +getMyProfile()
+    +updateMyProfile()
+  }
+
+  class Experience {
+    +id : Long
+    +position : String
+    +company : String
+    +startDate : Date
+    +endDate : Date
+  }
+
+  class CandidateCv {
+    +id : Long
+    +originalFileName : String
+    +sha256 : String
+    +extractedText : String
+    +uploadedAt : Date
+    --
+    +uploadMyCv()
+    +getMyCv()
+  }
+
+  class RecruiterProfile {
+    +companyName : String
+    +website : String
+    +description : String
+    +industry : String
+    +headquarters : String
+    +companyImportStatus : String
+    --
+    +getMyProfile()
+    +updateMyProfile()
+    +importFromWebsite()
+  }
+
+  class JobOffer {
+    +id : Long
+    +title : String
+    +description : String
+    +location : String
+    +contractType : ContractType
+    +deadline : Date
+    +status : OfferStatus
+    --
+    +createOffer()
+    +updateOffer()
+    +deleteOffer()
+    +getRecruiterOffers()
+    +browseOffers()
+  }
+
+  class Application {
+    +id : Long
+    +applicationDate : Date
+    +status : ApplicationStatus
+    +coverLetter : String
+    +interviewDate : Date
+    --
+    +createApplication()
+    +updateApplicationStatus()
+    +deleteApplication()
+    +getAllApplications()
+  }
+
+  class ApplicationEvaluation {
+    +technicalSkills : int
+    +experience : int
+    +communication : int
+    +culturalFit : int
+    +score : double
+    +notes : String
+    --
+    +save()
+    +get()
+  }
+
+  class StoredFile {
+    +id : String
+    +originalName : String
+    +contentType : String
+    +sizeBytes : long
+  }
+
+  class MatchScore {
+    +overallScore : int
+    +algorithmVersion : String
+    +resultJson : String
+    +computedAt : Date
+    --
+    +match()
+  }
+
+  class Notification {
+    +message : String
+    +createdAt : Date
+    +isRead : boolean
+    --
+    +getMyNotifications()
+    +markAsRead()
+  }
+
+  class PasswordResetToken {
+    +tokenHash : String
+    +expiresAt : Date
+    +usedAt : Date
+  }
+}
+
+User ..> Role : Use
+JobOffer ..> OfferStatus : Use
+JobOffer ..> ContractType : Use
+Application ..> ApplicationStatus : Use
+
+User "1" -- "0..1" CandidateProfile : possède
+User "1" -- "0..1" RecruiterProfile : possède
+CandidateProfile "1" *-- "0..*" Experience : contient
+User "1" -- "0..1" CandidateCv : dépose
+User "1" -- "0..*" JobOffer : publie
+User "1" -- "0..*" Application : postule
+JobOffer "1" -- "0..*" Application : reçoit
+Application "1" -- "0..1" ApplicationEvaluation : évaluée
+Application "0..*" -- "1..2" StoredFile : joint
+User "1" -- "0..*" MatchScore : obtient
+JobOffer "1" -- "0..*" MatchScore : concerne
+User "1" -- "0..*" Notification : reçoit
+User "1" -- "0..*" PasswordResetToken : demande
+@enduml

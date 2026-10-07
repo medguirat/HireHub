@@ -1,0 +1,39 @@
+@startuml dso-accepter-candidature
+!include _style.puml
+mainframe Diagramme de séquence objet "Accepter une candidature"
+
+actor "Recruteur" as R
+boundary "View" as V
+control "ApplicationController" as C
+entity "Application" as A
+entity "Notification" as N
+database "Base de données" as DB
+
+ref over R, V : S'authentifier
+ref over R, V : Consulter la liste des candidatures
+R -> V : 1: Cliquer sur "Accept…"
+V --> R : 2: Afficher la fenêtre de planification
+R -> V : 3: Saisir la date de l'entretien et valider
+V -> C : 4: PATCH /api/applications/{id}/status
+activate C
+C -> A : 5: updateApplicationStatus(id, ACCEPTED, date)
+A -> A : 6: Vérifier le propriétaire de l'offre\net l'état PENDING
+alt autorisé et candidature en attente
+  A -> DB : 7: Enregistrer la décision
+  A -> N : 8: Créer la notification du candidat
+  N -> DB : 9: Enregistrer la notification
+  DB --> A : 10: Confirmation d'enregistrement
+  A --> C : 11: Candidature acceptée
+  C --> V : 12: 200
+  V --> R : 13: Afficher un message de succès
+else recruteur non propriétaire
+  A --> C : 14: ForbiddenException
+  C --> V : 15: 403
+  V --> R : 16: Afficher un message d'erreur
+else déjà traitée ou date manquante
+  A --> C : 17: BadRequestException
+  C --> V : 18: 400
+  V --> R : 19: Afficher un message d'erreur
+end
+deactivate C
+@enduml

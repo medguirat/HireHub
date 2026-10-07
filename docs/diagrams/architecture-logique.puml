@@ -1,0 +1,43 @@
+@startuml architecture-logique
+!pragma layout smetana
+!include _style.puml
+title Architecture logique en couches
+
+package "Frontend (React)" as fe {
+  component "Pages et layouts\n(candidat, recruteur)" as pages
+  component "Composants partagés" as comps
+  component "Services API\n(axios, cookie + CSRF)" as fesvc
+}
+
+package "Backend (Spring Boot)" as be {
+  component "Filtres de sécurité\n(identifiant de requête, JWT,\nCSRF, limitation de débit)" as sec
+  component "Contrôleurs REST\n(@RestController)" as ctrl
+  component "Services métier\n(@Service)" as svc
+  component "Repositories\n(Spring Data JPA)" as repo
+  component "Entités JPA\n+ migrations Flyway" as ent
+  component "Clients externes\n(ai-service, SMTP)" as clients
+}
+
+package "ai-service (FastAPI)" as aiPkg {
+  component "Points d'entrée\n(clé interne)" as aiapi
+  component "matching/\n(parsing, scoring,\nsimilarité sémantique)" as matching
+  component "company/\n(scraper, extraction)" as company
+  component "drafts.py\n(brouillons, garde-fous LLM)" as drafts
+}
+
+database "MySQL" as db
+
+pages --> comps
+pages --> fesvc
+fesvc --> sec : HTTP JSON
+sec --> ctrl
+ctrl --> svc : DTO
+svc --> repo
+repo --> ent
+ent --> db
+svc --> clients
+clients --> aiapi : HTTP JSON
+aiapi --> matching
+aiapi --> company
+aiapi --> drafts
+@enduml

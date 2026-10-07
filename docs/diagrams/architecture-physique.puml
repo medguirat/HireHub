@@ -1,0 +1,44 @@
+@startuml architecture-physique
+!pragma layout smetana
+!include _style.puml
+title Architecture physique (déploiement Docker)
+
+node "Poste client" as client {
+  component "Navigateur\n(application React)" as browser
+}
+
+node "Serveur (Docker Compose)" as host {
+  node "frontend\nnginx 1.27" as nginx {
+    component "Fichiers statiques\n(build Vite)" as static
+  }
+  node "backend\nJava 17, Spring Boot 3.5" as backend {
+    component "API REST /api" as api
+  }
+  node "ai-service\nPython 3.12, FastAPI" as ai {
+    component "Analyse de CV,\nmatching, import, brouillons" as aicomp
+  }
+  database "mysql\nMySQL 8.0" as mysql
+  node "mailpit\n(développement)" as mailpit
+  storage "volumes\nuploads, cv-store, db-data" as volumes
+}
+
+cloud "Internet" as internet {
+  node "Serveur SMTP\n(Gmail)" as smtp
+  node "Sites web\ndes entreprises" as sites
+}
+
+browser --> nginx : HTTP :8080 (HTTPS derrière\nun proxy TLS), cookie de session
+nginx --> backend : HTTP :8081\n/api, /uploads
+backend --> mysql : JDBC :3306
+backend --> ai : HTTP :8000\nclé interne
+backend --> mailpit : SMTP :1025
+backend ..> smtp : SMTP :587 (STARTTLS)
+ai ..> sites : HTTPS (pages publiques)
+backend --> volumes
+mysql --> volumes
+
+note bottom of host
+  Seul nginx est ouvert au réseau ; ai-service
+  et MySQL restent sur le réseau interne Docker.
+end note
+@enduml
