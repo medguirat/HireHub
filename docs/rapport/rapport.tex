@@ -16,7 +16,7 @@
 \usepackage[table]{xcolor}       % [table] : nécessaire pour \rowcolor
 \usepackage{fancyhdr}
 \usepackage{titlesec}
-\usepackage{etoc}                % « Plan » au début de chaque chapitre
+\usepackage{etoc}                % \og Plan\fg{} au début de chaque chapitre
 \usepackage{enumitem}
 \usepackage{listings}
 \usepackage{array,tabularx,longtable,booktabs,multirow}
@@ -39,7 +39,7 @@
 \definecolor{codestr}{HTML}{A31515}
 \definecolor{codecom}{HTML}{6A737D}
 
-% ---------- Légendes : « Figure 2.1 : ... » / « Tableau 2.1 : ... » ----------
+% ---------- Légendes : \og Figure 2.1 : ...\fg{} / \og Tableau 2.1 : ...\fg{} ----------
 \captionsetup{labelfont=bf,labelsep=colon,font=small,justification=centering}
 \captionsetup[table]{position=below,skip=6pt}
 
@@ -62,7 +62,7 @@
 \setcounter{secnumdepth}{3}
 \setcounter{tocdepth}{2}
 
-% ---------- « Plan » du chapitre ----------
+% ---------- \og Plan\fg{} du chapitre ----------
 \newcommand{\plan}{%
   \begingroup
   \etocsettocstyle{\vspace{1.5cm}\noindent{\large\bfseries Plan}\par\vspace{6pt}}{}%
@@ -252,10 +252,10 @@ Le sujet qui m'a été confié consiste à concevoir et développer \textbf{Hire
 
 Ce rapport est organisé en quatre chapitres :
 \begin{itemize}
-  \item Le premier chapitre, « Présentation générale du projet », présente l'organisme d'accueil, l'étude de l'existant, la problématique, la solution proposée et la méthode de travail.
-  \item Le deuxième chapitre, « Analyse et spécification des besoins », identifie les acteurs, les besoins fonctionnels et non fonctionnels, et les décrit à l'aide de diagrammes de cas d'utilisation.
-  \item Le troisième chapitre, « Conception », présente l'architecture physique et logique de la solution, le diagramme de classes et les diagrammes de séquence.
-  \item Le quatrième chapitre, « Réalisation », décrit l'environnement de travail, les choix techniques, les points clés de l'implémentation, les tests et les interfaces réalisées.
+  \item Le premier chapitre, \og Présentation générale du projet\fg{}, présente l'organisme d'accueil, l'étude de l'existant, la problématique, la solution proposée et la méthode de travail.
+  \item Le deuxième chapitre, \og Analyse et spécification des besoins\fg{}, identifie les acteurs, les besoins fonctionnels et non fonctionnels, et les décrit à l'aide de diagrammes de cas d'utilisation.
+  \item Le troisième chapitre, \og Conception\fg{}, présente l'architecture physique et logique de la solution, le diagramme de classes et les diagrammes de séquence.
+  \item Le quatrième chapitre, \og Réalisation\fg{}, décrit l'environnement de travail, les choix techniques, les points clés de l'implémentation, les tests et les interfaces réalisées.
 \end{itemize}
 Nous clôturons ce rapport par une conclusion générale et des perspectives d'évolution.
 
@@ -281,7 +281,7 @@ Proxym-IT intervient principalement auprès de quatre catégories de clients :
 \begin{itemize}
   \item les sociétés de services informatiques européennes, à qui Proxym-IT offre une extension de leur force de développement ;
   \item les fournisseurs de services télécoms, grâce à une expertise combinée dans le développement d'applications mobiles et de solutions de communication ;
-  \item les éditeurs de solutions informatiques, à travers des prestations de type « Professional Services » sur la zone MENA ;
+  \item les éditeurs de solutions informatiques, à travers des prestations de type \og Professional Services\fg{} sur la zone MENA ;
   \item les agences web, en apportant les compétences techniques nécessaires à leurs projets.
 \end{itemize}
 Parmi ses réalisations phares, Proxym-IT a développé des plateformes digitales d'engagement dédiées aux secteurs bancaire et assurantiel, notamment \textbf{Bankerise} et \textbf{Insurise}.
@@ -311,7 +311,7 @@ Il existe aujourd'hui plusieurs plateformes de recrutement généralistes, comme
 Ces solutions, bien que très complètes, restent des outils génériques :
 \begin{itemize}
   \item elles ne permettent pas à une entreprise de disposer de son propre espace dédié, avec un contrôle total sur les données et le processus de sélection ;
-  \item lorsqu'elles proposent un « pourcentage de correspondance », celui-ci est rarement expliqué : le candidat ne sait pas quelles compétences lui manquent ;
+  \item lorsqu'elles proposent un \og pourcentage de correspondance\fg{}, celui-ci est rarement expliqué : le candidat ne sait pas quelles compétences lui manquent ;
   \item le profil de l'entreprise doit être saisi manuellement, ce qui décourage souvent le recruteur et donne des offres peu informatives.
 \end{itemize}
 
@@ -427,19 +427,19 @@ La figure \ref{fig:uc-global} présente les différentes fonctionnalités que no
 \end{figure}
 
 % ------------------------------------------------------------
-\subsection{Analyse du cas d'utilisation « Gérer les offres »}
+\subsection{Analyse du cas d'utilisation \og Gérer les offres\fg{}}
 
-\subsubsection{Raffinement du cas d'utilisation « Gérer les offres »}
-La figure \ref{fig:raf-offres} illustre en détail le cas d'utilisation « Gérer les offres » ainsi que ses sous-cas d'utilisation.
+\subsubsection{Raffinement du cas d'utilisation \og Gérer les offres\fg{}}
+La figure \ref{fig:raf-offres} illustre en détail le cas d'utilisation \og Gérer les offres\fg{} ainsi que ses sous-cas d'utilisation.
 
 \begin{figure}[H]\centering
 \includegraphics[width=0.85\textwidth,height=0.45\textheight,keepaspectratio]{raffinement-gerer-offres.png}
-\caption{Raffinement du cas d'utilisation « Gérer les offres »}
+\caption{Raffinement du cas d'utilisation \og Gérer les offres\fg{}}
 \label{fig:raf-offres}
 \end{figure}
 
-\subsubsection{Description textuelle du cas d'utilisation « Publier une offre »}
-Le tableau \ref{tab:desc-publier} présente la description textuelle du cas d'utilisation « Publier une offre ».
+\subsubsection{Description textuelle du cas d'utilisation \og Publier une offre\fg{}}
+Le tableau \ref{tab:desc-publier} présente la description textuelle du cas d'utilisation \og Publier une offre\fg{}.
 
 \begin{table}[H]
 \centering\small
@@ -448,41 +448,41 @@ Le tableau \ref{tab:desc-publier} présente la description textuelle du cas d'ut
 \thead{Cas d'utilisation} & Publier une offre \\ \hline
 \thead{Acteur principal} & Recruteur \\ \hline
 \thead{Pré-conditions} & Le recruteur est authentifié. \\ \hline
-\thead{Post-conditions} & L'offre est enregistrée avec le statut « ouverte » et visible par les candidats. \\ \hline
-\thead{Scénario nominal} & 1. Le recruteur clique sur « New job offer ».\newline
+\thead{Post-conditions} & L'offre est enregistrée avec le statut \og ouverte\fg{} et visible par les candidats. \\ \hline
+\thead{Scénario nominal} & 1. Le recruteur clique sur \og New job offer\fg{}.\newline
 2. Le système affiche le formulaire de l'offre.\newline
-3. Le recruteur saisit le titre, la description, le lieu, le type de contrat et la date limite, puis clique sur « Publish ».\newline
+3. Le recruteur saisit le titre, la description, le lieu, le type de contrat et la date limite, puis clique sur \og Publish\fg{}.\newline
 4. Le système vérifie la validité des données, enregistre l'offre et affiche un message de succès. \\ \hline
 \thead{Enchaînements alternatifs} & A1 : un champ obligatoire est vide ou invalide.\newline
 A1.1 : le système affiche un message d'erreur sous le champ concerné.\newline
 A1.2 : retour à l'étape 3 du scénario nominal. \\ \hline
 \end{tabularx}
-\caption{Description du cas d'utilisation « Publier une offre »}
+\caption{Description du cas d'utilisation \og Publier une offre\fg{}}
 \label{tab:desc-publier}
 \end{table}
 
-\subsubsection{Diagramme de séquence système du cas d'utilisation « Publier une offre »}
+\subsubsection{Diagramme de séquence système du cas d'utilisation \og Publier une offre\fg{}}
 La figure \ref{fig:dss-publier} décrit les interactions entre le recruteur et le système.
 
 \begin{figure}[H]\centering
 \includegraphics[width=0.8\textwidth,height=0.5\textheight,keepaspectratio]{dss-publier-offre.png}
-\caption{Diagramme de séquence système « Publier une offre »}
+\caption{Diagramme de séquence système \og Publier une offre\fg{}}
 \label{fig:dss-publier}
 \end{figure}
 
 % ------------------------------------------------------------
-\subsection{Analyse du cas d'utilisation « Gérer les candidatures reçues »}
+\subsection{Analyse du cas d'utilisation \og Gérer les candidatures reçues\fg{}}
 
-\subsubsection{Raffinement du cas d'utilisation « Gérer les candidatures reçues »}
-La figure \ref{fig:raf-recues} offre une vue détaillée du cas d'utilisation « Gérer les candidatures reçues » et de ses sous-cas associés.
+\subsubsection{Raffinement du cas d'utilisation \og Gérer les candidatures reçues\fg{}}
+La figure \ref{fig:raf-recues} offre une vue détaillée du cas d'utilisation \og Gérer les candidatures reçues\fg{} et de ses sous-cas associés.
 
 \begin{figure}[H]\centering
 \includegraphics[width=0.85\textwidth,height=0.45\textheight,keepaspectratio]{raffinement-gerer-candidatures-recues.png}
-\caption{Raffinement du cas d'utilisation « Gérer les candidatures reçues »}
+\caption{Raffinement du cas d'utilisation \og Gérer les candidatures reçues\fg{}}
 \label{fig:raf-recues}
 \end{figure}
 
-\subsubsection{Description textuelle du cas d'utilisation « Accepter une candidature »}
+\subsubsection{Description textuelle du cas d'utilisation \og Accepter une candidature\fg{}}
 
 \begin{table}[H]
 \centering\small
@@ -490,37 +490,37 @@ La figure \ref{fig:raf-recues} offre une vue détaillée du cas d'utilisation «
 \hline
 \thead{Cas d'utilisation} & Accepter une candidature \\ \hline
 \thead{Acteur principal} & Recruteur \\ \hline
-\thead{Pré-conditions} & Le recruteur est authentifié et propriétaire de l'offre ; la candidature est « en attente ». \\ \hline
+\thead{Pré-conditions} & Le recruteur est authentifié et propriétaire de l'offre ; la candidature est \og en attente\fg{}. \\ \hline
 \thead{Post-conditions} & La candidature est acceptée et le candidat reçoit une notification avec la date de l'entretien. \\ \hline
 \thead{Scénario nominal} & 1. Le recruteur sélectionne une candidature et consulte le CV.\newline
-2. Il clique sur « Accept… » et saisit la date et l'heure de l'entretien.\newline
+2. Il clique sur \og Accept…\fg{} et saisit la date et l'heure de l'entretien.\newline
 3. Le système vérifie les droits du recruteur et l'état de la candidature.\newline
 4. Le système enregistre la décision, notifie le candidat et affiche un message de succès. \\ \hline
 \thead{Enchaînements alternatifs} & A1 : le recruteur n'est pas propriétaire de l'offre : accès refusé (HTTP 403).\newline
-A2 : la candidature est déjà traitée : « Application has already been processed. »\newline
+A2 : la candidature est déjà traitée : \og Application has already been processed.\fg{}\newline
 A3 : la date d'entretien manque : message d'erreur, retour à l'étape 2. \\ \hline
 \end{tabularx}
-\caption{Description du cas d'utilisation « Accepter une candidature »}
+\caption{Description du cas d'utilisation \og Accepter une candidature\fg{}}
 \end{table}
 
-\subsubsection{Diagramme de séquence système du cas d'utilisation « Accepter une candidature »}
+\subsubsection{Diagramme de séquence système du cas d'utilisation \og Accepter une candidature\fg{}}
 
 \begin{figure}[H]\centering
 \includegraphics[width=0.8\textwidth,height=0.55\textheight,keepaspectratio]{dss-accepter-candidature.png}
-\caption{Diagramme de séquence système « Accepter une candidature »}
+\caption{Diagramme de séquence système \og Accepter une candidature\fg{}}
 \end{figure}
 
 % ------------------------------------------------------------
-\subsection{Analyse du cas d'utilisation « Gérer ses candidatures »}
+\subsection{Analyse du cas d'utilisation \og Gérer ses candidatures\fg{}}
 
-\subsubsection{Raffinement du cas d'utilisation « Gérer ses candidatures »}
+\subsubsection{Raffinement du cas d'utilisation \og Gérer ses candidatures\fg{}}
 
 \begin{figure}[H]\centering
 \includegraphics[width=0.85\textwidth,height=0.45\textheight,keepaspectratio]{raffinement-gerer-ses-candidatures.png}
-\caption{Raffinement du cas d'utilisation « Gérer ses candidatures »}
+\caption{Raffinement du cas d'utilisation \og Gérer ses candidatures\fg{}}
 \end{figure}
 
-\subsubsection{Description textuelle du cas d'utilisation « Postuler à une offre »}
+\subsubsection{Description textuelle du cas d'utilisation \og Postuler à une offre\fg{}}
 
 \begin{table}[H]
 \centering\small
@@ -529,37 +529,37 @@ A3 : la date d'entretien manque : message d'erreur, retour à l'étape 2. \\ \hl
 \thead{Cas d'utilisation} & Postuler à une offre \\ \hline
 \thead{Acteur principal} & Candidat \\ \hline
 \thead{Pré-conditions} & Le candidat est authentifié ; l'offre est ouverte. \\ \hline
-\thead{Post-conditions} & Une candidature « en attente » est créée. \\ \hline
-\thead{Scénario nominal} & 1. Le candidat consulte une offre et clique sur « Apply Now ».\newline
+\thead{Post-conditions} & Une candidature \og en attente\fg{} est créée. \\ \hline
+\thead{Scénario nominal} & 1. Le candidat consulte une offre et clique sur \og Apply Now\fg{}.\newline
 2. Le système affiche le formulaire de candidature.\newline
-3. Le candidat choisit son CV (PDF), rédige une lettre de motivation facultative et clique sur « Send application ».\newline
+3. Le candidat choisit son CV (PDF), rédige une lettre de motivation facultative et clique sur \og Send application\fg{}.\newline
 4. Le système vérifie le fichier (vrai PDF, 10 Mo maximum), l'offre et l'absence de candidature existante.\newline
 5. Le système enregistre la candidature et affiche un message de succès. \\ \hline
 \thead{Enchaînements alternatifs} & A1 : offre clôturée ou date limite dépassée : message d'erreur.\newline
-A2 : candidature déjà existante : « You have already applied for this job offer. »\newline
+A2 : candidature déjà existante : \og You have already applied for this job offer.\fg{}\newline
 A3 : fichier invalide : message d'erreur, retour à l'étape 3. \\ \hline
 \end{tabularx}
-\caption{Description du cas d'utilisation « Postuler à une offre »}
+\caption{Description du cas d'utilisation \og Postuler à une offre\fg{}}
 \end{table}
 
-\subsubsection{Diagramme de séquence système du cas d'utilisation « Postuler à une offre »}
+\subsubsection{Diagramme de séquence système du cas d'utilisation \og Postuler à une offre\fg{}}
 
 \begin{figure}[H]\centering
 \includegraphics[width=0.8\textwidth,height=0.55\textheight,keepaspectratio]{dss-postuler-offre.png}
-\caption{Diagramme de séquence système « Postuler à une offre »}
+\caption{Diagramme de séquence système \og Postuler à une offre\fg{}}
 \end{figure}
 
 % ------------------------------------------------------------
-\subsection{Analyse du cas d'utilisation « Gérer le profil entreprise »}
+\subsection{Analyse du cas d'utilisation \og Gérer le profil entreprise\fg{}}
 
-\subsubsection{Raffinement du cas d'utilisation « Gérer le profil entreprise »}
+\subsubsection{Raffinement du cas d'utilisation \og Gérer le profil entreprise\fg{}}
 
 \begin{figure}[H]\centering
 \includegraphics[width=0.85\textwidth,height=0.45\textheight,keepaspectratio]{raffinement-gerer-profil-entreprise.png}
-\caption{Raffinement du cas d'utilisation « Gérer le profil entreprise »}
+\caption{Raffinement du cas d'utilisation \og Gérer le profil entreprise\fg{}}
 \end{figure}
 
-\subsubsection{Description textuelle du cas d'utilisation « Importer le profil depuis le site web »}
+\subsubsection{Description textuelle du cas d'utilisation \og Importer le profil depuis le site web\fg{}}
 
 \begin{table}[H]
 \centering\small
@@ -569,23 +569,23 @@ A3 : fichier invalide : message d'erreur, retour à l'étape 3. \\ \hline
 \thead{Acteur principal} & Recruteur \\ \hline
 \thead{Acteur secondaire} & Site web de l'entreprise \\ \hline
 \thead{Pré-conditions} & Le recruteur est authentifié et a renseigné l'adresse du site web. \\ \hline
-\thead{Post-conditions} & Les champs vides du profil sont remplis et marqués « From your website ». \\ \hline
-\thead{Scénario nominal} & 1. Le recruteur clique sur « Fill empty fields from this website ».\newline
+\thead{Post-conditions} & Les champs vides du profil sont remplis et marqués \og From your website\fg{}. \\ \hline
+\thead{Scénario nominal} & 1. Le recruteur clique sur \og Fill empty fields from this website\fg{}.\newline
 2. Le système vérifie que l'adresse est publique.\newline
 3. Le système affiche une bannière de progression et lit les pages publiques du site.\newline
 4. Le système extrait les informations et remplit uniquement les champs vides.\newline
 5. Le système affiche les champs remplis. \\ \hline
 \thead{Enchaînements alternatifs} & A1 : adresse interne ou privée : l'import est refusé (protection SSRF).\newline
-A2 : site inaccessible : message d'erreur et bouton « Try again ». \\ \hline
+A2 : site inaccessible : message d'erreur et bouton \og Try again\fg{}. \\ \hline
 \end{tabularx}
-\caption{Description du cas d'utilisation « Importer le profil depuis le site web »}
+\caption{Description du cas d'utilisation \og Importer le profil depuis le site web\fg{}}
 \end{table}
 
-\subsubsection{Diagramme de séquence système du cas d'utilisation « Importer le profil depuis le site web »}
+\subsubsection{Diagramme de séquence système du cas d'utilisation \og Importer le profil depuis le site web\fg{}}
 
 \begin{figure}[H]\centering
 \includegraphics[width=0.85\textwidth,height=0.55\textheight,keepaspectratio]{dss-importer-profil.png}
-\caption{Diagramme de séquence système « Importer le profil depuis le site web »}
+\caption{Diagramme de séquence système \og Importer le profil depuis le site web\fg{}}
 \end{figure}
 
 \section{Backlog du produit}
@@ -643,7 +643,7 @@ HireHub suit une architecture \textbf{multi-tiers} composée de plusieurs servic
 
 Deux services externes, sur Internet, complètent cette architecture :
 \begin{itemize}
-  \item les \textbf{sites web des entreprises}, dont l'ai-service lit uniquement les pages publiques (accueil, « À propos », « Contact »…) lors de l'import du profil entreprise ;
+  \item les \textbf{sites web des entreprises}, dont l'ai-service lit uniquement les pages publiques (accueil, \og À propos\fg{}, \og Contact\fg{}…) lors de l'import du profil entreprise ;
   \item le \textbf{serveur SMTP de Gmail}, utilisé par le backend pour envoyer les e-mails réels (bienvenue, réinitialisation du mot de passe).
 \end{itemize}
 
@@ -692,32 +692,32 @@ Dans cette section, nous examinons l'aspect statique de notre application à tra
 \subsection{Diagrammes de séquence objet}
 Au cours de cette section, nous examinons l'aspect dynamique de notre application. Ces diagrammes détaillent les échanges entre l'interface (\emph{View}), les contrôleurs, les entités et la base de données pour réaliser les principaux scénarios.
 
-\subsubsection{Diagramme de séquence objet relatif au scénario « Publier une offre »}
+\subsubsection{Diagramme de séquence objet relatif au scénario \og Publier une offre\fg{}}
 \begin{figure}[H]\centering
 \includegraphics[width=\textwidth,height=0.6\textheight,keepaspectratio]{dso-publier-offre.png}
-\caption{Diagramme de séquence objet relatif au scénario « Publier une offre »}
+\caption{Diagramme de séquence objet relatif au scénario \og Publier une offre\fg{}}
 \end{figure}
 
-\subsubsection{Diagramme de séquence objet relatif au scénario « Accepter une candidature »}
+\subsubsection{Diagramme de séquence objet relatif au scénario \og Accepter une candidature\fg{}}
 \begin{figure}[H]\centering
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{dso-accepter-candidature.png}
-\caption{Diagramme de séquence objet relatif au scénario « Accepter une candidature »}
+\caption{Diagramme de séquence objet relatif au scénario \og Accepter une candidature\fg{}}
 \end{figure}
 
-\subsubsection{Diagramme de séquence objet relatif au scénario « Postuler à une offre »}
+\subsubsection{Diagramme de séquence objet relatif au scénario \og Postuler à une offre\fg{}}
 Dans ce scénario, le CV est d'abord enregistré dans un espace privé, puis la candidature est créée en référençant ce fichier.
 
 \begin{figure}[H]\centering
 \includegraphics[width=\textwidth,height=0.7\textheight,keepaspectratio]{dso-postuler-offre.png}
-\caption{Diagramme de séquence objet relatif au scénario « Postuler à une offre »}
+\caption{Diagramme de séquence objet relatif au scénario \og Postuler à une offre\fg{}}
 \end{figure}
 
-\subsubsection{Diagramme de séquence objet relatif au scénario « Consulter sa compatibilité CV / offre »}
+\subsubsection{Diagramme de séquence objet relatif au scénario \og Consulter sa compatibilité CV / offre\fg{}}
 Le résultat est mis en cache : il n'est recalculé que si le CV, le texte de l'offre ou la version de l'algorithme change. Si le service IA est indisponible, aucun score n'est affiché.
 
 \begin{figure}[H]\centering
 \includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{dso-compatibilite-cv.png}
-\caption{Diagramme de séquence objet relatif au scénario « Consulter sa compatibilité CV / offre »}
+\caption{Diagramme de séquence objet relatif au scénario \og Consulter sa compatibilité CV / offre\fg{}}
 \end{figure}
 
 \section*{Conclusion}
@@ -834,7 +834,7 @@ Lors du dépôt, le texte du CV (PDF ou DOCX) est extrait par le service IA. Pou
 \begin{tabularx}{\textwidth}{|p{3cm}|p{1.6cm}|L|}
 \hline
 \rowcolor{headgray}\thead{Catégorie} & \thead{Poids} & \thead{Mesure} \\ \hline
-Compétences & 45 \% & Compétences requises et souhaitées, avec synonymes (« JS » = JavaScript, Spring Boot implique Spring). \\ \hline
+Compétences & 45 \% & Compétences requises et souhaitées, avec synonymes (\og JS\fg{} = JavaScript, Spring Boot implique Spring). \\ \hline
 Expérience & 20 \% & Années dans des postes utilisant les compétences de l'offre. \\ \hline
 Pertinence & 15 \% & Similarité sémantique multilingue entre le CV et l'offre (français et anglais). \\ \hline
 Formation & 10 \% & Niveau de diplôme. \\ \hline
@@ -860,10 +860,10 @@ overall = round(sum(cat["score"] * cat["effective_weight"]
 La similarité sémantique utilise le modèle multilingue \texttt{paraphrase-multilingual-\allowbreak MiniLM-L12-v2} \cite{sbert}, qui fonctionne sur un simple processeur et permet de comparer un CV français à une offre anglaise. Le résultat est mis en cache selon l'empreinte SHA-256 du CV, le texte de l'offre et la version de l'algorithme : il n'est recalculé que si l'un d'eux change.
 
 \subsection{Import du profil entreprise}
-À l'inscription, le recruteur peut indiquer le site web de son entreprise. Le service IA lit les pages publiques (données schema.org, balises meta, sections « Mission », « Vision », « Valeurs ») et remplit uniquement les champs encore vides ; ces champs sont marqués « From your website » jusqu'à ce que le recruteur les vérifie. Pour éviter les attaques \textbf{SSRF}, le service refuse les adresses internes ou privées.
+À l'inscription, le recruteur peut indiquer le site web de son entreprise. Le service IA lit les pages publiques (données schema.org, balises meta, sections \og Mission\fg{}, \og Vision\fg{}, \og Valeurs\fg{}) et remplit uniquement les champs encore vides ; ces champs sont marqués \og From your website\fg{} jusqu'à ce que le recruteur les vérifie. Pour éviter les attaques \textbf{SSRF}, le service refuse les adresses internes ou privées.
 
 \subsection{Rédaction assistée}
-Les boutons « Draft my bio » et « Draft a description » proposent un texte construit \textbf{uniquement} à partir des données saisies par l'utilisateur. Un modèle de langue local (Ollama) peut être activé en option pour reformuler le texte ; des garde-fous vérifient alors qu'il n'ajoute aucune information inventée.
+Les boutons \og Draft my bio\fg{} et \og Draft a description\fg{} proposent un texte construit \textbf{uniquement} à partir des données saisies par l'utilisateur. Un modèle de langue local (Ollama) peut être activé en option pour reformuler le texte ; des garde-fous vérifient alors qu'il n'ajoute aucune information inventée.
 
 \subsection{E-mails}
 Deux e-mails sont envoyés, en HTML et en texte brut, avec l'identité visuelle de HireHub : l'e-mail de bienvenue et le lien de réinitialisation du mot de passe. L'envoi est \textbf{asynchrone} et se fait après l'enregistrement en base : si le serveur SMTP échoue, l'action de l'utilisateur réussit quand même et l'erreur est journalisée. Le mode d'envoi se choisit par configuration : Mailpit en développement et pour les tests, Gmail SMTP pour les vrais e-mails.
@@ -912,7 +912,7 @@ Les captures suivantes ont été réalisées automatiquement avec Playwright à 
 \capture[0.9\textwidth]{02-login.jpg}{Interface d'authentification}
 \capture[0.9\textwidth]{03-signup.jpg}{Interface de création de compte}
 
-\paragraph{Vue d'ensemble du recruteur} Elle résume les offres ouvertes, les candidatures reçues et les candidatures récentes, avec les actions rapides « Accepter » et « Refuser ».
+\paragraph{Vue d'ensemble du recruteur} Elle résume les offres ouvertes, les candidatures reçues et les candidatures récentes, avec les actions rapides \og Accepter\fg{} et \og Refuser\fg{}.
 \capture{10-recruiter-overview.jpg}{Vue d'ensemble du recruteur}
 
 \paragraph{Gestion des offres} Le recruteur consulte ses offres, en publie une nouvelle ou clôture une offre.
@@ -977,11 +977,11 @@ Plusieurs évolutions sont envisagées :
 
 \paragraph{Déploiement en ligne} Déployer l'application sur un serveur accessible en HTTPS, afin que les liens envoyés par e-mail fonctionnent depuis n'importe quel réseau.
 
-\paragraph{Assistant « Interroger mes candidats » (RAG)} Permettre au recruteur de poser des questions en langage naturel sur ses candidats (« Qui a de l'expérience en Spring Boot et parle anglais ? »). Les CV seraient découpés en passages et indexés sous forme de vecteurs ; pour chaque question, seuls les passages pertinents seraient retrouvés et fournis à un modèle de langue, qui répondrait en citant ses sources. La recherche serait filtrée par la liste des candidats autorisés pour ce recruteur, pour qu'il ne voie jamais d'autres données. Des règles d'équité interdiraient les critères discriminatoires (âge, sexe, origine), et la qualité serait mesurée par le rappel des passages retrouvés (\emph{recall@k}) et la fidélité des réponses aux sources (\emph{faithfulness}). La figure \ref{fig:rag} résume l'architecture envisagée.
+\paragraph{Assistant \og Interroger mes candidats\fg{} (RAG)} Permettre au recruteur de poser des questions en langage naturel sur ses candidats (\og Qui a de l'expérience en Spring Boot et parle anglais ?\fg{}). Les CV seraient découpés en passages et indexés sous forme de vecteurs ; pour chaque question, seuls les passages pertinents seraient retrouvés et fournis à un modèle de langue, qui répondrait en citant ses sources. La recherche serait filtrée par la liste des candidats autorisés pour ce recruteur, pour qu'il ne voie jamais d'autres données. Des règles d'équité interdiraient les critères discriminatoires (âge, sexe, origine), et la qualité serait mesurée par le rappel des passages retrouvés (\emph{recall@k}) et la fidélité des réponses aux sources (\emph{faithfulness}). La figure \ref{fig:rag} résume l'architecture envisagée.
 
 \begin{figure}[H]\centering
 \includegraphics[width=0.9\textwidth,height=0.6\textheight,keepaspectratio]{perspective-rag.png}
-\caption{Architecture envisagée de l'assistant RAG « Interroger mes candidats »}
+\caption{Architecture envisagée de l'assistant RAG \og Interroger mes candidats\fg{}}
 \label{fig:rag}
 \end{figure}
 
@@ -1025,7 +1025,7 @@ Ces perspectives confirment le potentiel de HireHub à évoluer vers un outil de
 \clearpage
 \thispagestyle{empty}
 \section*{Résumé}
-Ce rapport présente le travail réalisé lors de mon stage d'été au sein de Proxym-IT : la conception et le développement de \textbf{« HireHub : plateforme de gestion des offres d'emploi et des candidatures »}. L'application permet aux recruteurs de publier leurs offres, de traiter et d'évaluer les candidatures, et aux candidats de rechercher des offres et de postuler. Un service d'analyse calcule un score de compatibilité explicable entre le CV et l'offre, et importe le profil d'une entreprise depuis son site web. La solution repose sur React, Spring Boot, FastAPI et MySQL ; elle est sécurisée, testée automatiquement et conteneurisée avec Docker.
+Ce rapport présente le travail réalisé lors de mon stage d'été au sein de Proxym-IT : la conception et le développement de \textbf{\og HireHub : plateforme de gestion des offres d'emploi et des candidatures\fg{}}. L'application permet aux recruteurs de publier leurs offres, de traiter et d'évaluer les candidatures, et aux candidats de rechercher des offres et de postuler. Un service d'analyse calcule un score de compatibilité explicable entre le CV et l'offre, et importe le profil d'une entreprise depuis son site web. La solution repose sur React, Spring Boot, FastAPI et MySQL ; elle est sécurisée, testée automatiquement et conteneurisée avec Docker.
 
 \noindent\textbf{Mots clés :} Recrutement, Analyse de CV, Score de compatibilité, Web scraping, Spring Boot, React, FastAPI, Docker.
 
