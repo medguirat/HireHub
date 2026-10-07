@@ -362,14 +362,14 @@ Ce chapitre est consacré à l'analyse des besoins. Nous identifions d'abord les
 \section{Capture des besoins}
 
 \subsection{Identification des acteurs}
-Un acteur est une entité (personne ou système) qui interagit avec l'application. Nous distinguons trois acteurs principaux et trois acteurs secondaires (tableau \ref{tab:acteurs}).
+Un acteur est une entité (personne ou système) qui interagit avec l'application. Nous distinguons deux acteurs principaux, le candidat et le recruteur, qui héritent tous deux d'un acteur général, l'utilisateur, ainsi que trois acteurs secondaires (tableau \ref{tab:acteurs}).
 
 \begin{table}[H]
 \centering
 \begin{tabularx}{\textwidth}{|p{3.4cm}|L|}
 \hline
 \rowcolor{headgray}\thead{Acteur} & \thead{Rôle} \\ \hline
-Visiteur & Personne non connectée : crée un compte, se connecte, réinitialise son mot de passe. \\ \hline
+Utilisateur \newline \footnotesize(acteur général) & Rôle commun au candidat et au recruteur : s'inscrit, s'authentifie et réinitialise son mot de passe. \\ \hline
 Candidat & Gère son profil et son CV, recherche des offres, consulte sa compatibilité avec une offre, postule et suit ses candidatures. \\ \hline
 Recruteur & Gère le profil de son entreprise et ses offres, traite les candidatures, évalue les candidats et consulte les statistiques. \\ \hline
 Service IA \newline \footnotesize(secondaire) & Service interne qui extrait le texte des CV, calcule la compatibilité et importe le profil d'une entreprise. \\ \hline
@@ -425,7 +425,7 @@ Les besoins fonctionnels décrivent ce que le système doit faire pour chaque ac
 \section{Spécification des besoins}
 
 \subsection{Diagramme de cas d'utilisation global}
-La figure \ref{fig:uc-global} présente les différentes fonctionnalités que notre système propose aux acteurs. Chaque cas d'utilisation, sauf l'inscription et la réinitialisation du mot de passe, nécessite une authentification préalable.
+La figure \ref{fig:uc-global} présente les différentes fonctionnalités que notre système propose aux acteurs. Le candidat et le recruteur héritent de l'utilisateur : ils peuvent donc tous deux s'inscrire et réinitialiser leur mot de passe. Chacun dispose ensuite de ses propres fonctionnalités, qui nécessitent toutes une authentification préalable.
 
 \begin{figure}[H]\centering
 \includegraphics[width=0.8\textwidth,height=0.7\textheight,keepaspectratio]{cas-utilisation-global.png}
@@ -605,7 +605,7 @@ Le backlog du produit regroupe les fonctionnalités sous forme d'histoires utili
 \hline
 \rowcolor{headgray}\thead{ID} & \thead{Fonctionnalité} & \thead{User story} & \thead{Priorité} \\ \hline
 \endhead
-01 & Authentification & En tant que visiteur, je veux créer un compte et être connecté directement. & Élevée \\ \cline{3-4}
+01 & Authentification & En tant qu'utilisateur, je veux créer un compte et être connecté directement. & Élevée \\ \cline{3-4}
  & & En tant qu'utilisateur, je veux réinitialiser mon mot de passe par e-mail. & Élevée \\ \hline
 02 & Gestion des offres & En tant que recruteur, je veux publier, modifier et supprimer une offre. & Élevée \\ \cline{3-4}
  & & En tant que recruteur, je veux clôturer une offre sans perdre ses candidats. & Moyenne \\ \hline

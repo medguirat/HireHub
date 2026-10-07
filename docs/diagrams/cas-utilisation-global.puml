@@ -3,14 +3,17 @@
 !include _style.puml
 left to right direction
 
-actor "Visiteur" as V
+actor "Utilisateur" as U
 actor "Candidat" as C
 actor "Recruteur" as R
 
+C --|> U
+R --|> U
+
 rectangle "Diagramme de cas d'utilisation global" {
   usecase "S'inscrire" as UC_signup
-  usecase "Réinitialiser\nle mot de passe" as UC_reset
   usecase "S'authentifier" as UC_login
+  usecase "Réinitialiser\nle mot de passe" as UC_reset
 
   usecase "Gérer son profil" as UC_cprofile
   usecase "Gérer son CV" as UC_cv
@@ -23,8 +26,8 @@ rectangle "Diagramme de cas d'utilisation global" {
   usecase "Consulter les statistiques" as UC_stats
 }
 
-V -- UC_signup
-V -- UC_reset
+U -- UC_signup
+U -- UC_reset
 
 C -- UC_cprofile
 C -- UC_cv
