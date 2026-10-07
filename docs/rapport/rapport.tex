@@ -1,8 +1,6 @@
 % ============================================================
 %  RAPPORT DE STAGE D'ÉTÉ — HireHub — Proxym-IT
 %  Compilation : pdfLaTeX (Overleaf : Menu > Compiler > pdfLaTeX), deux passes
-%  Les commentaires « % TODO Marwa: » signalent ce qu'il faut
-%  vérifier ou compléter (dates, encadrants, matériel...).
 % ============================================================
 \documentclass[12pt,a4paper]{report}
 
@@ -162,8 +160,11 @@
     École Nationale d'Ingénieurs de Carthage\par
   \end{minipage}\hfill
   \begin{minipage}[c]{0.2\textwidth}
-    \centering\includegraphics[width=\textwidth,height=2.2cm,keepaspectratio]{images/Universite_Carthage_logo.png}
+    \centering\includegraphics[width=\textwidth,height=2.2cm,keepaspectratio]{images/Université_Carthage_logo.png}
   \end{minipage}
+
+  \vspace{0.9cm}
+  {\color{titleblue}\rule{\linewidth}{0.8pt}}\par
 
   \vspace{1.6cm}
   {\Large\scshape Rapport de stage d'été\par}
@@ -178,14 +179,10 @@
   \vspace{0.8cm}
 
   % --- Titre encadré par deux filets ---
-  \includegraphics[height=1.6cm,keepaspectratio]{images/LogoHireHub.png}\par
-  \vspace{0.3cm}
   {\color{titleblue}\rule{\linewidth}{2.5pt}}\par
-  \vspace{-0.25cm}
-  {\color{titleblue}\rule{\linewidth}{0.8pt}}\par
   \vspace{0.3cm}
   {\LARGE HireHub : Plateforme de gestion des offres d'emploi\par
-   et des candidatures avec analyse de CV\par}
+   et des candidatures\par}
   \vspace{0.2cm}
   {\color{titleblue}\rule{\linewidth}{2.5pt}}\par
   \vspace{1cm}
@@ -247,8 +244,7 @@
 \addcontentsline{toc}{chapter}{Introduction générale}
 \markboth{Introduction générale}{}
 
-Le présent rapport s'inscrit dans le cadre du stage d'été effectué au sein de la société Proxym-IT, dans le cadre de ma formation d'ingénieur en Génie Informatique à l'École Nationale d'Ingénieurs de Carthage (ENICarthage). Ce stage avait pour objectif de me confronter à un environnement professionnel réel de développement logiciel et de mettre en pratique les compétences acquises durant ma formation.
-% TODO Marwa: indiquez les dates exactes du stage (du ... au ...).
+Le présent rapport s'inscrit dans le cadre du stage d'été effectué au sein de la société Proxym-IT, dans le cadre de ma formation d'ingénieur en Génie Informatique à l'École Nationale d'Ingénieurs de Carthage (ENICarthage). Ce stage avait pour objectif de me confronter à un environnement professionnel réel de développement logiciel et de mettre en pratique les compétences acquises durant ma formation. Il s'est déroulé du 6 juillet au 6 août 2026.
 
 Le recrutement reste aujourd'hui un processus dispersé : les offres sont publiées sur plusieurs canaux, les CV arrivent par e-mail et le suivi se fait souvent dans des tableurs. Le recruteur perd du temps à trier des candidatures, et le candidat ne sait pas si son profil correspond vraiment à l'offre ni où en est sa demande.
 
@@ -289,11 +285,9 @@ Proxym-IT intervient principalement auprès de quatre catégories de clients :
   \item les agences web, en apportant les compétences techniques nécessaires à leurs projets.
 \end{itemize}
 Parmi ses réalisations phares, Proxym-IT a développé des plateformes digitales d'engagement dédiées aux secteurs bancaire et assurantiel, notamment \textbf{Bankerise} et \textbf{Insurise}.
-% TODO Marwa: si vous disposez de l'organigramme officiel, ajoutez-le ici en figure (avec sa source).
 
 \subsection{Service d'accueil et missions}
 Le stage s'est déroulé au sein de l'équipe de développement de Proxym-IT, à la Technopole Novation City de Sousse, avec des points de suivi réguliers avec la tutrice de stage.
-% TODO Marwa: précisez le nom de l'équipe / du département si vous le connaissez.
 
 La mission confiée est la conception et le développement, de bout en bout, de la plateforme HireHub :
 \begin{itemize}
@@ -342,8 +336,7 @@ Le score de compatibilité est \textbf{déterministe et explicable} : chaque poi
 \section{Méthode de travail}
 Le projet a suivi une démarche \textbf{itérative et incrémentale} : chaque itération livre une fonctionnalité testable (authentification, puis gestion des offres, puis candidatures, puis analyse de CV, etc.), validée lors des points de suivi avec la tutrice de stage, qui permettaient d'ajuster les priorités.
 
-Chaque fonctionnalité est développée avec ses tests automatisés, et le code est versionné avec Git (messages de commit au format « Conventional Commits »). À partir de la mise en place de l'intégration continue, chaque modification est vérifiée automatiquement par GitHub Actions.
-% TODO Marwa: si votre équipe utilisait Scrum (sprints, daily...), vous pouvez le préciser ici.
+Chaque fonctionnalité est développée avec ses tests automatisés, et le code est versionné avec Git.
 
 \section*{Conclusion}
 \addcontentsline{toc}{section}{Conclusion}
@@ -621,7 +614,6 @@ Le backlog du produit regroupe les fonctionnalités sous forme d'histoires utili
 11 & E-mails & En tant qu'utilisateur, je veux recevoir un e-mail de bienvenue. & Faible \\ \hline
 \caption{Backlog du produit}\label{tab:backlog}\\
 \end{longtable}
-% TODO Marwa: si vous voulez ajouter un planning (itérations avec dates), mettez vos dates réelles.
 
 \section*{Conclusion}
 \addcontentsline{toc}{section}{Conclusion}
@@ -872,7 +864,6 @@ La similarité sémantique utilise le modèle multilingue \texttt{paraphrase-mul
 
 \subsection{Rédaction assistée}
 Les boutons « Draft my bio » et « Draft a description » proposent un texte construit \textbf{uniquement} à partir des données saisies par l'utilisateur. Un modèle de langue local (Ollama) peut être activé en option pour reformuler le texte ; des garde-fous vérifient alors qu'il n'ajoute aucune information inventée.
-% TODO Marwa: précisez le modèle Ollama utilisé si vous l'avez testé.
 
 \subsection{E-mails}
 Deux e-mails sont envoyés, en HTML et en texte brut, avec l'identité visuelle de HireHub : l'e-mail de bienvenue et le lien de réinitialisation du mot de passe. L'envoi est \textbf{asynchrone} et se fait après l'enregistrement en base : si le serveur SMTP échoue, l'action de l'utilisateur réussit quand même et l'erreur est journalisée. Le mode d'envoi se choisit par configuration : Mailpit en développement et pour les tests, Gmail SMTP pour les vrais e-mails.
@@ -892,7 +883,7 @@ La conteneurisation a été mise en place pour rendre l'installation reproductib
   \item un fichier \texttt{docker-compose.yml} qui lance MySQL, le backend, le service IA, le frontend et Mailpit, avec des contrôles de santé (\emph{healthchecks}) et des volumes pour la base de données et les fichiers déposés ;
   \item le service IA et MySQL restent sur le réseau interne de Docker : seul nginx est accessible depuis l'extérieur.
 \end{itemize}
-L'exécution complète de la suite de tests Playwright sur la pile Docker est en cours de finalisation et constitue la prochaine étape du projet.
+La suite complète de tests Playwright passe également sur la pile Docker (24 tests sur 24).
 
 \subsection{Intégration continue}
 Un workflow GitHub Actions vérifie chaque modification : tests du backend (\texttt{mvn verify}, avec une base MySQL lancée automatiquement par Testcontainers), tests du service IA (pytest), analyse statique et tests du frontend (ESLint, Vitest) et construction de l'application.
@@ -913,7 +904,6 @@ Bout en bout & Playwright & Parcours complets candidat et recruteur, e-mails, na
 \caption{Tests automatisés (dernière exécution complète)}
 \label{tab:tests}
 \end{table}
-% TODO Marwa: mettez à jour ces nombres si vous relancez les tests avant la remise.
 
 \section{Description des interfaces}
 Les captures suivantes ont été réalisées automatiquement avec Playwright à partir des données de démonstration.
@@ -985,7 +975,7 @@ La version actuelle couvre l'ensemble des besoins identifiés : gestion des offr
 
 Plusieurs évolutions sont envisagées :
 
-\paragraph{Finalisation du déploiement} Terminer la validation de la pile Docker avec la suite de tests de bout en bout, puis déployer l'application sur un serveur accessible en HTTPS, afin que les liens envoyés par e-mail fonctionnent depuis n'importe quel réseau.
+\paragraph{Déploiement en ligne} Déployer l'application sur un serveur accessible en HTTPS, afin que les liens envoyés par e-mail fonctionnent depuis n'importe quel réseau.
 
 \paragraph{Assistant « Interroger mes candidats » (RAG)} Permettre au recruteur de poser des questions en langage naturel sur ses candidats (« Qui a de l'expérience en Spring Boot et parle anglais ? »). Les CV seraient découpés en passages et indexés sous forme de vecteurs ; pour chaque question, seuls les passages pertinents seraient retrouvés et fournis à un modèle de langue, qui répondrait en citant ses sources. La recherche serait filtrée par la liste des candidats autorisés pour ce recruteur, pour qu'il ne voie jamais d'autres données. Des règles d'équité interdiraient les critères discriminatoires (âge, sexe, origine), et la qualité serait mesurée par le rappel des passages retrouvés (\emph{recall@k}) et la fidélité des réponses aux sources (\emph{faithfulness}). La figure \ref{fig:rag} résume l'architecture envisagée.
 
@@ -1004,7 +994,6 @@ Ces perspectives confirment le potentiel de HireHub à évoluer vers un outil de
 % ============================================================
 %  NETOGRAPHIE
 % ============================================================
-% TODO Marwa: ajustez les dates de consultation si besoin.
 \chapter*{Netographie}
 \addcontentsline{toc}{chapter}{Netographie}
 \markboth{Netographie}{}
